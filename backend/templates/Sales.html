@@ -1,0 +1,146 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static  %}
+
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Sales</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+              <li class="breadcrumb-item active">Sales</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header --> 
+
+    <!--Add Banner Form-->   
+    <section class="content">
+        <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-12">
+             <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+          <!-- Small boxes (Stat box) -->
+          <div class="row">
+            <div class="col-lg-4 col-md-6">
+              <!-- small box -->
+              <div class="small-box bg-card">
+                <div class="inner">
+                  <h5><i class="fa-solid fa-coins"></i> Total Sales</h5>
+                  <h4><i class="fa-solid fa-indian-rupee-sign"></i>{{tot_cmp}} 4</h4>
+                </div>
+                <div class="icon">
+                  <!-- <i class="ion ion-bag"></i> -->
+                </div>
+                {% comment %} {% url 'cmp' %} {% endcomment %}
+                <!-- <a href="" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a> -->
+              </div>
+            </div>
+            <!-- ./col -->
+            <div class="col-lg-4 col-md-6">
+              <!-- small box -->
+              <div class="small-box bg-card">
+                <div class="inner">
+                  <h5><i class="fa-solid fa-coins"></i> Paid</h5>
+                  <h4><i class="fa-solid fa-indian-rupee-sign"></i>{{tot_cmp}} 4</h4>
+                </div>
+                <div class="icon">
+                  <!-- <i class="ion ion-bag"></i> -->
+                </div>
+                {% comment %} {% url 'cmp' %} {% endcomment %}
+                <!-- <a href="" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a> -->
+              </div>
+            </div>
+            <!-- ./col -->
+            <div class="col-lg-4 col-md-6">
+              <!-- small box -->
+              <div class="small-box bg-card">
+                <div class="inner">
+                  <h5><i class="fa-solid fa-coins"></i> Unpaid</h5>
+                  <h4><i class="fa-solid fa-indian-rupee-sign"></i>{{tot_cmp}} 4</h4>
+                </div>
+                <div class="icon">
+                  <!-- <i class="ion ion-bag"></i> -->
+                </div>
+                {% comment %} {% url 'cmp' %} {% endcomment %}
+                <!-- <a href="" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a> -->
+              </div>
+            </div>
+            <!-- ./col -->
+            <!-- ./col -->
+          </div>
+          <!-- /.row -->
+          <!-- Main row -->
+         
+        </div><!-- /.container-fluid -->
+      </section>
+      <!-- /.content -->
+
+            </div>
+            <!-- /.card -->
+            </div>
+            <!-- /.col -->
+
+             <!--TABLE-->
+           <div class="card col-12" style="box-shadow: rgba(0, 0, 0, 0.2) 0px 12px 28px 0px, rgba(0, 0, 0, 0.1) 0px 2px 4px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px inset;" >
+            <div class="card-header" >
+            <h3 class="card-title">Sales List</h3>
+            </div>
+        
+            <div class="card-body col-md-12">
+                <div class="col-md-12">
+                    <table id="example1" class="table data-table stripe hover nowrap table-bordered">
+
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Invoice Number</th>
+                                <th>Party Name</th>
+                                <th>Due In </th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+    
+                        <tbody>
+                            {% for i in cmp_dtls %}
+                            <tr>
+                                <td>{{forloop.counter}}</td>
+                                <td>{{i.company}}</td>
+                                <td>{{i.pan_no}}</td>
+                                <td>{{i.gst_no}}</td>
+                                <!-- <td><a href="{% url 'cmp_dlt' i.id %}"><button type="button" class="btn btn-outline-danger">Delete</button></a></td>
+                                <td><a href="{% url 'cmp_updt' i.id %}"><button type="button" class="btn btn-outline-success">Update</button></a></td> -->
+                           </tr>
+                            {% endfor %}
+                        </tbody>
+                        
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        </div>
+          
+   
+        <!-- /.row -->
+        </div>
+        <!-- /.container-fluid -->
+    </section>
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

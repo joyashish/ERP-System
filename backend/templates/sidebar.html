@@ -1,0 +1,209 @@
+{% load static %}
+<style>
+    /* Sidebar Enhancements */
+    .main-sidebar {
+        background: linear-gradient(135deg, #1a2a3a 0%, #0d1721 100%);
+    }
+    
+    .nav-header {
+        font-size: 0.75rem;
+        padding: 0.5rem 1rem;
+        letter-spacing: 1px;
+    }
+    
+    .nav-link {
+        border-left: 3px solid transparent;
+        margin-bottom: 2px;
+    }
+    
+    .nav-link.active, .nav-link:hover {
+        background: rgba(255,255,255,0.05);
+        border-left-color: #4e73df;
+    }
+    
+    .nav-item > .nav-link > i {
+        min-width: 25px;
+        text-align: center;
+    }
+    
+    .brand-link {
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .user-panel {
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+</style>
+<!-- Main Sidebar Container -->
+<aside class="main-sidebar sidebar-dark-primary elevation-4" style="background: #1a2a3a;">
+    <!-- Brand Logo -->
+    <a href="{% url 'dash' %}" class="brand-link text-center" style="background: rgba(255,255,255,0.1);">
+        <img src="https://camo.githubusercontent.com/6907519551f9e6948c61eafb1cead2f198f252162570317067efeb6f6f46b448/68747470733a2f2f69636f6e2d6c6962726172792e636f6d2f696d616765732f6572702d73797374656d2d69636f6e2f6572702d73797374656d2d69636f6e2d392e6a7067" alt="ERP Logo" class="brand-image" style="opacity: .9; width: 30px; height: 30px;">
+        <span class="brand-text font-weight-light" style="font-size: 1.1rem;">ERP System</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar User Panel -->
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+                <img src="{% static '../static/dist/img/user1.jpg' %}" class="img-circle elevation-2" alt="User Image">
+            </div>
+            <div class="info">
+                {% if 'email' in request.session %}
+                <a href="#" class="d-block text-white">{{add.email}}</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Action Button -->
+        <div class="px-3 mb-3">
+            <a href="{% url 'Create_Sale' %}" class="btn btn-success btn-block btn-sm">
+                <i class="fas fa-plus-circle mr-1"></i> New Sale
+            </a>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                <!-- Dashboard -->
+                <li class="nav-item">
+                    <a href="{% url 'dash' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <p>Dashboard</p>
+                    </a>
+                </li>
+
+                <!-- Master Data -->
+                <li class="nav-header text-uppercase text-muted">Master Data</li>
+                <li class="nav-item">
+                    <a href="{% url 'Party_list' %}" class="nav-link">
+                        <i class="nav-icon fas fa-users"></i>
+                        <p>Parties</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'Item_list' %}" class="nav-link">
+                        <i class="nav-icon fas fa-boxes"></i>
+                        <p>Inventory Items</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-balance-scale"></i>
+                        <p>Units of Measure</p>
+                    </a>
+                </li>
+                <!-- <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-route"></i>
+                        <p>Transport Routes</p>
+                    </a>
+                </li> -->
+
+                <!-- Transactions -->
+                <li class="nav-header text-uppercase text-muted">Transactions</li>
+                <li class="nav-item">
+                    <a href="{% url 'Sales' %}" class="nav-link">
+                        <i class="nav-icon fas fa-cash-register"></i>
+                        <p>Sales</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-shopping-cart"></i>
+                        <p>Purchases</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-exchange-alt"></i>
+                        <p>Stock Transfers</p>
+                    </a>
+                </li>
+
+                <!-- Inventory Management -->
+                <li class="nav-header text-uppercase text-muted">Inventory</li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-warehouse"></i>
+                        <p>Godown Stock</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-clipboard-check"></i>
+                        <p>Stock Adjustments</p>
+                    </a>
+                </li>
+
+                <!-- Logistics -->
+                <li class="nav-header text-uppercase text-muted">Logistics</li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-truck"></i>
+                        <p>Truck Management</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-hard-hat"></i>
+                        <p>Labor Management</p>
+                    </a>
+                </li>
+
+                <!-- Financial -->
+                <li class="nav-header text-uppercase text-muted">Financial</li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-money-bill-wave"></i>
+                        <p>Expenses</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                        <p>Invoicing</p>
+                    </a>
+                </li>
+
+                <!-- Reports -->
+                <li class="nav-header text-uppercase text-muted">Reports</li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>Sales Reports</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-pie"></i>
+                        <p>Inventory Reports</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-file-alt"></i>
+                        <p>Financial Statements</p>
+                    </a>
+                </li>
+
+                <!-- System -->
+                <li class="nav-header text-uppercase text-muted">System</li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-user-tie"></i>
+                        <p>Employee Management</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <p>Settings</p>
+                    </a>
+                </li>
+            </ul>
+            <br><br>
+        </nav>
+    </div>
+</aside>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice 214 - Vijay Jarda</title>
+  <style>
+    :root {
+      --primary: #007bff;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7fa;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      background: #fff;
+      width: 794px; /* A4 width in pixels at 96dpi */
+      margin: auto;
+      padding: 40px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+
+    .print-button {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .print-button:hover {
+      background-color: #0056b3;
+    }
+
+    .header {
+      text-align: center;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 10px;
+    }
+
+    .header h1 {
+      margin: 0;
+      color: var(--primary);
+    }
+
+    .header p {
+      margin: 5px 0;
+    }
+
+    .invoice-details {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-weight: bold;
+      color: #444;
+      margin-top: 30px;
+      font-size: 18px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .totals {
+      text-align: right;
+      margin-top: 20px;
+    }
+
+    .totals p {
+      margin: 5px 0;
+      font-size: 16px;
+    }
+
+    .amount-words {
+      margin-top: 15px;
+      font-style: italic;
+    }
+
+    .bank, .qr, .terms {
+      margin-top: 20px;
+    }
+
+    .terms ol {
+      padding-left: 20px;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: #777;
+      margin-top: 40px;
+    }
+
+    .highlight {
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    @media print {
+      @page {
+        size: A4;
+        margin: 20mm;
+      }
+
+      .print-button {
+        display: none;
+      }
+
+      body {
+        background: white;
+        padding: 0;
+      }
+
+      .container {
+        width: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="print-button" onclick="window.print()">Print Invoice</button>
+
+  <div class="container">
+    <div class="header">
+      <h1>Bidhayak Traders</h1>
+      <p>Manjhiaon, Garhwa, Jharkhand, 822134</p>
+      <p>Mobile: 6203418568 | PAN: DHEPG3074E</p>
+      <p>Email: bzeetech0@gmail.com</p>
+      <h2 style="margin-top: 10px;">Tax Invoice</h2>
+    </div>
+
+    <div class="invoice-details">
+      <div>
+        <p><strong>Invoice No:</strong> 214</p>
+        <p><strong>Invoice Date:</strong> 13/05/2025</p>
+        <p><strong>Due Date:</strong> 20/05/2025</p>
+      </div>
+      <div>
+        <p><strong>Bill To:</strong><br>VIJAY JARDA</p>
+      </div>
+    </div>
+
+    <div class="section-title">Items</div>
+    <table>
+      <thead>
+        <tr>
+          <th>S.No</th>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th>Tax</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>750ML SPR</td>
+          <td>3 PCS</td>
+          <td>₹ 885</td>
+          <td>0%</td>
+          <td>₹ 2,655</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>250ML SPR</td>
+          <td>2 PCS</td>
+          <td>₹ 495</td>
+          <td>0%</td>
+          <td>₹ 990</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <p><strong>Total: ₹ 3,645</strong></p>
+      <p><strong>Received Amount: ₹ 0</strong></p>
+    </div>
+
+    <div class="section-title">Tax Summary</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Taxable Value</th>
+          <th>CGST Rate</th>
+          <th>CGST Amount</th>
+          <th>SGST Rate</th>
+          <th>SGST Amount</th>
+          <th>Total Tax</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>₹ 3,645</td>
+          <td>0%</td>
+          <td>₹ 0</td>
+          <td>0%</td>
+          <td>₹ 0</td>
+          <td>₹ 0</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="amount-words">Total Amount (in words): <strong>Three Thousand Six Hundred Forty Five Rupees</strong></p>
+
+    <div class="section-title">Bank Details</div>
+    <div class="bank">
+      <p><strong>Name:</strong> Sanuj Kumar Gupta</p>
+      <p><strong>Account No:</strong> 5337777943</p>
+      <p><strong>IFSC Code:</strong> CBIN0281583</p>
+      <p><strong>Bank:</strong> Central Bank of India, CHANDRI</p>
+    </div>
+
+    <div class="section-title">Payment QR & UPI</div>
+    <div class="qr">
+      <p><strong>UPI ID:</strong> <span class="highlight">9122133687@axl</span></p>
+    </div>
+
+    <div class="section-title">Terms and Conditions</div>
+    <div class="terms">
+      <ol>
+        <li>Goods once sold will not be taken back or exchanged.</li>
+        <li>All disputes are subject to <strong>JHARKHAND</strong> jurisdiction only.</li>
+      </ol>
+    </div>
+
+    <div class="footer">
+      Thank you for your business!
+    </div>
+  </div>
+
+</body>
+</html>

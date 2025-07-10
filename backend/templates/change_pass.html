@@ -1,0 +1,159 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+<link rel="stylesheet" href="{% static '../static/dist/css/style.css' %}">
+<style>
+  .password-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-input {
+  position: relative;
+}
+
+.password-input input {
+  padding-right: 30px; 
+}
+
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+</style>
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Dashboard</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+              <li class="breadcrumb-item active">Add Unit</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+
+   <div class="card ml-5 mr-5" style="box-shadow:5px 5px 10px #7d7878">
+      <div class="card-header bg-info">
+        Change password
+      </div>
+      <div class="card-body col-md-12" >
+        <div class="row">
+            <div class="col-md-6">
+                <img src="{% static '../static/dist/img/qwe.gif' %}" class="img-fluid">
+            </div>
+            <div class="col-md-6 " class="regstrfrm">
+                <form action="" method="post">
+                    {% csrf_token %}
+                   <h3>Change Password</h3>
+        
+        
+                   <!-- Messages -->
+                   {% if messages %}
+                    {{message.tags}}
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                       {% for message in messages %}
+                       <i class="fas fa-check-circle"></i>&nbsp;&nbsp;{{message}} 
+                       <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                          <span aria-hidden="true">&times;</span>
+                        </button>
+                       {% endfor %} 
+                    </div>
+                    {% endif %}
+                    <!-- Messages end -->
+        
+                    <br><br>
+                   <div class="mb-3"> 
+                      <label for="lng">Email</label>
+                      <input type="text" id="lng" class="form-control" name="email" value="{{add.email}}" readonly>
+                     </div>
+
+                     <div class="password-container">
+                      <label for="password">Password</label>
+                      <div class="password-input">
+                        <input type="password" id="password" name="password"  class="form-control"  placeholder="Enter New Password*" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                      </div>
+                    </div>
+
+                    <br>
+                    <div class="password-container">
+                      <label for="password">Re-Enter Password</label>
+                      <div class="password-input">
+                        <input type="password" id="re_password" name="password" class="form-control"  placeholder="Enter New Password*" required>
+                        <i class="fas fa-eye toggle-password"></i>
+                        <span class="text-danger msg"></span>
+                      </div>
+                    </div>
+                    <br>
+                     <div class="btn mb-3">
+                      <button type="submit" class="btn btn-info form-control" value="Change Password" id="passsubmit" >Change Password</button>
+                     </div>
+                 </form>
+            </div>
+        </div>
+       
+      </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}
+<!--FOR VALIDATION BOTH FIELD IS SAME OR NOT-->
+<script>
+  $(document).ready(function(){
+    $('body').on('click','#passsubmit',function(){
+     
+      var $password = $('#password').val();
+     var $re_password = $('#re_password').val();
+     if($password!= $re_password){
+        $('.msg').html("Your Password should be same.");
+        $('#password').val('');
+        $('#re_password').val('');
+     }
+    });
+  
+  });
+</script>
+
+<!--Password to text , Text to password-->
+<script>
+  $(document).ready(function() {
+   $('.toggle-password').on('click', function() {
+     const passwordField = $('#password');
+     const fieldType = passwordField.attr('type');
+     
+     if (fieldType === 'password') {
+       passwordField.attr('type', 'text');
+       $(this).removeClass('fa-eye').addClass('fa-eye-slash');
+     } else {
+       passwordField.attr('type', 'password');
+       $(this).removeClass('fa-eye-slash').addClass('fa-eye');
+     }
+   });
+
+   $('.toggle-password').on('click', function() {
+    const passwordField = $('#re_password');
+    const fieldType = passwordField.attr('type');
+    
+    if (fieldType === 'password') {
+      passwordField.attr('type', 'text');
+      $(this).removeClass('fa-eye').addClass('fa-eye-slash');
+    } else {
+      passwordField.attr('type', 'password');
+      $(this).removeClass('fa-eye-slash').addClass('fa-eye');
+    }
+  });
+ });
+ </script> 

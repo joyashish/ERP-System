@@ -1,0 +1,128 @@
+{% load static %}
+<!-- jQuery -->
+<script src="{% static '../static/plugins/jquery/jquery.min.js' %}"></script>
+<!-- jQuery UI 1.11.4 -->
+<script src="{% static '../static/plugins/jquery-ui/jquery-ui.min.js' %}"></script>
+<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+<script>
+  $.widget.bridge('uibutton', $.ui.button)
+</script>
+<!-- Bootstrap 4 -->
+<script src="{% static '../static/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<!-- ChartJS -->
+<script src="{% static '../static/plugins/chart.js/Chart.min.js' %}"></script>
+<!-- Sparkline -->
+<script src="{% static '../static/plugins/sparklines/sparkline.js' %}"></script>
+<!-- JQVMap -->
+<script src="{% static '../static/plugins/jqvmap/jquery.vmap.min.js' %}"></script>
+<script src="{% static '../static/plugins/jqvmap/maps/jquery.vmap.usa.js' %}"></script>
+<!-- jQuery Knob Chart -->
+<script src="{% static '../static/plugins/jquery-knob/jquery.knob.min.js' %}"></script>
+<!-- daterangepicker -->
+<script src="{% static '../static/plugins/moment/moment.min.js' %}"></script>
+<script src="{% static '../static/plugins/daterangepicker/daterangepicker.js' %}"></script>
+<!-- Tempusdominus Bootstrap 4 -->
+<script src="{% static '../static/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+<!-- Summernote -->
+<script src="{% static '../static/plugins/summernote/summernote-bs4.min.js' %}"></script>
+<!-- overlayScrollbars -->
+<script src="{% static '../static/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
+<!-- AdminLTE App -->
+<script src="{% static '../static/dist/js/adminlte.js' %}"></script>
+
+
+
+<!-- TABLE -->
+<!-- DataTables  & Plugins -->
+<script src="{% static '../static/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-responsive/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-responsive/js/responsive.bootstrap4.min.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-buttons/js/dataTables.buttons.min.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-buttons/js/buttons.bootstrap4.min.js '%}"></script>
+<script src="{% static '../static/plugins/jszip/jszip.min.js' %}"></script>
+<script src="{% static '../static/plugins/pdfmake/pdfmake.min.js' %}"></script>
+<script src="{% static '../static/plugins/pdfmake/vfs_fonts.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-buttons/js/buttons.html5.min.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-buttons/js/buttons.print.min.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-buttons/js/buttons.colVis.min.js' %}"></script>
+<script>
+  $(function () {
+    $("#example1").DataTable({
+      "responsive": true, "lengthChange": false, "autoWidth": false,
+      "buttons": ["excel"]
+    }).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');  
+    $('#example2').DataTable({
+      "paging": true,
+      "lengthChange": false,
+      "searching": false,
+      "ordering": true,
+      "info": true,
+      "autoWidth": false,
+      "responsive": true,
+    });
+  });
+  $(document).ready(function(){
+    setTimeout(function(){
+      $('.msg_sec').remove();
+    },9000);
+   });
+</script>
+
+<!-- javascript for light/dark mode toggle -->
+ <script>
+// Theme Toggle Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const themeToggle = document.querySelector('.theme-toggle');
+    const icon = themeToggle.querySelector('i');
+    
+    // Check for saved theme preference or use preferred color scheme
+    const currentTheme = localStorage.getItem('theme') || 
+                       (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    
+    // Apply the current theme
+    applyTheme(currentTheme);
+    
+    // Toggle theme on button click
+    themeToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        const newTheme = document.body.classList.contains('light-theme') ? 'dark' : 'light';
+        applyTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+    
+    function applyTheme(theme) {
+        if (theme === 'light') {
+            document.body.classList.add('light-theme');
+            document.body.classList.remove('dark-theme');
+            icon.classList.replace('fa-moon', 'fa-sun');
+            themeToggle.title = 'Switch to Dark Mode';
+        } else {
+            document.body.classList.add('dark-theme');
+            document.body.classList.remove('light-theme');
+            icon.classList.replace('fa-sun', 'fa-moon');
+            themeToggle.title = 'Switch to Light Mode';
+        }
+        
+        // Update the gradient colors based on theme (matches Option 1 colors)
+        updateGradientColors(theme);
+    }
+    
+    function updateGradientColors(theme) {
+        const gradientBoxes = document.querySelectorAll('.bg-gradient-blue');
+        if (theme === 'dark') {
+            gradientBoxes.forEach(box => {
+                box.style.background = 'linear-gradient(135deg, #3182ce 0%, #805ad5 100%)';
+            });
+        } else {
+            gradientBoxes.forEach(box => {
+                box.style.background = 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)';
+            });
+        }
+    }
+});
+</script>
+
+
+</body>
+</html>

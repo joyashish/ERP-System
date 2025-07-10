@@ -1,0 +1,149 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Parties</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+              <li class="breadcrumb-item active">Party List</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header --> 
+
+    <!-- Stats Boxes -->   
+    <section class="content">
+        <div class="container-fluid">
+          <div class="row">
+              <div class="col-lg-4 col-md-6">
+                <div class="small-box bg-card">
+                  <div class="inner">
+                    <h5><i class="fa-solid fa-arrow-trend-up"></i> All Party</h5>
+                    <h4>{{ total_parties }}</h4>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-lg-4 col-md-6">
+                <div class="small-box bg-card">
+                  <div class="inner">
+                    <h5><i class="fa-solid fa-arrow-trend-up"></i>To Collect</h5>
+                    <h4><i class="fa-solid fa-indian-rupee-sign"></i>{{ total_balance }}</h4>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-lg-4 col-md-6">
+                <div class="small-box bg-card">
+                  <div class="inner">
+                    <h5><i class="fa-solid fa-arrow-trend-up"></i> To Pay</h5>
+                    <h4><i class="fa-solid fa-indian-rupee-sign"></i>{{ total_credit }}</h4>
+                  </div>
+                </div>
+              </div>
+            <!-- ./col -->
+          </div>
+          <!-- /.row -->
+        </div><!-- /.container-fluid -->
+    </section>
+
+    <!-- Party List Table -->
+    <section class="content">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-12">
+              <div class="card" style="box-shadow: rgba(0, 0, 0, 0.2) 0px 12px 28px 0px, rgba(0, 0, 0, 0.1) 0px 2px 4px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px inset;">
+                <div class="card-header">
+                  <h3 class="card-title">Party List</h3>
+                  <div class="card-tools">
+                    <a href="{% url 'Create_party' %}" class="btn btn-success">
+                      <i class="fas fa-plus"></i> Create Party
+                    </a>
+                  </div>
+                </div>
+                
+                {% if messages %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                  {% for message in messages %}
+                  <i class="fas fa-check-circle"></i>&nbsp;&nbsp;{{message}}
+                  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="card-body">
+                  <table id="example1" class="table data-table stripe hover nowrap table-bordered">
+                    <thead>
+                      <tr>
+                        <th>Party Name</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                        <th>GST No</th>
+                        <th>Party Type</th>
+                        <th>Category</th>
+                        <th>Balance</th>
+                        <th>Credit Limit</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for party in party_list %}
+                      <tr>
+                        <td>{{ party.party_name }}</td>
+                        <td>{{ party.mobile_num }}</td>
+                        <td>{{ party.email }}</td>
+                        <td>{{ party.gst_no|default:"-" }}</td>
+                        <td>{{ party.party_type }}</td>
+                        <td>{{ party.party_category }}</td>
+                        <td class="text-right">{{ party.opening_balance }}</td>
+                        <td class="text-right">{{ party.credit_limit }}</td>
+                        <td>
+                          {% if party.status %}
+                            <span class="badge badge-success">Active</span>
+                          {% else %}
+                            <span class="badge badge-danger">Inactive</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          <div class="btn-group">
+                            <a href="{% url 'update_party' party.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                              <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'delete_party' party.id %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                              <i class="fas fa-trash"></i>
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                      {% empty %}
+                      <tr>
+                        <td colspan="10" class="text-center">No parties found</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

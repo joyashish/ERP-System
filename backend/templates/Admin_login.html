@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	{% load static %}
+	<title>Shankar Agro | Login </title>
+	<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+	<!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous"> -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+
+</head>
+	<link rel="stylesheet" href="{% static '../static/dist/css/index.css' %}">
+</head>
+<body>
+	<div class="contact-form">
+		<center><img src="{% static '../static/dist/img/user-logo.png' %}" class="avatar" ></center>
+		{% comment %} <center><img src="{% static '../static/dist/img/logo1.png' %}" class="avatar" style="margin-top:70px; width:200px;margin-left:-54px;" ></center> {% endcomment %}
+		{% comment %} <br> {% endcomment %}
+		<h2>Login</h2>
+
+		{% if messages %}
+		{{message.tags}}
+	    <div class="alert alert-primary" role="alert">
+		{% for message in messages %}
+		<span style="color: red !important;" class="mb-3">{{message}}</span>
+		{% endfor %}
+	    </div>
+		{% endif %}
+
+
+		<form method="POST">
+			{% csrf_token %}
+			<p>Email</p><input placeholder="Enter Email" type="email" name="email" >
+			{% comment %} <p>Email</p><input placeholder="Enter Email..." type="email" name="email" >  {% endcomment %}
+			<p>Password</p><input type="password" name="pass" autocomplete="current-password" placeholder="Enter Password" required id="id_password">
+			<i class="far fa-eye" id="togglePassword" style="margin-left: -30px; cursor: pointer; color:white; " ></i>
+			 <a href="#"><input type="submit" value="Login"></a>
+
+             <p><input type="checkbox">Remember Me</p>
+		</form>
+
+
+	</div>
+	<script>
+		const togglePassword = document.querySelector('#togglePassword');
+		const password = document.querySelector('#id_password');
+	
+	  togglePassword.addEventListener('click', function (e) {
+		// toggle the type attribute
+		const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+		password.setAttribute('type', type);
+		// toggle the eye slash icon
+		this.classList.toggle('fa-eye-slash');
+	});
+	</script>
+</body>
+</html>

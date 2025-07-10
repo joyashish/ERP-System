@@ -1,0 +1,279 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Dashboard</h1>
+                </div><!-- /.col -->
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item active">Add Item</li>
+                    </ol>
+                </div><!-- /.col -->
+            </div><!-- /.row -->
+        </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <!--Add Banner Form-->
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+
+                    <div class="card col-12" style="box-shadow:5px 5px 10px #e7e5e5">
+                        <div class="card-header ">
+                            <h3 class="card-title">-Create New Sale</h3>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h3 class="card-title">Save & New</h3>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3 class="card-title">Save</h3>
+                                </div>
+                                <div class="clo-md-3">
+                                    <!--Print Button-->
+                                    <div class="d-flex justify-content-center">
+                                        <button class="text-right btn btn-success printButton"
+                                            onclick="window.print();">Print <i class="ion-printer"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-body col-md-12">
+                            <div class="col-md-12" class="regstrfrm">
+                                <form action="" method="POST" enctype="multipart/form-data">
+                                    {% csrf_token %}
+
+
+                                    {% if messages %}
+                                    {{message.tags}}
+                                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                        {% for message in messages %}
+                                        <i class="fas fa-check-circle"></i>&nbsp;&nbsp;{{message}}
+                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-row">
+                                        <div class="col-lg-8" style="border: solid rgb(238, 235, 235);">
+                                            <p>Bill To</p>
+                                            <p style="border: dotted; padding: 10px; text-align: center;">+ Add Party</p>
+
+                                        </div>
+                                        <div class="col-lg-4" style="border: solid rgb(238, 235, 235);">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <span>Sales invoice No: </span>
+                                                    <input type="text" id="pincode" class="form-control"
+                                                        placeholder="Enter Pincode">
+                                                    <span>Payment Terms: </span>
+                                                    <input type="text" id="pincode" class="form-control"
+                                                        placeholder="Enter Pincode">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <span>Sales invoice Date: </span>
+                                                    <input type="date" id="pincode" class="form-control"
+                                                        placeholder="Enter Pincode">
+                                                    <span>Due Date:</span>
+                                                    <input type="date" id="pincode" class="form-control"
+                                                        placeholder="Enter Pincode">
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                    <!--------------items part        -->
+                                    <div class="form-row row1">
+                                        <div class=" col-lg-1">
+                                            <p>No</p>
+                                        </div>
+                                        <div class=" col-lg-1">
+                                            <p>Item/Services</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>HSN/SAC</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>BATCH No.</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>EXP.DATE</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>MFG DATE</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>QTY</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>PRICE/ITEMS</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>DISCOUNT</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>TAX</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>AMOUNT</p>
+                                        </div>
+                                    </div>
+                                    <!-------------ADD_ITEMS------------->
+                                    <div class="form-row row1">
+                                        <div class="col-lg-8">
+                                            <p style="border: dotted; padding: 10px; margin-top:20px;text-align: center;">+ Add Item</p>
+                                        </div>
+                                        <div class="col-lg-4">
+                                            Scan Barcode
+
+                                        </div>
+                                    </div>
+                                    <!----------sub_total-------->
+                                    <!--------------items part        -->
+                                    <div class="form-row row1">
+
+
+                                        <div class="col-lg-9">
+                                            <p style="float: right;">SUBTotal</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>₹ 0</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>₹ 0</p>
+                                        </div>
+                                        <div class="col-lg-1">
+                                            <p>₹ 0</p>
+                                        </div>
+
+
+                                    </div>
+                                    <!--------bank details and other subdetail-------->
+                                    <div class="form-row row1">
+                                        <div class="col-lg-6">
+                                            <p>+ Add Notes</p>
+                                            <p>Terms and Conditions</p>
+                                            <li>1. Goods once sold will not be taken back or exchanged </li>
+                                            <li> 2. All disputes are subject to [JHARKHAND] jurisdiction only</li>
+                                            <p> Bank Details</p>
+                                            <p>Account Number: 5337777943</p>
+                                            <p>IFSC Code: CBIN0281583</p>
+                                            <p>Bank & Branch Name: Central Bank of India, CHANDRI</p>
+                                            <p>Account Holder's Name: Sanuj Kumar Gupta</p>
+                                            <p>UPI ID</p>
+                                            <p>9122133687@axl</p>
+
+
+                                        </div>
+
+                                        <div class="col-lg-6">
+                                            <div class="row" style="border: solid rgb(238, 235, 235);">
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p>+ Add Discount</p>
+                                                    <p>+ Add Additional Charges</p>
+                                                    <p>Taxable Amount</p>
+                                                </div>
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p>+0</p>
+                                                    <p>+0</p>
+                                                    <p>+0</p>
+
+                                                </div>
+                                            </div>
+                                            <div class="row" style="border: solid rgb(238, 235, 235);">
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p>Auto Round Off</p>
+                                                    <p>Total Amount</p>
+                                                </div>
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p>+Add</p>
+                                                    <p><input type="text" id="pincode" class="form-control"
+                                                        placeholder="Enter Pincode"></p>
+
+                                                </div>
+                                            </div>
+                                            <div class="row" style="border: solid rgb(238, 235, 235);">
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p>Amount Received</p>
+                                                    
+                                                </div>
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p><input type="text" id="pincode" class="form-control"
+                                                        placeholder="Enter Pincode"></p>
+                                                    
+
+                                                </div>
+                                            </div>
+                                            <div class="row" style="border: solid rgb(238, 235, 235);">
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p>Balance Amount</p>
+                                                    
+                                                </div>
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p>₹ 0</p>
+                                                    
+
+                                                </div>
+                                            </div>
+                                            <div class="row" style="border: solid rgb(238, 235, 235);">
+                                                <div class="col-md-6 col-sm-12">
+                                                    
+                                                </div>
+                                                <div class="col-md-6 col-sm-12">
+                                                    <p>Authoriesd Signatory</p>
+                                                    <p style="border: dotted; padding: 10px;">+ Add Signature</p>
+                                                    
+
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+
+
+
+                                    </div>
+                            </div>
+                        </div>
+                        </form>
+
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+            <!-- /.col -->
+
+            <!--TABLE-->
+        </div>
+
+
+</div>
+
+
+<!-- /.row -->
+</div>
+<!-- /.container-fluid -->
+</section>
+</div>
+
+<style>
+    .row1 {
+        border: 2px solid black;
+    }
+</style>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

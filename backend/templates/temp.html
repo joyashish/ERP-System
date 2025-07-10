@@ -1,0 +1,463 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+<style>
+  /* Item Form Specific Styles */
+  .item-form-card {
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .item-form-card .card-header {
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+
+  .dark-theme .item-form-card .card-header {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Tab styling */
+  .nav-tabs {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+  }
+
+  .nav-tabs .nav-link {
+    color: var(--text-color);
+    border: 1px solid transparent;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    transition: all 0.3s ease;
+  }
+
+  .nav-tabs .nav-link:hover {
+    border-color: var(--border-color);
+  }
+
+  .nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background-color: var(--card-bg);
+    border-color: var(--border-color) var(--border-color) var(--card-bg);
+    font-weight: 500;
+  }
+
+  .dark-theme .nav-tabs .nav-link.active {
+    border-bottom-color: var(--content-bg-dark);
+  }
+
+  .tab-content {
+    padding: 1rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+  }
+
+  /* Form group styling */
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  /* Price input styling */
+  .price-input-group {
+    position: relative;
+  }
+
+  .price-input-group .form-control {
+    padding-left: 30px;
+  }
+
+  .price-input-group::before {
+    content: "₹";
+    position: absolute;
+    left: 12px;
+    top: 38px;
+    font-weight: bold;
+    color: var(--text-color);
+    z-index: 1;
+  }
+
+  /* Image preview styling */
+  .image-preview {
+    width: 80px;
+    height: 80px;
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-color: var(--input-bg);
+  }
+
+  .image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  /* Button styling */
+  .btn-add {
+    white-space: nowrap;
+  }
+
+  /* Modal styling */
+  .modal-content {
+    background-color: var(--modal-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+
+  .modal-header {
+    background-color: var(--modal-header-bg);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .modal-footer {
+    border-top: 1px solid var(--border-color);
+  }
+</style>
+
+<!-- Content Wrapper -->
+<div class="content-wrapper">
+  <!-- Content Header -->
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">Create Item</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+            <li class="breadcrumb-item active">Create Item</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card item-form-card">
+            <div class="card-header">
+              <h3 class="card-title">Item Information</h3>
+            </div>
+            
+            <div class="card-body">
+              <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Item Name -->
+                <div class="form-group col-md-6">
+                  <label for="itemName">Item Name *</label>
+                  <input type="text" id="itemName" class="form-control" name="item_name" placeholder="Enter item name" required>
+                </div>
+
+                <!-- Main Tabs -->
+                <ul class="nav nav-tabs" id="mainTab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="product-tab" data-bs-toggle="tab" data-bs-target="#product"
+                      type="button" role="tab" aria-controls="product" aria-selected="true">
+                      <i class="fas fa-box me-1"></i> Product
+                    </button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="service-tab" data-bs-toggle="tab" data-bs-target="#service"
+                      type="button" role="tab" aria-controls="service" aria-selected="false">
+                      <i class="fas fa-concierge-bell me-1"></i> Service
+                    </button>
+                  </li>
+                </ul>
+
+                <div class="tab-content" id="mainTabContent">
+                  <!-- Product Tab Content -->
+                  <div class="tab-pane fade show active" id="product" role="tabpanel" aria-labelledby="product-tab">
+                    <ul class="nav nav-tabs" id="productTab" role="tablist">
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="product-pricing-tab" data-bs-toggle="tab"
+                          data-bs-target="#product-pricing" type="button" role="tab" aria-controls="product-pricing"
+                          aria-selected="true">Pricing</button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="product-stock-tab" data-bs-toggle="tab"
+                          data-bs-target="#product-stock" type="button" role="tab" aria-controls="product-stock"
+                          aria-selected="false">Stock</button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="product-other-tab" data-bs-toggle="tab"
+                          data-bs-target="#product-other" type="button" role="tab" aria-controls="product-other"
+                          aria-selected="false">Other</button>
+                      </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="productTabContent">
+                      <!-- Pricing Tab -->
+                      <div class="tab-pane fade show active" id="product-pricing" role="tabpanel"
+                        aria-labelledby="product-pricing-tab">
+                        <div class="form-row">
+                          <div class="form-group col-md-4">
+                            <label for="unitSelect">Unit *</label>
+                            <div class="d-flex gap-2">
+                              <select class="form-control" name="unit" id="unitSelect" required>
+                                <option value="">Select Unit</option>
+                                {% for units in unit %}
+                                <option value="{{ units.id }}">{{ units.name }}</option>
+                                {% endfor %}
+                              </select>
+                              <button type="button" class="btn btn-success btn-add" data-bs-toggle="modal"
+                                data-bs-target="#addUnitModal">
+                                <i class="fas fa-plus"></i>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div class="form-group col-md-4 price-input-group">
+                            <label for="salesPrice">Sales Price *</label>
+                            <input type="number" id="salesPrice" class="form-control" name="sale_price" placeholder="120" step="0.01" min="0" required>
+                          </div>
+                          
+                          <div class="form-group col-md-4 price-input-group">
+                            <label for="purchasePrice">Purchase Price *</label>
+                            <input type="number" id="purchasePrice" class="form-control" name="purchase_price" placeholder="150" step="0.01" min="0" required>
+                          </div>
+                          
+                          <div class="form-group col-md-4">
+                            <label for="gstSelect">GST</label>
+                            <select class="form-control" name="gst" id="gstSelect">
+                              <option value="">None</option>
+                              <option value="18%">GST@18%</option>
+                            </select>
+                          </div>
+                          
+                          <div class="form-group col-md-4">
+                            <label for="hsnCode">HSN Code</label>
+                            <input type="text" id="hsnCode" class="form-control" name="hsn" placeholder="Enter HSN code">
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Stock Tab -->
+                      <div class="tab-pane fade" id="product-stock" role="tabpanel" aria-labelledby="product-stock-tab">
+                        <div class="form-row">
+                          <div class="form-group col-md-4">
+                            <label for="openingStock">Opening Stock</label>
+                            <input type="number" id="openingStock" class="form-control" name="opening_stock" placeholder="0">
+                          </div>
+                          
+                          <div class="form-group col-md-4">
+                            <label for="stockDate">As of Date</label>
+                            <input type="date" id="stockDate" class="form-control" name="stock_date">
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Other Tab -->
+                      <div class="tab-pane fade" id="product-other" role="tabpanel" aria-labelledby="product-other-tab">
+                        <div class="form-row">
+                          <div class="form-group col-md-4">
+                            <label for="productImage">Product Image</label>
+                            <input type="file" name="product_image" class="form-control" id="productImage" onchange="previewImage(this, 'productPreview')">
+                            <div class="image-preview mt-2" id="productPreview">
+                              <span class="text-muted">No image selected</span>
+                            </div>
+                          </div>
+                          
+                          <div class="form-group col-md-4">
+                            <label for="categorySelect">Category</label>
+                            <div class="d-flex gap-2">
+                              <select class="form-control" name="category" id="categorySelect">
+                                <option value="">Select Category</option>
+                                {% for cat in category %}
+                                <option value="{{ cat.id }}">{{ cat.cname }}</option>
+                                {% endfor %}
+                              </select>
+                              <button type="button" class="btn btn-success btn-add" data-bs-toggle="modal"
+                                data-bs-target="#addcategoryModal">
+                                <i class="fas fa-plus"></i>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div class="form-group col-md-8">
+                            <label for="productDescription">Description</label>
+                            <textarea class="form-control" id="productDescription" rows="3" name="item_des" placeholder="Product description"></textarea>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Service Tab Content -->
+                  <div class="tab-pane fade" id="service" role="tabpanel" aria-labelledby="service-tab">
+                    <ul class="nav nav-tabs" id="serviceTab" role="tablist">
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="service-pricing-tab" data-bs-toggle="tab"
+                          data-bs-target="#service-pricing" type="button" role="tab" aria-controls="service-pricing"
+                          aria-selected="true">Pricing</button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="service-other-tab" data-bs-toggle="tab"
+                          data-bs-target="#service-other" type="button" role="tab" aria-controls="service-other"
+                          aria-selected="false">Other</button>
+                      </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="serviceTabContent">
+                      <!-- Service Pricing Tab -->
+                      <div class="tab-pane fade show active" id="service-pricing" role="tabpanel"
+                        aria-labelledby="service-pricing-tab">
+                        <div class="form-row">
+                          <div class="form-group col-md-4">
+                            <label for="serviceUnit">Unit</label>
+                            <select class="form-control" name="ltype" id="serviceUnit">
+                              <option value="">Select</option>
+                              <option value="PCS">PCS</option>
+                            </select>
+                          </div>
+                          
+                          <div class="form-group col-md-4 price-input-group">
+                            <label for="servicePrice">Service Price *</label>
+                            <input type="number" id="servicePrice" class="form-control" name="sale_price_service" placeholder="120" step="0.01" min="0" required>
+                          </div>
+                          
+                          <div class="form-group col-md-4">
+                            <label for="serviceGst">GST</label>
+                            <select class="form-control" name="gst_service" id="serviceGst">
+                              <option value="">None</option>
+                              <option value="18%">GST@18%</option>
+                            </select>
+                          </div>
+                          
+                          <div class="form-group col-md-4">
+                            <label for="sacCode">SAC Code</label>
+                            <input type="text" id="sacCode" class="form-control" name="hsn_service" placeholder="Enter SAC code">
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Service Other Tab -->
+                      <div class="tab-pane fade" id="service-other" role="tabpanel" aria-labelledby="service-other-tab">
+                        <div class="form-row">
+                          <div class="form-group col-md-4">
+                            <label for="serviceImage">Service Image</label>
+                            <input type="file" name="service_image" class="form-control" id="serviceImage" onchange="previewImage(this, 'servicePreview')">
+                            <div class="image-preview mt-2" id="servicePreview">
+                              <span class="text-muted">No image selected</span>
+                            </div>
+                          </div>
+                          
+                          <div class="form-group col-md-4">
+                            <label for="serviceCategory">Category</label>
+                            <select id="serviceCategory" name="service_category" class="form-control">
+                              <option value="">Select Category</option>
+                              {% for cat in category %}
+                              <option value="{{ cat.id }}">{{ cat.cname }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          
+                          <div class="form-group col-md-8">
+                            <label for="serviceDescription">Description</label>
+                            <textarea class="form-control" name="service_description" id="serviceDescription" rows="3" placeholder="Service description"></textarea>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="form-group mt-4">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Save Item
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Modals (unchanged from your original) -->
+<div class="modal fade" id="addUnitModal" tabindex="-1" aria-labelledby="addUnitModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="{% url 'add_unit' %}">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addUnitModalLabel">Add New Unit</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="text" name="unit_name" class="form-control" placeholder="Enter unit name">
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Unit</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="addcategoryModal" tabindex="-1" aria-labelledby="addcategoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="{% url 'add_category' %}">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addcategoryModalLabel">Add New Category</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="text" name="cat_name" class="form-control" placeholder="Enter Category name">
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Category</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+  // Image preview function
+  function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId);
+    const file = input.files[0];
+    const reader = new FileReader();
+    
+    preview.innerHTML = '';
+    
+    if (file) {
+      reader.onload = function(e) {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        preview.appendChild(img);
+      }
+      reader.readAsDataURL(file);
+    } else {
+      preview.innerHTML = '<span class="text-muted">No image selected</span>';
+    }
+  }
+
+  // Initialize tab functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    // Bootstrap tabs will automatically initialize
+    // Add any additional tab-related JS here if needed
+  });
+</script>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

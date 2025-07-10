@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% load static %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ERP System | Dashboard</title>
+
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  
+  <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static '../static/plugins/fontawesome-free/css/all.min.css' %}">
+  <!-- Ionicons -->
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <!-- Tempusdominus Bootstrap 4 -->
+  <link rel="stylesheet" href="{% static '../static/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css' %}">
+  <!-- iCheck -->
+  <link rel="stylesheet" href="{% static '../static/plugins/icheck-bootstrap/icheck-bootstrap.min.css' %}">
+  <!-- JQVMap -->
+  <link rel="stylesheet" href="{% static '../static/plugins/jqvmap/jqvmap.min.css' %}">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{% static '../static/dist/css/adminlte.min.css' %}">
+  <!-- overlayScrollbars -->
+  <link rel="stylesheet" href="{% static '../static/plugins/overlayScrollbars/css/OverlayScrollbars.min.css' %}">
+  <!-- Daterange picker -->
+  <link rel="stylesheet" href="{% static '../static/plugins/daterangepicker/daterangepicker.css' %}">
+  <!-- summernote -->
+  <link rel="stylesheet" href="{% static '../static/plugins/summernote/summernote-bs4.min.css' %}">
+  <!--DataTable-->
+  <link rel="stylesheet" href="{% static '../static/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}">
+  <link rel="stylesheet" href="{% static '../static/plugins/datatables-responsive/css/responsive.bootstrap4.min.css' %}">
+  <link rel="stylesheet" href="{% static '../static/plugins/datatables-buttons/css/buttons.bootstrap4.min.css' %}">
+  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+  integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> -->
+
+  <!-- <link rel="shortcut icon" href="https://camo.githubusercontent.com/6907519551f9e6948c61eafb1cead2f198f252162570317067efeb6f6f46b448/68747470733a2f2f69636f6e2d6c6962726172792e636f6d2f696d616765732f6572702d73797374656d2d69636f6e2f6572702d73797374656d2d69636f6e2d392e6a7067" /> -->
+  <!-- light/dark mode css -->
+<style>
+:root {
+  /* ========== LIGHT THEME ========== */
+  --content-bg-light: #c0dae9;
+  --card-bg-light: #ffffff;
+  --text-color-light: #343a40;
+  --sidebar-bg-light: #1a222c;
+  --primary-color-light: #2b5876;
+  --secondary-color-light: #4e4376;
+  --border-color-light: #e0e0e0;
+  
+  /* ========== DARK THEME - CHARCOAL ========== */
+  --content-bg-dark: #2d3748;
+  --card-bg-dark: #1a202c;
+  --text-color-dark: #e2e8f0;
+  --sidebar-bg-dark: #1a202c;
+  --primary-color-dark: #3182ce;
+  --secondary-color-dark: #805ad5;
+  --border-color-dark: #4a5568;
+
+  /* Card specific variables */
+  --card-bg: var(--card-bg-light);
+  --card-text: var(--text-color-light);
+}
+
+/* ===== BASE STYLES ===== */
+body {
+  background-color: var(--content-bg);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.content-wrapper {
+  background-color: var(--content-bg) !important;
+  min-height: 100vh;
+}
+
+.card {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.sidebar {
+  background-color: var(--sidebar-bg);
+  color: white;
+}
+
+/* Card specific styles - MOVED OUT OF THEME BLOCKS */
+.bg-card {
+  background-color: var(--card-bg) !important;
+  color: var(--card-text);
+  transition: all 0.3s ease;
+}
+
+.small-box .inner h4,
+.small-box .inner h5 {
+  color: var(--card-text);
+}
+
+/* Make sure icons inherit the text color */
+.small-box .inner i {
+  color: inherit;
+}
+
+/* ===== LIGHT THEME SPECIFIC ===== */
+:root, .light-theme {
+  --content-bg: var(--content-bg-light);
+  --card-bg: var(--card-bg-light);
+  --text-color: var(--text-color-light);
+  --sidebar-bg: var(--sidebar-bg-light);
+  --primary-color: var(--primary-color-light);
+  --secondary-color: var(--secondary-color-light);
+  --border-color: var(--border-color-light);
+  --card-text: var(--text-color-light);
+  
+  .bg-gradient-blue {
+    background: linear-gradient(135deg, var(--primary-color-light) 0%, var(--secondary-color-light) 100%);
+  }
+  
+  .table {
+    color: var(--text-color-light);
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+  
+  .text-muted {
+    color: #6c757d !important;
+  }
+}
+
+/* ===== DARK THEME - CHARCOAL ===== */
+.dark-theme {
+  --content-bg: var(--content-bg-dark);
+  --card-bg: var(--card-bg-dark);
+  --text-color: var(--text-color-dark);
+  --sidebar-bg: var(--sidebar-bg-dark);
+  --primary-color: var(--primary-color-dark);
+  --secondary-color: var(--secondary-color-dark);
+  --border-color: var(--border-color-dark);
+  --card-text: var(--text-color-dark);
+  
+  .bg-gradient-blue {
+    background: linear-gradient(135deg, var(--primary-color-dark) 0%, var(--secondary-color-dark) 100%);
+  }
+  
+  .card-header {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--border-color-dark);
+  }
+  
+  .table {
+    background-color: var(--card-bg-dark);
+    color: var(--text-color-dark);
+  }
+  
+  .table th {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: var(--border-color-dark);
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+  }
+  
+  .text-muted {
+    color: #a0aec0 !important;
+  }
+  
+  .btn-outline-primary {
+    border-color: var(--primary-color-dark);
+    color: var(--primary-color-dark);
+  }
+  
+  .btn-outline-primary:hover {
+    background-color: var(--primary-color-dark);
+    color: white;
+  }
+  
+  .btn-outline-success {
+    border-color: #38a169;
+    color: #38a169;
+  }
+  
+  .btn-outline-success:hover {
+    background-color: #38a169;
+    color: white;
+  }
+}
+</style>
+<!-- custom light/dark mode css for input form  -->
+<style>
+  /* Form specific styles */
+  .form-card {
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .form-card .card-header {
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+
+  .dark-theme .form-card .card-header {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Form input styling */
+  .form-control, .form-select {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+  }
+
+  .form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(49, 130, 206, 0.25);
+  }
+
+  .dark-theme .form-control:focus, .dark-theme .form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(49, 130, 206, 0.5);
+  }
+
+  /* Add these to your :root variables */
+  :root {
+    --input-bg-light: #ffffff;
+    --input-bg-dark: #2d3748;
+    --modal-bg-light: #ffffff;
+    --modal-bg-dark: #2d3748;
+    --modal-header-bg-light: #f8f9fa;
+    --modal-header-bg-dark: #1a202c;
+  }
+
+  .light-theme {
+    --input-bg: var(--input-bg-light);
+    --modal-bg: var(--modal-bg-light);
+    --modal-header-bg: var(--modal-header-bg-light);
+  }
+
+  .dark-theme {
+    --input-bg: var(--input-bg-dark);
+    --modal-bg: var(--modal-bg-dark);
+    --modal-header-bg: var(--modal-header-bg-dark);
+  }
+
+  /* Section headers */
+  .section-header {
+    padding: 8px 0;
+    margin: 20px 0 15px;
+    border-bottom: 2px solid var(--primary-color);
+    color: var(--primary-color);
+  }
+
+  /* Custom fields section */
+  .custom-fields-container {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+  }
+
+  /* Save button */
+  .btn-save {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 8px 25px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-save:hover {
+    background-color: var(--primary-color-dark);
+    transform: translateY(-2px);
+  }
+
+  /* Modal styling */
+  .modal-content {
+    background-color: var(--modal-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+
+  .modal-header {
+    background-color: var(--modal-header-bg);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .modal-footer {
+    border-top: 1px solid var(--border-color);
+  }
+
+  /* Address textarea styling */
+  textarea.form-control {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    min-height: 100px;
+  }
+
+  /* Improved modal layout */
+  .address-modal .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .address-modal label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+  /* Style readonly inputs in dark mode */
+.dark-theme .form-control[readonly] {
+    background-color: var(--input-bg-dark) !important;
+    color: var(--text-color-dark);
+    border-color: var(--border-color-dark);
+    cursor: not-allowed;
+}
+
+/* Optional: Style for focus state */
+.dark-theme .form-control[readonly]:focus {
+    box-shadow: none;
+    border-color: var(--border-color-dark);
+}
+</style>
+
+<!-- light/dark mode pagination css -->
+<style>
+/* Dark Mode Pagination Styles */
+.dark-theme .pagination {
+    --pagination-bg: #2d3748;
+    --pagination-color: #e2e8f0;
+    --pagination-border: #4a5568;
+    --pagination-hover-bg: #4a5568;
+    --pagination-hover-color: #ffffff;
+    --pagination-active-bg: #3182ce;
+    --pagination-active-color: #ffffff;
+    --pagination-disabled-bg: #2d3748;
+    --pagination-disabled-color: #718096;
+}
+
+.dark-theme .pagination .page-item .page-link {
+    background-color: var(--pagination-bg);
+    color: var(--pagination-color);
+    border-color: var(--pagination-border);
+    transition: all 0.3s ease;
+}
+
+.dark-theme .pagination .page-item:hover .page-link {
+    background-color: var(--pagination-hover-bg);
+    color: var(--pagination-hover-color);
+    border-color: var(--pagination-border);
+}
+
+.dark-theme .pagination .page-item.active .page-link {
+    background-color: var(--pagination-active-bg);
+    color: var(--pagination-active-color);
+    border-color: var(--pagination-active-bg);
+}
+
+.dark-theme .pagination .page-item.disabled .page-link {
+    background-color: var(--pagination-disabled-bg);
+    color: var(--pagination-disabled-color);
+    border-color: var(--pagination-border);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+</style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+
+  <!-- Preloader -->
+  {% comment %} <div class="preloader flex-column justify-content-center align-items-center">
+    <img class="animation__shake" src="{% static '../static/dist/img/pre_loader.PNG' %}" alt="ERP System." height="60" width="160">
+  </div> {% endcomment %}
