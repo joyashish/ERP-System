@@ -427,6 +427,139 @@ def create_item_view(request):
 #........///// Create Sale \\\\\ ......#
 def Create_saleVw(request):
     return render(request,'Create_Sale.html')
+
+import uuid
+
+import re
+
+def create_sale_view(request):
+    if 'email' not in request.session:
+        return redirect('/')
+
+    email = request.session['email']
+    admin_user = Admin_login.objects.filter(email=email).first()
+    items = ItemBase.objects.filter(is_active=True)
+
+    if request.method == "POST":
+        try:
+            action = request.POST.get('action')
+            party_name = request.POST.get('party_name')
+            party_email = request.POST.get('party_email', '')
+            party_phone = request.POST.get('party_phone', '')
+            party_address = request.POST.get('party_address', '')
+            invoice_date = request.POST.get('invoice_date')
+            due_date = request.POST.get('due_date', None)
+            payment_terms = request.POST.get('payment_terms', '')
+            discount = request.POST.get('discount', '0')
+            additional_charges = request.POST.get('additional_charges', '0')
+            amount_received = request.POST.get('amount_received', '0')
+            notes = request.POST.get('notes', '')
+            terms_conditions = request.POST.get('terms_conditions', '')
+            signature = request.FILES.get('signature')
+
+            if not party_name or not invoice_date:
+                messages.error(request, "Party name and invoice date are required")
+                return redirect('create_sale')
+
+            invoice_no = f"INV-{uuid.uuid4().hex[:8].upper()}"
+
+            subtotal = 0
+            total_tax = 0
+            items_data = []
+            for key, value in request.POST.items():
+                if key.startswith('items['):
+                    index = key.split('[')[1].split(']')[0]
+                    field = key.split(']')[1][1:]
+                    if not any(d['index'] == index for d in items_data):
+                        items_data.append({'index': index})
+                    for d in items_data:
+                        if d['index'] == index:
+                            d[field] = value
+
+            for item_data in items_data:
+                item = ItemBase.objects.get(id=item_data['item_id'])
+                quantity = int(item_data['quantity'])
+                discount = float(item_data.get('discount', 0))
+                # Clean gst_rate by removing non-numeric characters (e.g., "%")
+                gst_rate = float(re.sub(r'[^0-9.]', '', item.gst_rate)) if item.gst_rate else 0
+                amount = (quantity * float(item.sale_price) - discount) * (1 + gst_rate / 100)
+                tax_amount = (quantity * float(item.sale_price) - discount) * (gst_rate / 100)
+                subtotal += quantity * float(item.sale_price) - discount
+                total_tax += tax_amount
+                item_data['amount'] = amount
+                item_data['tax_amount'] = tax_amount
+
+                # Stock deduction for Product items
+                if item.item_type == 'product':
+                    product = Product.objects.get(id=item.id)
+                    if product.opening_stock < quantity:
+                        raise ValidationError(f"Insufficient stock for {item.item_name}")
+                    product.opening_stock -= quantity
+                    product.save()
+
+            total_amount = subtotal - float(discount) + float(additional_charges) + total_tax
+            balance_amount = total_amount - float(amount_received)
+
+            sale = Sale(
+                invoice_no=invoice_no,
+                party_name=party_name,
+                party_email=party_email or None,
+                party_phone=party_phone or None,
+                party_address=party_address or None,
+                invoice_date=invoice_date,
+                due_date=due_date or None,
+                payment_terms=payment_terms,
+                subtotal=subtotal,
+                total_tax=total_tax,
+                discount=discount,
+                additional_charges=additional_charges,
+                total_amount=total_amount,
+                amount_received=amount_received,
+                balance_amount=balance_amount,
+                notes=notes,
+                terms_conditions=terms_conditions,
+                signature=signature,
+                user=admin_user
+            )
+            sale.full_clean()
+            sale.save()
+
+            for item_data in items_data:
+                sale_item = SaleItem(
+                    sale=sale,
+                    item_id=item_data['item_id'],
+                    quantity=item_data['quantity'],
+                    discount=item_data['discount'],
+                    tax_amount=item_data['tax_amount'],
+                    amount=item_data['amount']
+                )
+                sale_item.full_clean()
+                sale_item.save()
+
+            messages.success(request, "Sale created successfully!")
+            if action == "save_new":
+                return redirect('create_sale')
+            return redirect('sale_list')
+
+        except ValidationError as e:
+            # Handle both error_dict and messages
+            if hasattr(e, 'error_dict'):
+                for field, errors in e.error_dict.items():
+                    for error in errors:
+                        messages.error(request, f"{field}: {error}")
+            else:
+                messages.error(request, str(e))
+            return redirect('create_sale')
+        except Exception as e:
+            messages.error(request, f"Error creating sale: {str(e)}")
+            return redirect('create_sale')
+
+    context = {
+        'add': admin_user,
+        'items': items,
+        'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}"
+    }
+    return render(request, 'create_sale.html', context)
 #........///// Sales \\\\\ ......#
 def SalesVw(request):
     return render(request,'Sales.html')

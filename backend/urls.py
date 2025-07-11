@@ -39,7 +39,9 @@ urlpatterns=[
     path('Create_item',views.create_item_view,name="Create_item"),
 
     #.....create_sale......#
-    path('Create_Sale',views.Create_saleVw,name="Create_Sale"),
+    path('Create_Sale',views.create_sale_view,name="Create_Sale"),
+    path('sale_list/', lambda x: None, name='sale_list'),
+    
 
     #.....Sales......#
     path('Sales',views.SalesVw,name="Sales"),
