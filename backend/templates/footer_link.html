@@ -1,56 +1,58 @@
 {% load static %}
-<!-- jQuery -->
+<!-- 1. Core jQuery (load first) -->
 <script src="{% static '../static/plugins/jquery/jquery.min.js' %}"></script>
-<!-- jQuery UI 1.11.4 -->
+<!-- jQuery Migrate (if needed for older plugins) -->
+<!-- <script src="{% static '../static/plugins/jquery/jquery-migrate.min.js' %}"></script> -->
+
+<!-- 2. jQuery UI (after core jQuery) -->
 <script src="{% static '../static/plugins/jquery-ui/jquery-ui.min.js' %}"></script>
-<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
 <script>
-  $.widget.bridge('uibutton', $.ui.button)
+  $.widget.bridge('uibutton', $.ui.button); // Fix tooltip conflict
 </script>
-<!-- Bootstrap 4 -->
+
+<!-- 3. Bootstrap 4 (requires jQuery) -->
 <script src="{% static '../static/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-<!-- ChartJS -->
+
+<!-- 4. Moment.js (for date plugins) -->
+<script src="{% static '../static/plugins/moment/moment.min.js' %}"></script>
+
+<!-- 5. Plugins with jQuery/Bootstrap dependencies -->
 <script src="{% static '../static/plugins/chart.js/Chart.min.js' %}"></script>
-<!-- Sparkline -->
 <script src="{% static '../static/plugins/sparklines/sparkline.js' %}"></script>
-<!-- JQVMap -->
+<script src="{% static '../static/plugins/jquery-knob/jquery.knob.min.js' %}"></script>
+<script src="{% static '../static/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
+
+<!-- 6. JQVMap (optional, load after jQuery UI) -->
 <script src="{% static '../static/plugins/jqvmap/jquery.vmap.min.js' %}"></script>
 <script src="{% static '../static/plugins/jqvmap/maps/jquery.vmap.usa.js' %}"></script>
-<!-- jQuery Knob Chart -->
-<script src="{% static '../static/plugins/jquery-knob/jquery.knob.min.js' %}"></script>
-<!-- daterangepicker -->
-<script src="{% static '../static/plugins/moment/moment.min.js' %}"></script>
+
+<!-- 7. Date/Time Pickers -->
 <script src="{% static '../static/plugins/daterangepicker/daterangepicker.js' %}"></script>
-<!-- Tempusdominus Bootstrap 4 -->
 <script src="{% static '../static/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
-<!-- Summernote -->
+
+<!-- 8. Summernote (WYSIWYG editor) -->
 <script src="{% static '../static/plugins/summernote/summernote-bs4.min.js' %}"></script>
-<!-- overlayScrollbars -->
-<script src="{% static '../static/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
-<!-- AdminLTE App -->
-<script src="{% static '../static/dist/js/adminlte.js' %}"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-
-<!-- TABLE -->
-<!-- DataTables  & Plugins -->
+<!-- 9. DataTables & Extensions (heavy, load late) -->
 <script src="{% static '../static/plugins/datatables/jquery.dataTables.min.js' %}"></script>
 <script src="{% static '../static/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
 <script src="{% static '../static/plugins/datatables-responsive/js/dataTables.responsive.min.js' %}"></script>
 <script src="{% static '../static/plugins/datatables-responsive/js/responsive.bootstrap4.min.js' %}"></script>
-<script src="{% static '../static/plugins/datatables-buttons/js/dataTables.buttons.min.js' %}"></script>
-<script src="{% static '../static/plugins/datatables-buttons/js/buttons.bootstrap4.min.js '%}"></script>
 <script src="{% static '../static/plugins/jszip/jszip.min.js' %}"></script>
 <script src="{% static '../static/plugins/pdfmake/pdfmake.min.js' %}"></script>
 <script src="{% static '../static/plugins/pdfmake/vfs_fonts.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-buttons/js/dataTables.buttons.min.js' %}"></script>
+<script src="{% static '../static/plugins/datatables-buttons/js/buttons.bootstrap4.min.js' %}"></script>
 <script src="{% static '../static/plugins/datatables-buttons/js/buttons.html5.min.js' %}"></script>
 <script src="{% static '../static/plugins/datatables-buttons/js/buttons.print.min.js' %}"></script>
 <script src="{% static '../static/plugins/datatables-buttons/js/buttons.colVis.min.js' %}"></script>
+
+<!-- 10. Select2 (load after jQuery) -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+
+<!-- 11. AdminLTE (load last) -->
+<script src="{% static '../static/dist/js/adminlte.js' %}"></script>
 <script>
   $(function () {
     $("#example1").DataTable({

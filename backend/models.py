@@ -110,13 +110,10 @@ class Service(ItemBase):
 
 class Sale(models.Model):
     invoice_no = models.CharField(max_length=20, unique=True)
-    party_name = models.CharField(max_length=255)  # New field
-    party_email = models.EmailField(blank=True, null=True)  # New field
-    party_phone = models.CharField(max_length=15, blank=True, null=True)  # New field
-    party_address = models.TextField(blank=True, null=True)  # New field
+    party = models.ForeignKey(Create_party, on_delete=models.CASCADE)
     invoice_date = models.DateField(default=timezone.now)
     due_date = models.DateField(null=True, blank=True)
-    payment_terms = models.CharField(max_length=100, blank=True)
+    payment_terms = models.IntegerField(default=0)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -130,10 +127,11 @@ class Sale(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     user = models.ForeignKey('Admin_login', on_delete=models.CASCADE)
+    is_draft = models.BooleanField(default=False)
 
     def clean(self):
-        if not self.party_name:
-            raise ValidationError("Party name is required")
+        if not self.party:
+            raise ValidationError("Party is required")
         if self.total_amount < 0:
             raise ValidationError("Total amount cannot be negative")
         if self.amount_received < 0:
@@ -143,7 +141,7 @@ class Sale(models.Model):
 
 class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
-    item = models.ForeignKey('ItemBase', on_delete=models.SET_NULL, null=True)
+    item = models.ForeignKey(ItemBase, on_delete=models.SET_NULL, null=True)
     quantity = models.PositiveIntegerField(default=1)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

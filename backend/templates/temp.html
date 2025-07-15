@@ -3,461 +3,592 @@
 {% include 'sidebar.html' %}
 {% load static %}
 
-<style>
-  /* Item Form Specific Styles */
-  .item-form-card {
-    border-radius: 8px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .item-form-card .card-header {
-    border-bottom: 1px solid var(--border-color);
-    background-color: rgba(0, 0, 0, 0.03);
-  }
-
-  .dark-theme .item-form-card .card-header {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-
-  /* Tab styling */
-  .nav-tabs {
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 1rem;
-  }
-
-  .nav-tabs .nav-link {
-    color: var(--text-color);
-    border: 1px solid transparent;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-    transition: all 0.3s ease;
-  }
-
-  .nav-tabs .nav-link:hover {
-    border-color: var(--border-color);
-  }
-
-  .nav-tabs .nav-link.active {
-    color: var(--primary-color);
-    background-color: var(--card-bg);
-    border-color: var(--border-color) var(--border-color) var(--card-bg);
-    font-weight: 500;
-  }
-
-  .dark-theme .nav-tabs .nav-link.active {
-    border-bottom-color: var(--content-bg-dark);
-  }
-
-  .tab-content {
-    padding: 1rem;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-top: none;
-    border-radius: 0 0 4px 4px;
-  }
-
-  /* Form group styling */
-  .form-group {
-    margin-bottom: 1.25rem;
-  }
-
-  /* Price input styling */
-  .price-input-group {
-    position: relative;
-  }
-
-  .price-input-group .form-control {
-    padding-left: 30px;
-  }
-
-  .price-input-group::before {
-    content: "₹";
-    position: absolute;
-    left: 12px;
-    top: 38px;
-    font-weight: bold;
-    color: var(--text-color);
-    z-index: 1;
-  }
-
-  /* Image preview styling */
-  .image-preview {
-    width: 80px;
-    height: 80px;
-    border: 1px dashed var(--border-color);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    background-color: var(--input-bg);
-  }
-
-  .image-preview img {
-    max-width: 100%;
-    max-height: 100%;
-  }
-
-  /* Button styling */
-  .btn-add {
-    white-space: nowrap;
-  }
-
-  /* Modal styling */
-  .modal-content {
-    background-color: var(--modal-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-  }
-
-  .modal-header {
-    background-color: var(--modal-header-bg);
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .modal-footer {
-    border-top: 1px solid var(--border-color);
-  }
-</style>
-
-<!-- Content Wrapper -->
 <div class="content-wrapper">
-  <!-- Content Header -->
   <div class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
+      <div class="row mb-1">
         <div class="col-sm-6">
-          <h1 class="m-0">Create Item</h1>
+          <h1 class="m-0">Create Sale</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
-            <li class="breadcrumb-item active">Create Item</li>
+            <li class="breadcrumb-item active">Create Sale</li>
           </ol>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Main Content -->
   <section class="content">
     <div class="container-fluid">
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card item-form-card">
-            <div class="card-header">
-              <h3 class="card-title">Item Information</h3>
-            </div>
-            
-            <div class="card-body">
-              <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                
-                <!-- Item Name -->
-                <div class="form-group col-md-6">
-                  <label for="itemName">Item Name *</label>
-                  <input type="text" id="itemName" class="form-control" name="item_name" placeholder="Enter item name" required>
-                </div>
-
-                <!-- Main Tabs -->
-                <ul class="nav nav-tabs" id="mainTab" role="tablist">
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="product-tab" data-bs-toggle="tab" data-bs-target="#product"
-                      type="button" role="tab" aria-controls="product" aria-selected="true">
-                      <i class="fas fa-box me-1"></i> Product
-                    </button>
-                  </li>
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="service-tab" data-bs-toggle="tab" data-bs-target="#service"
-                      type="button" role="tab" aria-controls="service" aria-selected="false">
-                      <i class="fas fa-concierge-bell me-1"></i> Service
-                    </button>
-                  </li>
-                </ul>
-
-                <div class="tab-content" id="mainTabContent">
-                  <!-- Product Tab Content -->
-                  <div class="tab-pane fade show active" id="product" role="tabpanel" aria-labelledby="product-tab">
-                    <ul class="nav nav-tabs" id="productTab" role="tablist">
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="product-pricing-tab" data-bs-toggle="tab"
-                          data-bs-target="#product-pricing" type="button" role="tab" aria-controls="product-pricing"
-                          aria-selected="true">Pricing</button>
-                      </li>
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="product-stock-tab" data-bs-toggle="tab"
-                          data-bs-target="#product-stock" type="button" role="tab" aria-controls="product-stock"
-                          aria-selected="false">Stock</button>
-                      </li>
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="product-other-tab" data-bs-toggle="tab"
-                          data-bs-target="#product-other" type="button" role="tab" aria-controls="product-other"
-                          aria-selected="false">Other</button>
-                      </li>
-                    </ul>
-                    
-                    <div class="tab-content" id="productTabContent">
-                      <!-- Pricing Tab -->
-                      <div class="tab-pane fade show active" id="product-pricing" role="tabpanel"
-                        aria-labelledby="product-pricing-tab">
-                        <div class="form-row">
-                          <div class="form-group col-md-4">
-                            <label for="unitSelect">Unit *</label>
-                            <div class="d-flex gap-2">
-                              <select class="form-control" name="unit" id="unitSelect" required>
-                                <option value="">Select Unit</option>
-                                {% for units in unit %}
-                                <option value="{{ units.id }}">{{ units.name }}</option>
-                                {% endfor %}
-                              </select>
-                              <button type="button" class="btn btn-success btn-add" data-bs-toggle="modal"
-                                data-bs-target="#addUnitModal">
-                                <i class="fas fa-plus"></i>
-                              </button>
-                            </div>
-                          </div>
-
-                          <div class="form-group col-md-4 price-input-group">
-                            <label for="salesPrice">Sales Price *</label>
-                            <input type="number" id="salesPrice" class="form-control" name="sale_price" placeholder="120" step="0.01" min="0" required>
-                          </div>
-                          
-                          <div class="form-group col-md-4 price-input-group">
-                            <label for="purchasePrice">Purchase Price *</label>
-                            <input type="number" id="purchasePrice" class="form-control" name="purchase_price" placeholder="150" step="0.01" min="0" required>
-                          </div>
-                          
-                          <div class="form-group col-md-4">
-                            <label for="gstSelect">GST</label>
-                            <select class="form-control" name="gst" id="gstSelect">
-                              <option value="">None</option>
-                              <option value="18%">GST@18%</option>
-                            </select>
-                          </div>
-                          
-                          <div class="form-group col-md-4">
-                            <label for="hsnCode">HSN Code</label>
-                            <input type="text" id="hsnCode" class="form-control" name="hsn" placeholder="Enter HSN code">
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- Stock Tab -->
-                      <div class="tab-pane fade" id="product-stock" role="tabpanel" aria-labelledby="product-stock-tab">
-                        <div class="form-row">
-                          <div class="form-group col-md-4">
-                            <label for="openingStock">Opening Stock</label>
-                            <input type="number" id="openingStock" class="form-control" name="opening_stock" placeholder="0">
-                          </div>
-                          
-                          <div class="form-group col-md-4">
-                            <label for="stockDate">As of Date</label>
-                            <input type="date" id="stockDate" class="form-control" name="stock_date">
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- Other Tab -->
-                      <div class="tab-pane fade" id="product-other" role="tabpanel" aria-labelledby="product-other-tab">
-                        <div class="form-row">
-                          <div class="form-group col-md-4">
-                            <label for="productImage">Product Image</label>
-                            <input type="file" name="product_image" class="form-control" id="productImage" onchange="previewImage(this, 'productPreview')">
-                            <div class="image-preview mt-2" id="productPreview">
-                              <span class="text-muted">No image selected</span>
-                            </div>
-                          </div>
-                          
-                          <div class="form-group col-md-4">
-                            <label for="categorySelect">Category</label>
-                            <div class="d-flex gap-2">
-                              <select class="form-control" name="category" id="categorySelect">
-                                <option value="">Select Category</option>
-                                {% for cat in category %}
-                                <option value="{{ cat.id }}">{{ cat.cname }}</option>
-                                {% endfor %}
-                              </select>
-                              <button type="button" class="btn btn-success btn-add" data-bs-toggle="modal"
-                                data-bs-target="#addcategoryModal">
-                                <i class="fas fa-plus"></i>
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div class="form-group col-md-8">
-                            <label for="productDescription">Description</label>
-                            <textarea class="form-control" id="productDescription" rows="3" name="item_des" placeholder="Product description"></textarea>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Service Tab Content -->
-                  <div class="tab-pane fade" id="service" role="tabpanel" aria-labelledby="service-tab">
-                    <ul class="nav nav-tabs" id="serviceTab" role="tablist">
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="service-pricing-tab" data-bs-toggle="tab"
-                          data-bs-target="#service-pricing" type="button" role="tab" aria-controls="service-pricing"
-                          aria-selected="true">Pricing</button>
-                      </li>
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="service-other-tab" data-bs-toggle="tab"
-                          data-bs-target="#service-other" type="button" role="tab" aria-controls="service-other"
-                          aria-selected="false">Other</button>
-                      </li>
-                    </ul>
-                    
-                    <div class="tab-content" id="serviceTabContent">
-                      <!-- Service Pricing Tab -->
-                      <div class="tab-pane fade show active" id="service-pricing" role="tabpanel"
-                        aria-labelledby="service-pricing-tab">
-                        <div class="form-row">
-                          <div class="form-group col-md-4">
-                            <label for="serviceUnit">Unit</label>
-                            <select class="form-control" name="ltype" id="serviceUnit">
-                              <option value="">Select</option>
-                              <option value="PCS">PCS</option>
-                            </select>
-                          </div>
-                          
-                          <div class="form-group col-md-4 price-input-group">
-                            <label for="servicePrice">Service Price *</label>
-                            <input type="number" id="servicePrice" class="form-control" name="sale_price_service" placeholder="120" step="0.01" min="0" required>
-                          </div>
-                          
-                          <div class="form-group col-md-4">
-                            <label for="serviceGst">GST</label>
-                            <select class="form-control" name="gst_service" id="serviceGst">
-                              <option value="">None</option>
-                              <option value="18%">GST@18%</option>
-                            </select>
-                          </div>
-                          
-                          <div class="form-group col-md-4">
-                            <label for="sacCode">SAC Code</label>
-                            <input type="text" id="sacCode" class="form-control" name="hsn_service" placeholder="Enter SAC code">
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- Service Other Tab -->
-                      <div class="tab-pane fade" id="service-other" role="tabpanel" aria-labelledby="service-other-tab">
-                        <div class="form-row">
-                          <div class="form-group col-md-4">
-                            <label for="serviceImage">Service Image</label>
-                            <input type="file" name="service_image" class="form-control" id="serviceImage" onchange="previewImage(this, 'servicePreview')">
-                            <div class="image-preview mt-2" id="servicePreview">
-                              <span class="text-muted">No image selected</span>
-                            </div>
-                          </div>
-                          
-                          <div class="form-group col-md-4">
-                            <label for="serviceCategory">Category</label>
-                            <select id="serviceCategory" name="service_category" class="form-control">
-                              <option value="">Select Category</option>
-                              {% for cat in category %}
-                              <option value="{{ cat.id }}">{{ cat.cname }}</option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                          
-                          <div class="form-group col-md-8">
-                            <label for="serviceDescription">Description</label>
-                            <textarea class="form-control" name="service_description" id="serviceDescription" rows="3" placeholder="Service description"></textarea>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Submit Button -->
-                <div class="form-group mt-4">
-                  <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save me-1"></i> Save Item
-                  </button>
-                </div>
-              </form>
-            </div>
+      <div class="card" id="invoiceCard">
+        <div class="card-header d-flex justify-content-between align-items-center py-1">
+          <h3 class="card-title">New Sale</h3>
+          <div>
+            <button type="submit" form="saleForm" name="action" value="save" class="btn btn-success btn-sm mr-1">Save</button>
+            <button type="submit" form="saleForm" name="action" value="save_new" class="btn btn-primary btn-sm mr-1">Save & New</button>
+            <button type="button" class="btn btn-info btn-sm printButton" onclick="window.print();"><i class="fas fa-print"></i></button>
           </div>
+        </div>
+        <div class="card-body p-2">
+          {% if messages %}
+          <div class="alert alert-dismissible fade show" role="alert">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} py-1">
+              <i class="fas fa-check-circle"></i> {{ message }}
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="invoice-header text-center d-none d-print-block">
+            <h2>Sale Invoice</h2>
+            <p class="small mb-0">Innobzeetech ERP System, Ranchi, Jharkhand</p>
+          </div>
+
+          <form id="saleForm" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-8">
+                <div class="card mb-2">
+                  <div class="card-header py-1">Bill To</div>
+                  <div class="card-body p-2">
+                    <div class="row">
+                      <div class="col-md-6 form-group mb-1">
+                        <label for="partyName" required>Name *</label>
+                        <input type="text" class="form-control form-control-sm" id="partyName" name="party_name" required>
+                        <span class="d-none d-print-block party-name-print">{{ party_name|default:'____________________' }}</span>
+                      </div>
+                      <div class="col-md-6 form-group mb-1">
+                        <label for="partyPhone">Phone</label>
+                        <input type="text" class="form-control form-control-sm" id="partyPhone" name="party_phone">
+                        <span class="d-none d-print-block party-phone-print">{{ party_phone|default:'____________________' }}</span>
+                      </div>
+                      <div class="col-md-6 form-group mb-1">
+                        <label for="partyEmail">Email</label>
+                        <input type="email" class="form-control form-control-sm" id="partyEmail" name="party_email">
+                        <span class="d-none d-print-block party-email-print">{{ party_email|default:'____________________' }}</span>
+                      </div>
+                      <div class="col-md-6 form-group mb-1">
+                        <label for="partyAddress">Address</label>
+                        <textarea class="form-control form-control-sm" id="partyAddress" name="party_address" rows="2"></textarea>
+                        <span class="d-none d-print-block party-address-print">{{ party_address|default:'____________________' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card mb-2">
+                  <div class="card-header py-1">Invoice Details</div>
+                  <div class="card-body p-2">
+                    <div class="form-group mb-1">
+                      <label for="invoiceNo" required>Invoice No *</label>
+                      <input type="text" class="form-control form-control-sm" id="invoiceNo" name="invoice_no" value="{{ invoice_no }}" readonly>
+                      <span class="d-none d-print-block invoice-no-print">{{ invoice_no }}</span>
+                    </div>
+                    <div class="form-group mb-1">
+                      <label for="invoiceDate" required>Invoice Date *</label>
+                      <input type="date" class="form-control form-control-sm" id="invoiceDate" name="invoice_date" value="{% now 'Y-m-d' %}" required>
+                      <span class="d-none d-print-block invoice-date-print">{% now 'Y-m-d' %}</span>
+                    </div>
+                    <div class="form-group mb-1">
+                      <label for="dueDate">Due Date</label>
+                      <input type="date" class="form-control form-control-sm" id="dueDate" name="due_date">
+                      <span class="d-none d-print-block due-date-print">{{ due_date|default:'____________________' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card mb-2">
+              <div class="card-header py-1">Items</div>
+              <div class="card-body p-2">
+                <table class="table table-bordered table-sm" id="itemTable">
+                  <thead>
+                    <tr>
+                      <th style="width:5%">No</th>
+                      <th style="width:25%">Item/Service</th>
+                      <th style="width:10%">HSN/SAC</th>
+                      <th style="width:10%">Batch</th>
+                      <th style="width:10%">Expiry</th>
+                      <th style="width:8%">Qty</th>
+                      <th style="width:10%">Price</th>
+                      <th style="width:8%">Disc</th>
+                      <th style="width:10%">Tax</th>
+                      <th style="width:14%">Amount</th>
+                      <th style="width:5%" class="d-print-none"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="itemRows"></tbody>
+                </table>
+                <button type="button" class="btn btn-link btn-sm d-print-none" id="addItemBtn">+ Add Item</button>
+                <div class="form-group mt-2 d-print-none">
+                  <label for="barcode">Barcode</label>
+                  <input type="text" class="form-control form-control-sm" id="barcode" placeholder="Enter barcode">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card mb-2">
+                  <div class="card-header py-1">Notes & Terms</div>
+                  <div class="card-body p-2">
+                    <div class="form-group mb-1">
+                      <label for="notes">Notes</label>
+                      <textarea class="form-control form-control-sm" id="notes" name="notes" rows="2" placeholder="Add notes..."></textarea>
+                      <span class="d-none d-print-block notes-print">{{ notes|default:'____________________' }}</span>
+                    </div>
+                    <div class="form-group mb-1">
+                      <label for="terms">Terms</label>
+                      <textarea class="form-control form-control-sm" id="terms" name="terms_conditions" rows="2">Goods once sold will not be taken back. Disputes subject to JHARKHAND jurisdiction.</textarea>
+                      <span class="d-none d-print-block terms-print">Goods once sold will not be taken back. Disputes subject to JHARKHAND jurisdiction.</span>
+                    </div>
+                    <div class="form-group">
+                      <label class="d-print-none">Bank Details</label>
+                      <p class="mb-1 small">A/c: 5337777943, IFSC: CBIN0281583, Bank: Central Bank of India, CHANDRI</p>
+                      <p class="mb-1 small">A/c Holder: Sanuj Kumar Gupta, UPI: 9122133687@axl</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card mb-2">
+                  <div class="card-header py-1">Summary</div>
+                  <div class="card-body p-2">
+                    <div class="row mb-1">
+                      <div class="col-6 small">Subtotal</div>
+                      <div class="col-6 text-right small" id="subtotal">₹ 0.00</div>
+                    </div>
+                    <div class="row mb-1">
+                      <div class="col-6 small">Discount</div>
+                      <div class="col-6 text-right">
+                        <input type="number" class="form-control form-control-sm d-inline-block w-50 d-print-none" id="totalDiscount" name="discount" value="0" step="0.01" min="0">
+                        <span class="d-none d-print-block discount-print">0.00</span>
+                      </div>
+                    </div>
+                    <div class="row mb-1">
+                      <div class="col-6 small">Charges</div>
+                      <div class="col-6 text-right">
+                        <input type="number" class="form-control form-control-sm d-inline-block w-50 d-print-none" id="additionalCharges" name="additional_charges" value="0" step="0.01" min="0">
+                        <span class="d-none d-print-block charges-print">0.00</span>
+                      </div>
+                    </div>
+                    <div class="row mb-1">
+                      <div class="col-6 small">Taxable Amount</div>
+                      <div class="col-6 text-right small" id="taxableAmount">₹ 0.00</div>
+                    </div>
+                    <div class="row mb-1">
+                      <div class="col-6 small">Total Tax</div>
+                      <div class="col-6 text-right small" id="totalTax">₹ 0.00</div>
+                    </div>
+                    <div class="row mb-1">
+                      <div class="col-6 small">Total Amount</div>
+                      <div class="col-6 text-right small" id="totalAmount">₹ 0.00</div>
+                    </div>
+                    <div class="row mb-1">
+                      <div class="col-6 small">Received</div>
+                      <div class="col-6 text-right">
+                        <input type="number" class="form-control form-control-sm d-inline-block w-50 d-print-none" id="amountReceived" name="amount_received" value="0" step="0.01" min="0">
+                        <span class="d-none d-print-block received-print">0.00</span>
+                      </div>
+                    </div>
+                    <div class="row mb-1">
+                      <div class="col-6 small">Balance</div>
+                      <div class="col-6 text-right small" id="balanceAmount">₹ 0.00</div>
+                    </div>
+                    <div class="row mt-1">
+                      <div class="col-6 small d-print-none">Signature</div>
+                      <div class="col-6 text-right d-print-none">
+                        <input type="file" class="form-control-file form-control-sm" id="signature" name="signature">
+                      </div>
+                      <div class="col-12 text-right d-none d-print-block">
+                        <span class="small">Authorized Signatory</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   </section>
 </div>
 
-<!-- Modals (unchanged from your original) -->
-<div class="modal fade" id="addUnitModal" tabindex="-1" aria-labelledby="addUnitModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form method="POST" action="{% url 'add_unit' %}">
-      {% csrf_token %}
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="addUnitModalLabel">Add New Unit</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <input type="text" name="unit_name" class="form-control" placeholder="Enter unit name">
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Save Unit</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
+<style>
+  :root {
+    --card-bg-light: #fff;
+    --card-bg-dark: #2d3748;
+    --border-color-light: #dee2e6;
+    --border-color-dark: #4a5568;
+    --text-color-light: #212529;
+    --text-color-dark: #e2e8f0;
+  }
 
-<div class="modal fade" id="addcategoryModal" tabindex="-1" aria-labelledby="addcategoryModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form method="POST" action="{% url 'add_category' %}">
-      {% csrf_token %}
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="addcategoryModalLabel">Add New Category</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <input type="text" name="cat_name" class="form-control" placeholder="Enter Category name">
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Save Category</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
+  body.light-theme {
+    background-color: #f8f9fa;
+    color: var(--text-color-light);
+  }
 
-<!-- JavaScript -->
+  body.dark-theme {
+    background-color: #1a202c;
+    color: var(--text-color-dark);
+  }
+
+  .card {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .light-theme .card {
+    background-color: var(--card-bg-light);
+    border-color: var(--border-color-light);
+  }
+
+  .dark-theme .card {
+    background-color: var(--card-bg-dark);
+    border-color: var(--border-color-dark);
+  }
+
+  .card-header, .card-body {
+    padding: 0.4rem !important;
+  }
+
+  .form-control-sm, .form-select-sm {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    line-height: 1.4;
+  }
+
+  .table-sm th, .table-sm td {
+    padding: 0.2rem;
+    font-size: 0.75rem;
+  }
+
+  .form-control, .form-select {
+    background-color: inherit;
+    color: inherit;
+    border-color: inherit;
+  }
+
+  .form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.15rem rgba(49, 130, 206, 0.25);
+  }
+
+  label {
+    font-size: 0.75rem;
+    color: inherit;
+  }
+
+  label[required]::after {
+    content: " *";
+    color: #dc3545;
+  }
+
+  .small {
+    font-size: 0.75rem;
+  }
+
+  .select2-container .select2-selection--single {
+    height: 28px;
+    font-size: 0.75rem;
+    border-color: inherit;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 28px;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 28px;
+  }
+
+  @media print {
+    body {
+      background: #fff;
+      color: #000;
+      font-size: 9pt;
+      margin: 0.3cm;
+    }
+    .content-wrapper, .card, .card-body {
+      box-shadow: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+    .card-header, .printButton, #addItemBtn, .form-text, .btn, .alert, .d-print-none {
+      display: none;
+    }
+    #invoiceCard {
+      margin: 0;
+      width: 100%;
+    }
+    #itemTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 5px 0;
+    }
+    #itemTable th, #itemTable td {
+      border: 1px solid #000;
+      padding: 2px;
+      font-size: 9pt;
+    }
+    #itemTable th:nth-child(1), #itemTable td:nth-child(1) { width: 5%; }
+    #itemTable th:nth-child(2), #itemTable td:nth-child(2) { width: 25%; }
+    #itemTable th:nth-child(3), #itemTable td:nth-child(3) { width: 10%; }
+    #itemTable th:nth-child(4), #itemTable td:nth-child(4) { width: 10%; }
+    #itemTable th:nth-child(5), #itemTable td:nth-child(5) { width: 10%; }
+    #itemTable th:nth-child(6), #itemTable td:nth-child(6) { width: 8%; }
+    #itemTable th:nth-child(7), #itemTable td:nth-child(7) { width: 10%; }
+    #itemTable th:nth-child(8), #itemTable td:nth-child(8) { width: 8%; }
+    #itemTable th:nth-child(9), #itemTable td:nth-child(9) { width: 10%; }
+    #itemTable th:nth-child(10), #itemTable td:nth-child(10) { width: 14%; }
+    .form-control, .form-select, input, textarea, .select2-container {
+      display: none;
+    }
+    .party-name-print, .party-phone-print, .party-email-print, .party-address-print,
+    .invoice-no-print, .invoice-date-print, .due-date-print,
+    .notes-print, .terms-print, .discount-print, .charges-print, .received-print,
+    .item-select-print {
+      display: inline !important;
+      font-size: 9pt;
+      color: #000;
+      border: none !important;
+      background: none !important;
+      padding: 0;
+      margin: 0;
+    }
+    .row {
+      page-break-inside: avoid;
+      margin: 0;
+    }
+    .invoice-header {
+      margin-bottom: 5px;
+    }
+    .card-body > .row > div {
+      display: block;
+      width: 100%;
+    }
+    .card-body > .row > div > .card {
+      margin-bottom: 3px;
+    }
+    p, label {
+      margin: 0;
+      font-size: 9pt;
+    }
+  }
+</style>
+
 <script>
-  // Image preview function
-  function previewImage(input, previewId) {
-    const preview = document.getElementById(previewId);
-    const file = input.files[0];
-    const reader = new FileReader();
+document.addEventListener('DOMContentLoaded', () => {
+  // Check if jQuery and Select2 are loaded
+  if (typeof jQuery === 'undefined') {
+    console.error('jQuery is not loaded');
+    return;
+  }
+  if (!jQuery.fn.select2) {
+    console.error('Select2 is not loaded');
+  }
+
+  const itemTable = document.querySelector('#itemTable tbody');
+  const addItemBtn = document.querySelector('#addItemBtn');
+  let itemCount = 0;
+  const items = [
+    {% for item in items %}
+    {
+      id: {{ item.id|default_if_none:'null' }},
+      name: "{{ item.item_name|escapejs|default_if_none:'' }}",
+      type: "{{ item.item_type|default_if_none:'' }}",
+      hsn_sac: "{{ item.hsn_sac_code|default_if_none:''|escapejs }}",
+      sale_price: {{ item.sale_price|floatformat:2|default_if_none:'0.00' }},
+      batch_number: {% if item.item_type == 'product' %}"{{ item.batch_number|default_if_none:''|escapejs }}"{% else %}""{% endif %},
+      expiry_date: {% if item.item_type == 'product' %}"{{ item.expiry_date|date:'Y-m-d'|default_if_none:'' }}"{% else %}""{% endif %},
+      gst_rate: "{{ item.gst_rate|default_if_none:'0'|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% empty %}
+    []
+    {% endfor %}
+  ];
+  console.log('Items loaded:', items); // Debug: Check items array
+
+  function addItemRow(itemId = '') {
+    itemCount++;
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${itemCount}</td>
+      <td>
+        <select class="form-control form-control-sm item-select" name="items[${itemCount-1}][item_id]" required>
+          <option value="">Select Item</option>
+          ${items.map(item => `<option value="${item.id}" data-price="${item.sale_price}" data-hsn="${item.hsn_sac}" data-batch="${item.batch_number}" data-expiry="${item.expiry_date}" data-gst="${item.gst_rate}" data-name="${item.name}">${item.name} (${item.type})</option>`).join('')}
+        </select>
+        <span class="item-select-print d-none d-print-block"></span>
+      </td>
+      <td><input type="text" class="form-control form-control-sm hsn_sac" name="items[${itemCount-1}][hsn_sac]" readonly></td>
+      <td><input type="text" class="form-control form-control-sm batch_number" name="items[${itemCount-1}][batch_number]" readonly></td>
+      <td><input type="text" class="form-control form-control-sm expiry_date" name="items[${itemCount-1}][expiry_date]" readonly></td>
+      <td><input type="number" class="form-control form-control-sm quantity" name="items[${itemCount-1}][quantity]" value="1" min="1" required></td>
+      <td><input type="number" class="form-control form-control-sm price" name="items[${itemCount-1}][price]" readonly></td>
+      <td><input type="number" class="form-control form-control-sm discount" name="items[${itemCount-1}][discount]" value="0" step="0.01" min="0"></td>
+      <td><input type="number" class="form-control form-control-sm tax" name="items[${itemCount-1}][tax_amount]" readonly></td>
+      <td><input type="number" class="form-control form-control-sm amount" name="items[${itemCount-1}][amount]" readonly></td>
+      <td class="d-print-none"><button type="button" class="btn btn-danger btn-sm remove-item"><i class="fas fa-trash"></i></button></td>
+    `;
+    itemTable.appendChild(row);
+    const select = row.querySelector('.item-select');
     
-    preview.innerHTML = '';
-    
-    if (file) {
-      reader.onload = function(e) {
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        preview.appendChild(img);
+    // Initialize Select2 if available, else use native select
+    if (typeof jQuery.fn.select2 === 'function') {
+      $(select).select2({ width: '100%' });
+      if (itemId) {
+        select.value = itemId;
+        $(select).trigger('change');
       }
-      reader.readAsDataURL(file);
     } else {
-      preview.innerHTML = '<span class="text-muted">No image selected</span>';
+      console.warn('Select2 not available, using native select');
+      if (itemId) {
+        select.value = itemId;
+        select.dispatchEvent(new Event('change'));
+      }
+    }
+    
+    updateRow(row);
+  }
+
+  function updateRow(row) {
+    const select = row.querySelector('.item-select');
+    const hsn = row.querySelector('.hsn_sac');
+    const batch = row.querySelector('.batch_number');
+    const expiry = row.querySelector('.expiry_date');
+    const price = row.querySelector('.price');
+    const quantity = row.querySelector('.quantity');
+    const discount = row.querySelector('.discount');
+    const tax = row.querySelector('.tax');
+    const amount = row.querySelector('.amount');
+    const itemPrint = row.querySelector('.item-select-print');
+
+    select.addEventListener('change', () => {
+      console.log('Item selected:', select.value); // Debug: Check selected value
+      const selectedOption = select.options[select.selectedIndex];
+      const selected = items.find(item => item.id == select.value);
+      if (selected && selectedOption) {
+        console.log('Selected item data:', selected); // Debug: Log item data
+        itemPrint.textContent = selected.name || '';
+        hsn.value = selected.hsn_sac || '';
+        batch.value = selected.batch_number || '';
+        expiry.value = selected.expiry_date || '';
+        price.value = parseFloat(selected.sale_price || 0).toFixed(2);
+        updateRowTotals(row);
+      } else {
+        console.log('No item selected, clearing fields'); // Debug
+        itemPrint.textContent = '';
+        hsn.value = batch.value = expiry.value = price.value = tax.value = amount.value = '';
+      }
+      updateTotals();
+    });
+
+    quantity.addEventListener('input', () => {
+      console.log('Quantity changed:', quantity.value); // Debug
+      updateRowTotals(row);
+    });
+    discount.addEventListener('input', () => {
+      console.log('Discount changed:', discount.value); // Debug
+      updateRowTotals(row);
+    });
+
+    function updateRowTotals() {
+      const selected = items.find(item => item.id == select.value);
+      if (selected) {
+        const qty = parseFloat(quantity.value) || 0;
+        const disc = parseFloat(discount.value) || 0;
+        const priceVal = parseFloat(selected.sale_price) || 0;
+        const taxRate = parseFloat(selected.gst_rate.replace(/[^0-9.]/g, '')) / 100 || 0;
+        tax.value = ((qty * priceVal - disc) * taxRate).toFixed(2);
+        amount.value = ((qty * priceVal - disc) * (1 + taxRate)).toFixed(2);
+        console.log('Row totals:', { qty, priceVal, disc, tax: tax.value, amount: amount.value }); // Debug
+        updateTotals();
+      }
     }
   }
 
-  // Initialize tab functionality
-  document.addEventListener('DOMContentLoaded', function() {
-    // Bootstrap tabs will automatically initialize
-    // Add any additional tab-related JS here if needed
+  function updateTotals() {
+    let subtotal = 0, totalTax = 0;
+    document.querySelectorAll('#itemTable tbody tr').forEach(row => {
+      const qty = parseFloat(row.querySelector('.quantity').value) || 0;
+      const price = parseFloat(row.querySelector('.price').value) || 0;
+      const disc = parseFloat(row.querySelector('.discount').value) || 0;
+      const tax = parseFloat(row.querySelector('.tax').value) || 0;
+      subtotal += qty * price - disc;
+      totalTax += tax;
+    });
+
+    const discount = parseFloat(document.querySelector('#totalDiscount').value) || 0;
+    const charges = parseFloat(document.querySelector('#additionalCharges').value) || 0;
+    const taxable = subtotal - discount + charges;
+    const total = taxable + totalTax;
+    const received = parseFloat(document.querySelector('#amountReceived').value) || 0;
+
+    document.querySelector('#subtotal').textContent = `₹ ${subtotal.toFixed(2)}`;
+    document.querySelector('#taxableAmount').textContent = `₹ ${taxable.toFixed(2)}`;
+    document.querySelector('#totalTax').textContent = `₹ ${totalTax.toFixed(2)}`;
+    document.querySelector('#totalAmount').textContent = `₹ ${total.toFixed(2)}`;
+    document.querySelector('#balanceAmount').textContent = `₹ ${(total - received).toFixed(2)}`;
+    document.querySelector('.discount-print').textContent = discount.toFixed(2);
+    document.querySelector('.charges-print').textContent = charges.toFixed(2);
+    document.querySelector('.received-print').textContent = received.toFixed(2);
+    console.log('Totals updated:', { subtotal, taxable, totalTax, total, received, balance: total - received }); // Debug
+  }
+
+  addItemBtn.addEventListener('click', () => addItemRow());
+
+  document.querySelector('#itemTable').addEventListener('click', e => {
+    if (e.target.closest('.remove-item')) {
+      e.target.closest('tr').remove();
+      itemCount--;
+      updateTotals();
+    }
   });
+
+  document.querySelector('#barcode').addEventListener('input', function() {
+    const item = items.find(i => i.hsn_sac === this.value || i.batch_number === this.value);
+    if (item) {
+      console.log('Barcode matched item:', item); // Debug
+      addItemRow(item.id);
+      this.value = '';
+    }
+  });
+
+  ['totalDiscount', 'additionalCharges', 'amountReceived'].forEach(id => {
+    const input = document.querySelector(`#${id}`);
+    input.addEventListener('input', () => {
+      console.log(`${id} changed:`, input.value); // Debug
+      updateTotals();
+      document.querySelector(`.${id}-print`).textContent = input.value || '0.00';
+    });
+  });
+
+  ['partyName', 'partyPhone', 'partyEmail', 'partyAddress', 'invoiceNo', 'invoiceDate', 'dueDate', 'notes', 'terms'].forEach(id => {
+    const input = document.querySelector(`#${id}`);
+    if (input) {
+      input.addEventListener('input', () => {
+        document.querySelector(`.${id.toLowerCase()}-print`).textContent = input.value || '____________________';
+      });
+    }
+  });
+
+  // Initialize with one row
+  if (items.length > 0) {
+    addItemRow();
+  } else {
+    console.warn('No items available to populate dropdown');
+  }
+});
 </script>
 
-{% include 'footer.html' %}
 {% include 'footer_link.html' %}
