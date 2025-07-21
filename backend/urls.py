@@ -44,7 +44,8 @@ urlpatterns=[
     
 
     #.....Sales......#
-    path('Sales',views.SalesVw,name="Sales"),
+    path('sales_list/', views.sales_list, name='sales_list'),
+    path('sale/<int:sale_id>/edit/', views.edit_sale_view, name='edit_sale'),
 
     #--------add_unit---------#
     path('add-unit', views.add_unit, name='add_unit'),

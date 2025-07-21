@@ -110,17 +110,22 @@ class Service(ItemBase):
 
 class Sale(models.Model):
     invoice_no = models.CharField(max_length=20, unique=True)
-    party = models.ForeignKey(Create_party, on_delete=models.CASCADE)
+    party = models.ForeignKey('Create_party', on_delete=models.CASCADE)
     invoice_date = models.DateField(default=timezone.now)
     due_date = models.DateField(null=True, blank=True)
     payment_terms = models.IntegerField(default=0)
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    total_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    additional_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    amount_received = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    balance_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total_tax = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Existing field for the amount
+    additional_charges = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    # --- NEW FIELD ADDED ---
+    additional_charges_note = models.CharField(max_length=255, blank=True, null=True, help_text="Reason for additional charges, e.g., Shipping")
+
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    amount_received = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    balance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     notes = models.TextField(blank=True, null=True)
     terms_conditions = models.TextField(blank=True, null=True)
     signature = models.ImageField(upload_to='signatures/', blank=True, null=True)
@@ -129,6 +134,32 @@ class Sale(models.Model):
     user = models.ForeignKey('Admin_login', on_delete=models.CASCADE)
     is_draft = models.BooleanField(default=False)
 
+     # ---  TWO PROPERTIES ---
+    @property
+    def status(self):
+        if self.balance_amount <= 0:
+            return "PAID"
+        elif self.due_date and self.due_date < timezone.now().date():
+            return "OVERDUE"
+        else:
+            return "UNPAID"
+
+    @property
+    def due_in_days(self):
+        if self.balance_amount <= 0:
+            return "-" # No due date if it's already paid
+        if self.due_date:
+            today = timezone.now().date()
+            delta = self.due_date - today
+            
+            if delta.days < 0:
+                return f"{-delta.days} days ago"
+            elif delta.days == 0:
+                return "Today"
+            else:
+                return f"in {delta.days} days"
+        return "N/A" # No due date was set
+
     def clean(self):
         if not self.party:
             raise ValidationError("Party is required")
@@ -136,16 +167,16 @@ class Sale(models.Model):
             raise ValidationError("Total amount cannot be negative")
         if self.amount_received < 0:
             raise ValidationError("Amount received cannot be negative")
-        if self.balance_amount < 0:
-            raise ValidationError("Balance amount cannot be negative")
+        # Note: balance_amount can sometimes be negative if there is an overpayment.
+        # You may want to adjust this validation based on your business logic.
 
 class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
-    item = models.ForeignKey(ItemBase, on_delete=models.SET_NULL, null=True)
+    item = models.ForeignKey('ItemBase', on_delete=models.SET_NULL, null=True)
     quantity = models.PositiveIntegerField(default=1)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
     def clean(self):
         if self.quantity <= 0:

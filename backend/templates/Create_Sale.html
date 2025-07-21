@@ -70,38 +70,79 @@
             }
         }
 
-        /* Print Styles - Always light theme */
-        @media print {
-            body {
-                background-color: #ffffff !important;
-                color: #000000 !important;
-                -webkit-print-color-adjust: exact; /* Ensures background colors are printed in Chrome */
-                print-color-adjust: exact;
-            }
-            .no-print {
-                display: none !important;
-            }
-            #invoice-print {
-                display: block !important;
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            }
-            .invoice-header { text-align: center; margin-bottom: 20px; }
-            .invoice-header h2 { margin: 0; font-size: 24px; font-weight: bold; }
-            .invoice-header .company-details p { margin: 2px 0; font-size: 12px; }
-            .party-details, .invoice-meta { font-size: 12px; }
-            .party-details strong, .invoice-meta strong { font-weight: bold; }
-            #invoice-print .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            #invoice-print .table th, #invoice-print .table td { border: 1px solid #999; padding: 8px; text-align: left; font-size: 12px; }
-            #invoice-print .table th { background-color: #f2f2f2 !important; font-weight: bold; }
-            #invoice-print .summary { margin-top: 20px; text-align: right; }
-            #invoice-print .summary p { margin: 5px 0; font-size: 12px; }
-            #invoice-print .footer { margin-top: 30px; font-size: 12px; border-top: 1px solid #ccc; padding-top: 10px; }
-            #invoice-print .signature { margin-top: 50px; text-align: right; }
-        }
+        /* --- UPDATED PRINT STYLES --- */
+@media print {
+    @page {
+        size: A4;
+        margin: 1cm; /* Adjust page margins */
+    }
+    body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .no-print { display: none !important; }
+    #invoice-print {
+        display: block !important;
+        padding: 0; /* Remove padding to use full page width */
+        font-family: Arial, sans-serif;
+    }
+
+    /* Centered Header */
+    .print-header {
+        text-align: center;
+        border-bottom: 2px solid #000;
+        padding-bottom: 10px;
+    }
+    .print-header h2 { margin: 0; font-size: 24px; font-weight: bold; }
+    .print-header p { margin: 2px 0; font-size: 12px; }
+
+    /* New container for BILL TO and Invoice Details */
+    .invoice-meta-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+        font-size: 11px;
+    }
+    .invoice-meta-container .bill-to { width: 50%; }
+
+    /* Table for Invoice No, Date, etc. */
+    .invoice-details-table {
+        width: 45%;
+        border-collapse: collapse;
+    }
+    .invoice-details-table th, .invoice-details-table td {
+        border: 1px solid #999;
+        padding: 5px;
+        text-align: center;
+        font-size: 11px;
+    }
+    .invoice-details-table th {
+        background-color: #f2f2f2 !important;
+        font-weight: bold;
+    }
+
+    /* Main items table */
+    .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px;}
+    .print-table th { border-bottom: 2px solid #000; padding: 8px; text-align: right; }
+    .print-table td { padding: 8px; text-align: right; }
+    .print-table th:nth-child(2), .print-table td:nth-child(2) { text-align: left; }
+    .print-table tr:last-child td { border-bottom: 2px solid #000; }
+
+    /* Other styles remain the same */
+    .print-summary-container { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11px; }
+    .print-summary-left { width: 60%; }
+    .print-summary-right { width: 35%; }
+    .summary-line { display: flex; justify-content: space-between; padding: 4px 0; }
+    .summary-line.total { font-weight: bold; font-size: 12px; border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 5px; }
+    .tax-summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; text-align: center; }
+    .tax-summary-table th, .tax-summary-table td { border: 1px solid #999; padding: 5px; }
+    .tax-summary-table th { font-weight: bold; }
+    .print-footer { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px; }
+    .print-footer .bank-details, .print-footer .terms { width: 40%; }
+    .print-footer .qr-code { text-align: center; }
+}
     </style>
 </head>
 <body>
@@ -122,6 +163,7 @@
 
         <section class="content no-print">
             <div class="container-fluid">
+                <div id="ajaxErrorContainer"></div>
                 {% if messages %}
                 <div class="row">
                     <div class="col-md-12">
@@ -135,11 +177,12 @@
                 </div>
                 {% endif %}
 
-                <form method="POST" enctype="multipart/form-data" id="saleForm" action="{% url 'Create_Sale' %}">
+                <form method="POST" enctype="multipart/form-data" id="saleForm">
                     {% csrf_token %}
-                    <div class="d-flex justify-content-end mb-3">
-                        <button type="button" class="btn btn-info mr-2 printButton"><i class="fas fa-print"></i> Print Preview</button>
-                        <button type="submit" form="saleForm" name="action" value="save" class="btn btn-success"><i class="fas fa-save"></i> Save Sale</button>
+                    <div class="d-flex justify-content-start mb-3">
+                        <a href="{% url 'sales_list' %}" class="btn btn-info mr-2"><i class="fas fa-list"></i> View Sales List</a>
+                        <button type="submit" class="btn btn-secondary mr-2" id="saveButton"><i class="fas fa-save"></i> Save Only</button>
+                        <button type="button" class="btn btn-success" id="saveAndPrintButton"><i class="fas fa-print"></i> Save & Print</button>
                     </div>
 
                     <div class="row">
@@ -209,7 +252,10 @@
                                 <div class="card-body">
                                     <div class="summary-row"><span class="summary-label">Subtotal</span><span class="summary-value" id="subtotal">₹ 0.00</span></div>
                                     <div class="summary-row"><span class="summary-label">Discount</span><input type="number" class="form-control form-control-sm summary-input" id="totalDiscount" name="discount" value="0" step="0.01" min="0"></div>
-                                    <div class="summary-row"><span class="summary-label">Charges</span><input type="number" class="form-control form-control-sm summary-input" id="additionalCharges" name="additional_charges" value="0" step="0.01" min="0"></div>
+                                    <div class="summary-row">
+                                        <input type="text" class="form-control form-control-sm" id="additionalChargesNote" name="additional_charges_note" placeholder="e.g., Additional Charges">
+                                        <input type="number" class="form-control form-control-sm summary-input" id="additionalCharges" name="additional_charges" value="0" step="0.01" min="0">
+                                    </div>
                                     <hr><div class="summary-row"><span class="summary-label">Taxable Amount</span><span class="summary-value" id="taxableAmount">₹ 0.00</span></div>
                                     <div class="summary-row"><span class="summary-label">Total Tax</span><span class="summary-value" id="totalTax">₹ 0.00</span></div>
                                     <hr><div class="summary-row" style="font-size: 1.2em;"><span class="summary-label">Total Amount</span><span class="summary-value" id="totalAmount">₹ 0.00</span></div>
@@ -233,59 +279,123 @@
     </div>
 
     <div id="invoice-print" class="d-none">
-      <div class="invoice-header">
-        <h2>Your Company Name</h2>
-        <div class="company-details">
-          <p>Hazaribagh, Jharkhand, 825301</p>
-          <p>Email: contact@yourcompany.com | Phone: +91 12345 67890</p>
+    <div class="print-header">
+        <div class="company-info">
+            <h2>Your Company Name</h2>
+            <p>Your Address, City, State, PIN</p>
+            <p>PAN: YOURPANHERE | GSTIN: YOURGSTINHERE</p>
+            <p>Email: your.email@example.com | Phone: +91 12345 67890</p>
         </div>
-      </div>
-      <hr>
-      <h3 style="text-align:center; font-weight:bold; margin-bottom: 20px;">TAX INVOICE</h3>
-      <div style="display:flex; justify-content:space-between;">
-        <div class="party-details">
-          <strong>Billed To:</strong><br>
-          <span id="printPartyName"></span><br>
-          <span id="printPartyAddress"></span><br>
-          <span id="printPartyEmail"></span><br>
-          <span id="printPartyPhone"></span><br>
-          <strong>GSTIN:</strong> <span id="printPartyGst"></span><br>
-          <strong>PAN:</strong> <span id="printPartyPan"></span>
+    </div>
+
+    <div class="invoice-meta-container">
+        <div class="bill-to">
+            <strong>BILL TO:</strong><br>
+            <span id="printPartyName" style="font-weight: bold;"></span><br>
+            <span id="printPartyAddress"></span><br>
+            GSTIN: <span id="printPartyGst"></span>
         </div>
-        <div class="invoice-meta" style="text-align:right;">
-          <p><strong>Invoice No:</strong> <span id="printInvoiceNo"></span></p>
-          <p><strong>Date:</strong> <span id="printInvoiceDate"></span></p>
-          <p><strong>Due Date:</strong> <span id="printDueDate"></span></p>
-        </div>
-      </div>
-      <table class="table">
-        <thead><tr><th>#</th><th>Item</th><th>Quantity</th><th>Unit Price</th><th>GST</th><th>Discount</th><th>Amount</th></tr></thead>
+        <table class="invoice-details-table">
+            <thead>
+                <tr>
+                    <th>Invoice No.</th>
+                    <th>Invoice Date</th>
+                    <th>Due Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="printInvoiceNo"></td>
+                    <td id="printInvoiceDate"></td>
+                    <td id="printDueDate"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th style="text-align:center; width:5%;">S.NO.</th>
+                <th style="text-align:left; width:45%;">ITEMS</th>
+                <th style="width:10%;">QTY</th>
+                <th style="width:15%;">RATE</th>
+                <th style="width:10%;">TAX</th>
+                <th style="width:15%;">AMOUNT</th>
+            </tr>
+        </thead>
         <tbody id="printItemsBody"></tbody>
-      </table>
-      <div style="display:flex; justify-content: flex-end;">
-          <div class="summary" style="width:40%;">
-              <p><strong>Subtotal:</strong> <span id="printSubtotal" style="float:right;"></span></p>
-              <p><strong>Discount:</strong> <span id="printDiscount" style="float:right;"></span></p>
-              <p><strong>Charges:</strong> <span id="printAdditionalCharges" style="float:right;"></span></p>
-              <p><strong>Taxable Amount:</strong> <span id="printTaxableAmount" style="float:right;"></span></p>
-              <p><strong>Total Tax:</strong> <span id="printTotalTax" style="float:right;"></span></p>
-              <hr>
-              <p><strong>Total Amount:</strong> <span id="printTotalAmount" style="float:right; font-weight:bold;"></span></p>
-              <p><strong>Received:</strong> <span id="printAmountReceived" style="float:right;"></span></p>
-              <p><strong>Balance Due:</strong> <span id="printBalanceAmount" style="float:right; font-weight:bold;"></span></p>
-          </div>
-      </div>
-      <div class="footer">
-        <p><strong>Notes:</strong> <span id="printNotes"></span></p>
-        <p><strong>Terms & Conditions:</strong> <span id="printTerms"></span></p>
-        <p><strong>Bank Details:</strong> A/c: 5337777943, IFSC: CBIN0281583, Bank: Central Bank of India, CHANDRI | A/c Holder: Sanuj Kumar Gupta, UPI: 9122133687@axl</p>
-      </div>
-      <div class="signature"><br><br><p style="border-top:1px solid #000; padding-top:5px; display:inline-block;"><strong>Authorized Signatory</strong></p></div>
+    </table>
+
+    <div class="print-summary-container">
+        <div class="print-summary-left">
+            <p style="font-weight: bold;">Total Amount (In Words): <span id="amountInWords"></span></p>
+            <table class="tax-summary-table">
+                <thead><tr><th>HSN/SAC</th><th>Taxable Value</th><th>CGST</th><th>SGST</th><th>Total Tax</th></tr></thead>
+                <tbody id="taxSummaryBody"></tbody>
+            </table>
+        </div>
+        <div class="print-summary-right">
+            <div class="summary-line"><span>Subtotal</span><span id="printSubtotal"></span></div>
+            <div class="summary-line"><span>Discount</span><span id="printDiscount"></span></div>
+            <div class="summary-line"><span id="printChargesNote"></span><span id="printAdditionalCharges"></span></div>
+            <div class="summary-line total"><span>TOTAL</span><span id="printTotalAmount"></span></div>
+            <div class="summary-line"><span>RECEIVED AMOUNT</span><span id="printAmountReceived"></span></div>
+            <div class="summary-line"><span>BALANCE</span><span id="printBalanceAmount"></span></div>
+        </div>
+    </div>
+
+    <div class="print-footer">
+        <div class="bank-details">
+            <strong>Bank Details:</strong><br>
+            A/c Holder: Sanuj Kumar Gupta<br>
+            A/c: 5337777943, IFSC: CBIN0281583<br>
+            Bank: Central Bank of India, CHANDRI
+        </div>
+        <div class="qr-code">
+            <img src="https://placehold.co/80x80/000000/FFFFFF?text=QR" alt="QR Code">
+            <p>UPI: 9122133687@axl</p>
+        </div>
+        <div class="terms">
+            <strong>Terms and Conditions:</strong><br>
+            1. Goods once sold will not be taken back.<br>
+            2. Disputes subject to JHARKHAND jurisdiction.
+        </div>
+    </div>
+</div>
+    
+    <div id="loadingSpinner" class="spinner-overlay" style="display: none;">
+        <div class="spinner-border text-light" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
     <script>
+    function numberToWords(num) {
+        const a = ['','one ','two ','three ','four ', 'five ','six ','seven ','eight ','nine ','ten ','eleven ','twelve ','thirteen ','fourteen ','fifteen ','sixteen ','seventeen ','eighteen ','nineteen '];
+        const b = ['', '', 'twenty','thirty','forty','fifty', 'sixty','seventy','eighty','ninety'];
+        
+        function inWords(n) {
+            if ((n = n.toString()).length > 9) return 'overflow';
+            n = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+            if (!n) return; var str = '';
+            str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'crore ' : '';
+            str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'lakh ' : '';
+            str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'thousand ' : '';
+            str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'hundred ' : '';
+            str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+            return str;
+        }
+        
+        const [integerPart, decimalPart] = num.toString().split('.');
+        let words = inWords(integerPart);
+        if (decimalPart && parseInt(decimalPart) > 0) {
+            words += ' and ' + inWords(decimalPart) + 'paise ';
+        }
+        return words.trim().replace(/\s+/g, ' ').charAt(0).toUpperCase() + words.trim().replace(/\s+/g, ' ').slice(1) + 'Only';
+    }
+    
     $(document).ready(function () {
       let rowIndex = 1;
 
@@ -295,11 +405,9 @@
         const discount = parseFloat(row.find('.discount').val()) || 0;
         const gstText = row.find('.gst-rate').val() || '0';
         const gstRate = parseFloat(gstText.replace('%', '')) || 0;
-        
         const taxableItemAmount = (quantity * unitPrice) - discount;
         const taxAmount = taxableItemAmount * (gstRate / 100);
         const amount = taxableItemAmount + taxAmount;
-        
         row.find('.amount').val(amount.toFixed(2));
         updateTotals();
       }
@@ -307,24 +415,20 @@
       function updateTotals() {
         let subtotal = 0;
         let totalTax = 0;
-
         $('.item-row').each(function () {
           const quantity = parseFloat($(this).find('.quantity').val()) || 0;
           const unitPrice = parseFloat($(this).find('.unit-price').val()) || 0;
           const discount = parseFloat($(this).find('.discount').val()) || 0;
           const gstText = $(this).find('.gst-rate').val() || '0';
           const gstRate = parseFloat(gstText.replace('%','')) || 0;
-
           const itemSubtotal = (quantity * unitPrice);
           subtotal += itemSubtotal;
-
           const taxableItemAmount = itemSubtotal - discount;
           totalTax += taxableItemAmount * (gstRate / 100);
         });
 
         const totalDiscountInput = parseFloat($('#totalDiscount').val()) || 0;
         const additionalCharges = parseFloat($('#additionalCharges').val()) || 0;
-        
         const taxableAmount = subtotal - totalDiscountInput;
         const totalAmount = taxableAmount + totalTax + additionalCharges;
         const amountReceived = parseFloat($('#amountReceived').val()) || 0;
@@ -386,55 +490,75 @@
       });
 
       $('#totalDiscount, #additionalCharges, #amountReceived').on('input', updateTotals);
-
-      $('.printButton').click(function () {
-        $('#printInvoiceNo').text($('#invoiceNo').val());
-        $('#printInvoiceDate').text(new Date($('#invoiceDate').val()).toLocaleDateString('en-GB'));
-        $('#printDueDate').text($('#dueDate').val() ? new Date($('#dueDate').val()).toLocaleDateString('en-GB') : 'N/A');
-        
-        const selectedParty = $('#partySelect option:selected');
-        $('#printPartyName').text(selectedParty.text());
-        $('#printPartyAddress').html((selectedParty.data('address') || '').replace(/\n/g, '<br>'));
-        $('#printPartyEmail').text(selectedParty.data('email') || '');
-        $('#printPartyPhone').text(selectedParty.data('phone') || '');
-        $('#printPartyGst').text(selectedParty.data('gst') || 'N/A');
-        $('#printPartyPan').text(selectedParty.data('pan') || 'N/A');
-
-        $('#printItemsBody').empty();
-        let itemIndex = 1;
-        let totalItemDiscount = 0;
-        $('.item-row').each(function () {
-          const itemDiscount = parseFloat($(this).find('.discount').val()) || 0;
-          totalItemDiscount += itemDiscount;
-          const row = `<tr>
-            <td>${itemIndex++}</td>
-            <td>${$(this).find('.item-select option:selected').text()}</td>
-            <td>${$(this).find('.quantity').val()}</td>
-            <td>${parseFloat($(this).find('.unit-price').val()).toFixed(2)}</td>
-            <td>${$(this).find('.gst-rate').val()}</td>
-            <td>${itemDiscount.toFixed(2)}</td>
-            <td>${parseFloat($(this).find('.amount').val()).toFixed(2)}</td>
-          </tr>`;
-          $('#printItemsBody').append(row);
-        });
-
-        const overallDiscount = parseFloat($('#totalDiscount').val()) || 0;
-        
-        $('#printSubtotal').text($('#subtotal').text());
-        $('#printDiscount').text('₹ ' + overallDiscount.toFixed(2));
-        $('#printAdditionalCharges').text('₹ ' + (parseFloat($('#additionalCharges').val()) || 0).toFixed(2));
-        $('#printTaxableAmount').text($('#taxableAmount').text());
-        $('#printTotalTax').text($('#totalTax').text());
-        $('#printTotalAmount').text($('#totalAmount').text());
-        $('#printAmountReceived').text('₹ ' + (parseFloat($('#amountReceived').val()) || 0).toFixed(2));
-        $('#printBalanceAmount').text($('#balanceAmount').text());
-        $('#printNotes').text($('#notes').val() || 'N/A');
-        $('#printTerms').text($('#terms').val() || 'N/A');
-        
-        window.print();
+      
+      $('#saveButton').on('click', function(e) {
+        e.preventDefault();
+        $('#saleForm').attr('action', "{% url 'Create_Sale' %}").submit();
       });
 
-      // Initial setup
+      $('#saveAndPrintButton').on('click', function() {
+            const form = document.getElementById('saleForm');
+            const formData = new FormData(form);
+            
+            $('#loadingSpinner').show();
+            
+            fetch("{% url 'Create_Sale' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                $('#loadingSpinner').hide();
+                
+                if (data.status === 'success') {
+                    const saleData = data.sale_data;
+                    
+                    $('#printInvoiceNo').text(saleData.invoice_no);
+                    $('#printInvoiceDate').text(saleData.invoice_date);
+                    $('#printDueDate').text(saleData.due_date);
+                    $('#printPartyName').text(saleData.party_name);
+                    $('#printPartyAddress').html(saleData.party_address.replace(/\n/g, '<br>'));
+                    $('#printPartyGst').text(saleData.party_gst);
+                    
+                    $('#printSubtotal').text(saleData.subtotal);
+                    $('#printDiscount').text(saleData.discount);
+                    $('#printChargesNote').text(saleData.charges_note);
+                    $('#printAdditionalCharges').text(saleData.additional_charges);
+                    $('#printTotalAmount').text(saleData.total_amount_str);
+                    $('#printAmountReceived').text(saleData.amount_received);
+                    $('#printBalanceAmount').text(saleData.balance_amount);
+                    $('#amountInWords').text(numberToWords(saleData.total_amount_val));
+
+                    $('#printItemsBody').empty();
+                    $('#taxSummaryBody').empty();
+                    
+                    saleData.items.forEach((item, index) => {
+                        $('#printItemsBody').append(`<tr><td style="text-align:center;">${index + 1}</td><td style="text-align:left;">${item.name}</td><td>${item.qty}</td><td>${item.rate}</td><td>${item.tax_rate}</td><td>${item.amount}</td></tr>`);
+                    });
+
+                    // This part for tax summary would need more complex data from the backend
+                    // For now, it's a placeholder.
+                    $('#taxSummaryBody').append(`<tr><td>-</td><td>${saleData.taxable_amount}</td><td>-</td><td>-</td><td>${saleData.total_tax}</td></tr>`);
+
+                    window.print();
+                    window.location.href = "{% url 'Create_Sale' %}";
+                } else {
+                    const errorHtml = `<div class="alert alert-danger alert-dismissible fade show" role="alert"><strong>Error:</strong> ${data.message}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>`;
+                    $('#ajaxErrorContainer').html(errorHtml);
+                }
+            })
+            .catch(error => {
+                $('#loadingSpinner').hide();
+                console.error('Error:', error);
+                const errorHtml = `<div class="alert alert-danger">An unknown error occurred. Please check the console.</div>`;
+                $('#ajaxErrorContainer').html(errorHtml);
+            });
+      });
+
       bindRowEvents();
       updateTotals();
     });
@@ -443,4 +567,4 @@
     {% include 'footer.html' %}
     {% include 'footer_link.html' %}
 </body>
-</html> 
+</html>

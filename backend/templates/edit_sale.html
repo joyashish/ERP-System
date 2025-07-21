@@ -1,0 +1,367 @@
+{% load static %}
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Sale - {{ sale.invoice_no }}</title>
+        <style>
+        /* Custom styles for a cleaner layout */
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.9em;
+        }
+        .summary-label {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        .summary-value {
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        .summary-input {
+            max-width: 110px;
+            text-align: right;
+        }
+        .dark-theme .bg-light {
+            background-color: #2d3748 !important;
+        }
+
+        /* Responsive Item Table */
+        @media (max-width: 768px) {
+            .items-table thead {
+                display: none;
+            }
+            .items-table tbody, .items-table tr, .items-table td {
+                display: block;
+                width: 100%;
+            }
+            .items-table tr {
+                margin-bottom: 15px;
+                border: 1px solid var(--border-color, #dee2e6);
+                border-radius: 5px;
+                padding: 10px;
+            }
+            .items-table td {
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+                border: none;
+            }
+            .items-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                font-weight: bold;
+                text-align: left;
+            }
+            .items-table .remove-row {
+                width: 100%;
+                margin-top: 10px;
+            }
+        }
+
+        /* --- UPDATED PRINT STYLES --- */
+        @media print {
+            @page {
+                size: A4;
+                margin: 1cm; /* Adjust page margins */
+            }
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .no-print { display: none !important; }
+            #invoice-print {
+                display: block !important;
+                padding: 0; /* Remove padding to use full page width */
+                font-family: Arial, sans-serif;
+            }
+
+            /* Centered Header */
+            .print-header {
+                text-align: center;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+            }
+            .print-header h2 { margin: 0; font-size: 24px; font-weight: bold; }
+            .print-header p { margin: 2px 0; font-size: 12px; }
+
+            /* New container for BILL TO and Invoice Details */
+            .invoice-meta-container {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 20px;
+                font-size: 11px;
+            }
+            .invoice-meta-container .bill-to { width: 50%; }
+
+            /* Table for Invoice No, Date, etc. */
+            .invoice-details-table {
+                width: 45%;
+                border-collapse: collapse;
+            }
+            .invoice-details-table th, .invoice-details-table td {
+                border: 1px solid #999;
+                padding: 5px;
+                text-align: center;
+                font-size: 11px;
+            }
+            .invoice-details-table th {
+                background-color: #f2f2f2 !important;
+                font-weight: bold;
+            }
+
+            /* Main items table */
+            .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px;}
+            .print-table th { border-bottom: 2px solid #000; padding: 8px; text-align: right; }
+            .print-table td { padding: 8px; text-align: right; }
+            .print-table th:nth-child(2), .print-table td:nth-child(2) { text-align: left; }
+            .print-table tr:last-child td { border-bottom: 2px solid #000; }
+
+            /* Other styles remain the same */
+            .print-summary-container { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11px; }
+            .print-summary-left { width: 60%; }
+            .print-summary-right { width: 35%; }
+            .summary-line { display: flex; justify-content: space-between; padding: 4px 0; }
+            .summary-line.total { font-weight: bold; font-size: 12px; border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 5px; }
+            .tax-summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; text-align: center; }
+            .tax-summary-table th, .tax-summary-table td { border: 1px solid #999; padding: 5px; }
+            .tax-summary-table th { font-weight: bold; }
+            .print-footer { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px; }
+            .print-footer .bank-details, .print-footer .terms { width: 40%; }
+            .print-footer .qr-code { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="content-wrapper">
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6"><h1 class="m-0">Edit Sale</h1></div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'sales_list' %}">Sales</a></li>
+                            <li class="breadcrumb-item active">{{ sale.invoice_no }}</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="content">
+            <div class="container-fluid">
+                <form method="POST" action="{% url 'edit_sale' sale.id %}">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end mb-3">
+                        <a href="{% url 'sales_list' %}" class="btn btn-secondary mr-2">Cancel</a>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Update Sale</button>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card card-primary card-outline">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="partySelect" class="font-weight-bold">Select Party *</label>
+                                            <select class="form-control form-control-sm" name="party_id" id="partySelect" required>
+                                                {% for party in all_parties %}
+                                                <option value="{{ party.id }}" {% if party.id == sale.party.id %}selected{% endif %}>
+                                                    {{ party.party_name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <h5 class="mb-3">Sale Items</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered items-table" id="itemsTable">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 35%;">Item</th><th>Qty</th><th>Price</th><th>GST</th><th>Discount</th><th>Amount</th><th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="itemsBody">
+                                                {% for sale_item in sale.items.all %}
+                                                <tr class="item-row">
+                                                    <td data-label="Item">
+                                                        <select class="form-control form-control-sm item-select" name="items[{{ forloop.counter0 }}][item_id]" required>
+                                                            <option value="">Select Item</option>
+                                                            {% for item in all_items %}
+                                                                <option value="{{ item.id }}" data-price="{{ item.sale_price }}" data-gst="{{ item.gst_rate }}" {% if item.id == sale_item.item.id %}selected{% endif %}>
+                                                                    {{ item.item_name }}
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </td>
+                                                    <td data-label="Qty"><input type="number" class="form-control form-control-sm quantity" name="items[{{ forloop.counter0 }}][quantity]" min="1" value="{{ sale_item.quantity }}" required></td>
+                                                    <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" value="{{ sale_item.item.sale_price|floatformat:2 }}" readonly></td>
+                                                    <td data-label="GST"><input type="text" class="form-control form-control-sm gst-rate" value="{{ sale_item.item.gst_rate }}" readonly></td>
+                                                    <td data-label="Discount"><input type="number" class="form-control form-control-sm discount" name="items[{{ forloop.counter0 }}][discount]" min="0" value="{{ sale_item.discount|floatformat:2 }}" step="0.01"></td>
+                                                    <td data-label="Amount"><input type="number" class="form-control form-control-sm amount" value="{{ sale_item.amount|floatformat:2 }}" readonly></td>
+                                                    <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <button type="button" class="btn btn-primary btn-sm mt-2" id="addItem"><i class="fas fa-plus"></i> Add Another Item</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card card-primary card-outline mb-3">
+                                <div class="card-body">
+                                    <div class="form-group"><label>Invoice No *</label><input type="text" class="form-control form-control-sm" name="invoice_no" value="{{ sale.invoice_no }}" required></div>
+                                    <div class="form-group"><label>Invoice Date *</label><input type="date" class="form-control form-control-sm" name="invoice_date" value="{{ sale.invoice_date|date:'Y-m-d' }}" required></div>
+                                    <div class="form-group mb-0"><label>Due Date</label><input type="date" class="form-control form-control-sm" name="due_date" value="{{ sale.due_date|date:'Y-m-d' }}"></div>
+                                </div>
+                            </div>
+                            <div class="card card-primary card-outline">
+                                <div class="card-body">
+                                    <div class="summary-row"><label>Subtotal</label><span id="subtotal">₹ 0.00</span></div>
+                                    <div class="summary-row"><label>Discount</label><input type="number" class="form-control form-control-sm summary-input" name="discount" value="{{ sale.discount|floatformat:2 }}" min="0" step="0.01"></div>
+                                    <div class="summary-row">
+                                        <input type="text" class="form-control form-control-sm" name="additional_charges_note" placeholder="Charges" value="{{ sale.additional_charges_note }}">
+                                        <input type="number" class="form-control form-control-sm summary-input" name="additional_charges" value="{{ sale.additional_charges|floatformat:2 }}" min="0" step="0.01">
+                                    </div>
+                                    <hr>
+                                    <div class="summary-row"><label>Total Amount</label><span id="totalAmount">₹ 0.00</span></div>
+                                    <hr>
+                                    <div class="summary-row"><label>Amount Received</label><input type="number" class="form-control form-control-sm summary-input" name="amount_received" value="{{ sale.amount_received|floatformat:2 }}" min="0" step="0.01"></div>
+                                    <div class="summary-row bg-warning p-2 rounded text-dark"><label>Balance Due</label><span id="balanceAmount">₹ 0.00</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function () {
+    let rowIndex = {{ sale.items.all.count }};
+
+    function updateRowAmount(row) {
+        const quantity = parseFloat(row.find('.quantity').val()) || 0;
+        const unitPrice = parseFloat(row.find('.unit-price').val()) || 0;
+        const discount = parseFloat(row.find('.discount').val()) || 0;
+        const gstText = row.find('.gst-rate').val() || '0';
+        const gstRate = parseFloat(gstText.replace('%', '').replace('None', '0')) || 0;
+        const taxableItemAmount = (quantity * unitPrice) - discount;
+        const taxAmount = taxableItemAmount * (gstRate / 100);
+        const amount = taxableItemAmount + taxAmount;
+        row.find('.amount').val(amount.toFixed(2));
+        updateTotals();
+    }
+
+    function updateTotals() {
+        let subtotal = 0;
+        let totalTax = 0;
+
+        $('.item-row').each(function () {
+            const quantity = parseFloat($(this).find('.quantity').val()) || 0;
+            const unitPrice = parseFloat($(this).find('.unit-price').val()) || 0;
+            const discount = parseFloat($(this).find('.discount').val()) || 0; // Item-level discount
+            const gstText = $(this).find('.gst-rate').val() || '0';
+            const gstRate = parseFloat(gstText.replace('%','').replace('None', '0')) || 0;
+            
+            const itemSubtotal = (quantity * unitPrice);
+            subtotal += itemSubtotal;
+            
+            // Tax is calculated on the price after the item-level discount is applied
+            const taxableItemAmount = itemSubtotal - discount;
+            totalTax += taxableItemAmount * (gstRate / 100);
+        });
+
+        // --- FIX: Use attribute selectors [name="..."] instead of incorrect ID selectors #... ---
+        const overallDiscount = parseFloat($('input[name="discount"]').val()) || 0;
+        const additionalCharges = parseFloat($('input[name="additional_charges"]').val()) || 0;
+        const amountReceived = parseFloat($('input[name="amount_received"]').val()) || 0;
+        
+        // Calculate the final total amount based on all components
+        const totalAmount = (subtotal - overallDiscount) + totalTax + additionalCharges;
+        const balanceAmount = totalAmount - amountReceived;
+
+        // Update the summary display
+        $('#subtotal').text('₹ ' + subtotal.toFixed(2));
+        $('#totalAmount').text('₹ ' + totalAmount.toFixed(2));
+        $('#balanceAmount').text('₹ ' + balanceAmount.toFixed(2));
+    }
+
+    function bindRowEvents() {
+        // This event listener correctly handles changes within any item row
+        $(document).on('input change', '.item-select, .quantity, .discount', function () {
+            const row = $(this).closest('.item-row');
+            if ($(this).hasClass('item-select')) {
+                const selectedOption = $(this).find('option:selected');
+                const price = parseFloat(selectedOption.data('price')) || 0;
+                const gst = selectedOption.data('gst') ? String(selectedOption.data('gst')) : '0%';
+                row.find('.unit-price').val(price.toFixed(2));
+                row.find('.gst-rate').val(gst);
+            }
+            updateRowAmount(row);
+        });
+    }
+
+    $('#addItem').click(function () {
+        const rowHTML = `
+        <tr class="item-row">
+            <td data-label="Item">
+                <select class="form-control form-control-sm item-select" name="items[${rowIndex}][item_id]" required>
+                    <option value="">Select Item</option>
+                    {% for item in all_items %}
+                    <option value="{{ item.id }}" data-price="{{ item.sale_price|floatformat:2 }}" data-gst="{{ item.gst_rate }}">{{ item.item_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td data-label="Qty"><input type="number" class="form-control form-control-sm quantity" name="items[${rowIndex}][quantity]" min="1" value="1" required></td>
+            <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" readonly></td>
+            <td data-label="GST"><input type="text" class="form-control form-control-sm gst-rate" readonly></td>
+            <td data-label="Discount"><input type="number" class="form-control form-control-sm discount" name="items[${rowIndex}][discount]" min="0" value="0" step="0.01"></td>
+            <td data-label="Amount"><input type="number" class="form-control form-control-sm amount" readonly></td>
+            <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+        </tr>`;
+        $('#itemsBody').append(rowHTML);
+        rowIndex++;
+    });
+
+    $(document).on('click', '.remove-row', function () {
+        if ($('.item-row').length > 1) {
+            $(this).closest('tr').remove();
+            updateTotals();
+        } else {
+            alert("You cannot remove the last item.");
+        }
+    });
+
+    // --- FIX: Event listener for main summary fields using correct selectors ---
+    $('input[name="discount"], input[name="additional_charges"], input[name="amount_received"]').on('input', updateTotals);
+    
+    // --- SCRIPT INITIALIZATION ---
+    bindRowEvents();
+    updateTotals(); // Calculate totals when the page first loads
+});
+</script>
+    
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}
+</body>
+</html>

@@ -1,13 +1,16 @@
 from django.shortcuts import render,redirect, get_object_or_404
 from backend.models import *
 from django.core.exceptions import ValidationError
+from django.http import JsonResponse
 from django.db.models import Sum, F
 from django.utils import timezone
+from datetime import datetime
 from datetime import timedelta
 from django.db import transaction
 import uuid
 import re
 from django.contrib import messages
+from django.views.decorators.cache import never_cache
 
 
 
@@ -37,7 +40,7 @@ def Admin_loginVW(request):
         email = request.POST.get('email')
         password = request.POST.get('pass')
        # Admin_login.objects.create(email=email,password=password,phone=phone)
-        if Admin_login.objects.filter(email=email,password=password).exists():
+        if Admin_login.objects.filter(email=email,password=password,role='admin').exists():
            data=Admin_login.objects.filter(email=email).first()
            request.session['email']=data.email
            request.session['user_id']=data.id
@@ -434,148 +437,277 @@ def Create_saleVw(request):
 
 
 def create_sale_view(request):
-    """
-    Handles the creation of a new sale, including processing items,
-    updating stock, and calculating totals.
-    """
     if 'email' not in request.session:
-        messages.error(request, "You must be logged in to create a sale.")
         return redirect('/')
 
-    try:
-        email = request.session['email']
-        admin_user = get_object_or_404(Admin_login, email=email)
-        items = ItemBase.objects.filter(is_active=True).order_by('item_name')
-        parties = Create_party.objects.filter(status=True).order_by('party_name')
-    except Exception as e:
-        messages.error(request, f"Error loading page data: {e}")
-        return redirect('dash')
+    admin_user = get_object_or_404(Admin_login, email=request.session['email'])
 
     if request.method == "POST":
         try:
-            # Use a transaction to ensure all database operations succeed or fail together
             with transaction.atomic():
-                # --- 1. Retrieve Form Data ---
-                action = request.POST.get('action')
-                party_id = request.POST.get('party_id')
-                invoice_date_str = request.POST.get('invoice_date')
-                due_date_str = request.POST.get('due_date')
+                post_data = request.POST
+                party = get_object_or_404(Create_party, id=post_data.get('party_id'))
 
-                discount_overall = float(request.POST.get('discount', '0') or '0')
-                additional_charges = float(request.POST.get('additional_charges', '0') or '0')
-                amount_received = float(request.POST.get('amount_received', '0') or '0')
-                notes = request.POST.get('notes', '')
-                terms_conditions = request.POST.get('terms_conditions', '')
-                signature = request.FILES.get('signature')
-                invoice_no = request.POST.get('invoice_no')
-
-                # --- 2. Validation ---
-                if not all([party_id, invoice_date_str, invoice_no]):
-                    raise ValidationError("Party, Invoice Number, and Invoice Date are required.")
-
-                party = get_object_or_404(Create_party, id=party_id)
-                invoice_date = timezone.datetime.strptime(invoice_date_str, '%Y-%m-%d').date()
-                due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else None
-
-                # --- 3. Parse Item Data from POST Request ---
-                items_data = []
-                item_keys = [key for key in request.POST if key.startswith('items[')]
-                indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(item_keys)))))
-
-                for index in indices:
-                    item_id = request.POST.get(f'items[{index}][item_id]')
-                    quantity = request.POST.get(f'items[{index}][quantity]')
-                    
-                    if not item_id or not quantity or int(quantity) <= 0:
-                        continue
-
-                    items_data.append({
-                        'item_id': item_id,
-                        'quantity': int(quantity),
-                        'unit_price': float(request.POST.get(f'items[{index}][unit_price]', '0') or '0'),
-                        'discount': float(request.POST.get(f'items[{index}][discount]', '0') or '0'),
-                    })
+                # --- FIX: Convert date strings to date objects ---
+                invoice_date_str = post_data.get('invoice_date')
+                due_date_str = post_data.get('due_date')
                 
-                if not items_data:
-                    raise ValidationError("At least one valid item must be added to the sale.")
+                if not invoice_date_str:
+                    raise ValidationError("Invoice Date is required.")
 
-                # --- 4. Calculate Totals & Process Each Item ---
-                subtotal = 0
+                # Parse the strings into date objects
+                invoice_date_obj = datetime.strptime(invoice_date_str, '%Y-%m-%d').date()
+                due_date_obj = datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else None
+
+                # ... (item processing logic remains the same) ...
+                items_data = []
+                total_item_subtotal = 0
                 total_tax = 0
-                processed_items = []
+                item_indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(post_data.keys())))))
 
-                for item_data in items_data:
-                    item = get_object_or_404(ItemBase, id=item_data['item_id'])
-                    
-                    quantity = item_data['quantity']
+                for index in item_indices:
+                    item_id = post_data.get(f'items[{index}][item_id]')
+                    quantity = int(post_data.get(f'items[{index}][quantity]', 0))
+                    if not item_id or quantity <= 0:
+                        continue
+                    # ... (rest of the item calculation logic) ...
+                    item = get_object_or_404(ItemBase, id=item_id)
                     unit_price = float(item.sale_price)
-                    item_discount = item_data['discount']
-                    
-                    gst_rate_str = item.gst_rate or '0'
-                    gst_rate = float(re.sub(r'[^0-9.]', '', gst_rate_str) or '0')
-
+                    item_discount = float(post_data.get(f'items[{index}][discount]', 0))
                     item_subtotal = quantity * unit_price
                     taxable_amount_item = item_subtotal - item_discount
+                    gst_rate = float(re.sub(r'[^0-9.]', '', item.gst_rate or '0'))
                     tax_amount_item = taxable_amount_item * (gst_rate / 100)
-                    item_total_amount = taxable_amount_item + tax_amount_item
-                    
-                    subtotal += item_subtotal
+                    total_item_subtotal += item_subtotal
                     total_tax += tax_amount_item
-                    
-                    item_data['tax_amount'] = tax_amount_item
-                    item_data['amount'] = item_total_amount
-                    processed_items.append(item_data)
-
-                    # --- 5. Stock Management for Products ---
                     if item.item_type == 'product':
-                        product = get_object_or_404(Product, id=item.id)
+                        product = Product.objects.select_for_update().get(id=item.id)
                         if product.opening_stock < quantity:
-                            raise ValidationError(f"Insufficient stock for {item.item_name}. Only {product.opening_stock} available.")
+                            raise ValidationError(f"Insufficient stock for {item.item_name}.")
                         product.opening_stock -= quantity
                         product.save()
+                    items_data.append({
+                        'item_instance': item, 'quantity': quantity, 'discount': item_discount,
+                        'tax_amount': tax_amount_item, 'amount': taxable_amount_item + tax_amount_item
+                    })
 
-                # --- 6. Calculate Final Sale Totals ---
-                taxable_amount_total = subtotal - discount_overall
+                if not items_data:
+                    raise ValidationError("At least one valid item must be added.")
+
+                discount_overall = float(post_data.get('discount', 0))
+                additional_charges = float(post_data.get('additional_charges', 0))
+                taxable_amount_total = total_item_subtotal - discount_overall
                 total_amount = taxable_amount_total + total_tax + additional_charges
-                balance_amount = total_amount - amount_received
-
-                # --- 7. Create Sale and SaleItem Objects ---
+                amount_received = float(post_data.get('amount_received', 0))
+                
+                # Create Sale Object using the new date objects
                 sale = Sale.objects.create(
-                    invoice_no=invoice_no, party=party, invoice_date=invoice_date, due_date=due_date,
-                    payment_terms=party.credit_period or 0, subtotal=subtotal, total_tax=total_tax,
-                    discount=discount_overall, additional_charges=additional_charges, total_amount=total_amount,
-                    amount_received=amount_received, balance_amount=balance_amount, notes=notes,
-                    terms_conditions=terms_conditions, signature=signature, user=admin_user,
-                    is_draft=(action == 'save_draft')
+                    invoice_no=post_data.get('invoice_no'),
+                    party=party,
+                    invoice_date=invoice_date_obj, # Use date object
+                    due_date=due_date_obj,       # Use date object
+                    subtotal=total_item_subtotal,
+                    total_tax=total_tax,
+                    discount=discount_overall,
+                    additional_charges=additional_charges,
+                    additional_charges_note=post_data.get('additional_charges_note', ''),
+                    total_amount=total_amount,
+                    amount_received=amount_received,
+                    balance_amount=total_amount - amount_received,
+                    notes=post_data.get('notes', ''),
+                    terms_conditions=post_data.get('terms_conditions', ''),
+                    user=admin_user
                 )
 
-                for item_data in processed_items:
-                    item_instance = get_object_or_404(ItemBase, id=item_data['item_id'])
-                    SaleItem.objects.create(
-                        sale=sale, item=item_instance, quantity=item_data['quantity'],
-                        discount=item_data['discount'], tax_amount=item_data['tax_amount'],
-                        amount=item_data['amount']
-                    )
+                for data in items_data:
+                    SaleItem.objects.create(sale=sale, item=data['item_instance'], **{k: v for k, v in data.items() if k != 'item_instance'})
 
-                messages.success(request, f"Sale {invoice_no} created successfully!")
+                # AJAX vs. Normal POST Response
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'Sale created successfully!',
+                        'sale_data': {
+                            'invoice_no': sale.invoice_no,
+                            'invoice_date': sale.invoice_date.strftime('%d-%m-%Y'), # This will now work
+                            'due_date': sale.due_date.strftime('%d-%m-%Y') if sale.due_date else 'N/A', # This will now work
+                            'party_name': party.party_name,
+                            'party_address': party.billing_address,
+                            'party_gst': party.gst_no,
+                            'subtotal': f'₹ {sale.subtotal:.2f}',
+                            'discount': f'(-) {sale.discount:.2f}',
+                            'charges_note': sale.additional_charges_note or 'Charges',
+                            'additional_charges': f'(+) {sale.additional_charges:.2f}',
+                            'total_amount_str': f'₹ {sale.total_amount:.2f}',
+                            'total_amount_val': sale.total_amount,
+                            'amount_received': f'₹ {sale.amount_received:.2f}',
+                            'balance_amount': f'₹ {sale.balance_amount:.2f}',
+                            'notes': sale.notes,
+                            'terms': sale.terms_conditions,
+                            'items': [{
+                                'name': item.item.item_name, 'qty': item.quantity, 'rate': f'{item.item.sale_price:.2f}',
+                                'tax_rate': f'{float(re.sub(r"[^0-9.]", "", item.item.gst_rate or "0")):.0f}%',
+                                'amount': f'{item.amount:.2f}'
+                            } for item in sale.items.all()],
+                        }
+                    })
+                else:
+                    messages.success(request, "Sale created successfully!")
+                    return redirect('Create_Sale')
+
+        except (ValidationError, Exception) as e:
+            error_message = str(e.message if hasattr(e, 'message') else e)
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'error', 'message': error_message}, status=400)
+            else:
+                messages.error(request, error_message)
                 return redirect('Create_Sale')
 
-        except ValidationError as e:
-            messages.error(request, str(e.message if hasattr(e, 'message') else e))
-        except Exception as e:
-            messages.error(request, f"An unexpected error occurred: {str(e)}")
-
-        return redirect('Create_Sale')
-
     context = {
-        'add': admin_user,
-        'items': items,
-        'parties': parties,
+        'items': ItemBase.objects.filter(is_active=True).order_by('item_name'),
+        'parties': Create_party.objects.filter(status=True).order_by('party_name'),
         'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}"
     }
     return render(request, 'create_sale.html', context)
 #........///// Sales \\\\\ ......#
-def SalesVw(request):
-    return render(request,'Sales.html')
+
+def sales_list(request):
+    if 'email' not in request.session:
+        return redirect('/') # Or your login URL
+
+    # Fetch all sales, pre-loading the related party to prevent extra queries
+    sales = Sale.objects.select_related('party').all().order_by('-invoice_date')
+
+    # Calculate totals using aggregation for efficiency
+    totals = Sale.objects.aggregate(
+        total_sales=Sum('total_amount'),
+        total_received=Sum('amount_received'),
+        total_balance=Sum('balance_amount')
+    )
+
+    context = {
+        'sales_list': sales,
+        'total_sales': totals['total_sales'] or 0,
+        'paid_amount': totals['total_received'] or 0,
+        'unpaid_amount': totals['total_balance'] or 0,
+    }
+    return render(request, 'sales_list.html', context)
+@never_cache
+def edit_sale_view(request, sale_id):
+    if 'email' not in request.session:
+        return redirect('/')
+
+    # Get the specific sale object we want to edit
+    sale = get_object_or_404(Sale, id=sale_id)
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                post_data = request.POST
+                
+                # --- 1. Revert Stock for Original Items ---
+                # Before making any changes, add the old item quantities back to stock.
+                for item in sale.items.all():
+                    if item.item and item.item.item_type == 'product':
+                        product = Product.objects.select_for_update().get(id=item.item.id)
+                        product.opening_stock += item.quantity
+                        product.save()
+
+                # --- 2. Delete Old Sale Items to prepare for new ones ---
+                sale.items.all().delete()
+
+                # --- 3. Process Form Data ---
+                party = get_object_or_404(Create_party, id=post_data.get('party_id'))
+                invoice_date_obj = datetime.strptime(post_data.get('invoice_date'), '%Y-%m-%d').date()
+                due_date_str = post_data.get('due_date')
+                due_date_obj = datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else None
+                
+                # --- 4. Recalculate Totals & Deduct Stock for New/Updated Items ---
+                new_sale_items = []
+                total_item_subtotal = 0
+                total_tax = 0
+                item_indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(post_data.keys())))))
+
+                for index in item_indices:
+                    item_id = post_data.get(f'items[{index}][item_id]')
+                    quantity = int(post_data.get(f'items[{index}][quantity]', 0))
+                    item_discount = float(post_data.get(f'items[{index}][discount]', 0))
+
+                    if not item_id or quantity <= 0:
+                        continue
+                    
+                    item_obj = get_object_or_404(ItemBase, id=item_id)
+                    unit_price = float(item_obj.sale_price)
+                    
+                    # Calculations for each item
+                    item_subtotal = quantity * unit_price
+                    taxable_item_amount = item_subtotal - item_discount
+                    gst_rate = float(re.sub(r'[^0-9.]', '', item_obj.gst_rate or '0'))
+                    tax_for_item = taxable_item_amount * (gst_rate / 100)
+                    
+                    total_item_subtotal += item_subtotal
+                    total_tax += tax_for_item
+
+                    # Deduct stock for the new/updated items
+                    if item_obj.item_type == 'product':
+                        product = Product.objects.select_for_update().get(id=item_obj.id)
+                        if product.opening_stock < quantity:
+                            raise ValidationError(f"Not enough stock for {item_obj.item_name}. Only {product.opening_stock} available.")
+                        product.opening_stock -= quantity
+                        product.save()
+                    
+                    new_sale_items.append(
+                        SaleItem(
+                            sale=sale,
+                            item=item_obj,
+                            quantity=quantity,
+                            discount=item_discount,
+                            tax_amount=tax_for_item,
+                            amount=taxable_item_amount + tax_for_item
+                        )
+                    )
+                
+                if not new_sale_items:
+                    raise ValidationError("A sale must have at least one item.")
+
+                # Final total calculations
+                overall_discount = float(post_data.get('discount', 0))
+                additional_charges = float(post_data.get('additional_charges', 0))
+                taxable_amount = total_item_subtotal - overall_discount
+                total_amount = taxable_amount + total_tax + additional_charges
+                amount_received = float(post_data.get('amount_received', 0))
+
+                # --- 5. Update the EXISTING Sale Object ---
+                sale.party = party
+                sale.invoice_no = post_data.get('invoice_no')
+                sale.invoice_date = invoice_date_obj
+                sale.due_date = due_date_obj
+                sale.subtotal = total_item_subtotal
+                sale.total_tax = total_tax
+                sale.discount = overall_discount
+                sale.additional_charges = additional_charges
+                sale.additional_charges_note = post_data.get('additional_charges_note', '')
+                sale.total_amount = total_amount
+                sale.amount_received = amount_received
+                sale.balance_amount = total_amount - amount_received
+                sale.save() # This saves the changes to the existing row in the database
+
+                # --- 6. Create the New SaleItem Objects ---
+                SaleItem.objects.bulk_create(new_sale_items)
+
+                messages.success(request, f"Sale {sale.invoice_no} updated successfully!")
+                return redirect('sales_list')
+
+        except (ValidationError, Exception) as e:
+            messages.error(request, f"Error updating sale: {e}")
+            return redirect('edit_sale', sale_id=sale.id)
+
+    # For GET request
+    context = {
+        'sale': sale,
+        'all_items': ItemBase.objects.filter(is_active=True).order_by('item_name'),
+        'all_parties': Create_party.objects.filter(status=True).order_by('party_name'),
+    }
+    return render(request, 'edit_sale.html', context)
     
     
