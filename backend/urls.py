@@ -1,6 +1,8 @@
 from django.urls import path
 from backend import views 
 urlpatterns=[
+
+    path('superadmin_dashboard/', views.superadmin_dashboard, name='superadmin_dashboard'),
     #..... Admin dash ......# 
     path('dash',views.DashVw,name='dash'),
 

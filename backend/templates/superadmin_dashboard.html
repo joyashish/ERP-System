@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Superadmin Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, {{ add.email }} (Superadmin)</h1>
+    <h2>Manage Tenants</h2>
+    <ul>
+        {% for tenant in tenants %}
+            <li>{{ tenant.name }} ({{ tenant.subdomain }}) - 
+                <a href="{% url 'Party_listVw' %}?tenant_id={{ tenant.id }}">View Parties</a> |
+                <a href="{% url 'item_list_view' %}?tenant_id={{ tenant.id }}">View Items</a> |
+                <a href="{% url 'sales_list' %}?tenant_id={{ tenant.id }}">View Sales</a>
+            </li>
+        {% empty %}
+            <li>No tenants found.</li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'logout' %}">Logout</a>
+</body>
+</html>
