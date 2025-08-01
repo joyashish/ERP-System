@@ -20,26 +20,31 @@ class Tenant(models.Model):
 # A Account model to represent individual users within a tenant, with roles like 'admin' or 'user' and one 'superadmin'.
 class Account(models.Model):
     ROLES = (
-        ('superadmin', 'Superadmin'),
         ('admin', 'Admin'),
         ('user', 'User'),
     )
+    full_name = models.CharField(max_length=255, blank=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128)
     phone = models.CharField(max_length=15, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLES, default='user')
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='accounts', null=True, blank=True)
+    tenant = models.ForeignKey('Tenant', on_delete=models.CASCADE, related_name='accounts', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
+        # Hashes password on creation or when it's updated.
         if self.password and not self.password.startswith('pbkdf2_'):
             self.password = make_password(self.password)
         super().save(*args, **kwargs)
 
+    # --- __str__ METHOD ---
     def __str__(self):
-        return f"{self.email} ({self.tenant.name if self.tenant else 'System'})"
+        # Combines user's name and their tenant for a clear representation.
+        user_identifier = self.full_name or self.email
+        tenant_name = self.tenant.name if self.tenant else 'System Account'
+        return f"{user_identifier} ({tenant_name})"
 
 # Unit Model
 class Unit(models.Model):

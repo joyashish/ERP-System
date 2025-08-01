@@ -66,6 +66,16 @@
         <!-- Sidebar Menu -->
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                <!-- Superadmin Dashboard -->
+                {% if add.role ==  "superadmin"%}
+                <li class="nav-item">
+                    <a href="{% url 'superadmin_dashboard' %}"
+                        class="nav-link {% if request.resolver_match.url_name == 'superadmin_dashboard' %}active{% endif %}">
+                        <i class="nav-icon fas fa-user-shield"></i>
+                        <p>Superadmin</p>
+                    </a>
+                </li>
+                {% endif %}
                 <!-- Dashboard -->
                 <li class="nav-item">
                     <a href="{% url 'dash' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">

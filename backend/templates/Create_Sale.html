@@ -179,6 +179,17 @@
 
                 <form method="POST" enctype="multipart/form-data" id="saleForm">
                     {% csrf_token %}
+                    {% if add.role == 'superadmin' %}
+                    <label>Select Tenant:
+                        <select name="tenant_id" required>
+                            <option value="">Select Tenant</option>
+                            {% for t in tenants %}
+                            <option value="{{ t.id }}">{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    {% endif %}
+                    <br>
                     <div class="d-flex justify-content-start mb-3">
                         <a href="{% url 'sales_list' %}" class="btn btn-info mr-2"><i class="fas fa-list"></i> View Sales List</a>
                         <button type="submit" class="btn btn-secondary mr-2" id="saveButton"><i class="fas fa-save"></i> Save Only</button>

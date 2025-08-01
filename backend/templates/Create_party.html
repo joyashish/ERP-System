@@ -48,6 +48,17 @@
 
               <form action="" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
+
+                {% if add.role == 'superadmin' %}
+                <label>Select Tenant:
+                  <select name="tenant_id" required>
+                    <option value="">Select Tenant</option>
+                    {% for t in tenants %}
+                    <option value="{{ t.id }}">{{ t.name }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                {% endif %}
                 
                 <h5 class="section-header">General Details</h5>
                 <div class="form-row">

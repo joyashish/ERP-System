@@ -1,0 +1,27 @@
+# Super Admin 
+email  -    erp_superadmin@gmail.com
+pass   -    superadmin123
+
+Company1/Tenant1 (roll=Admin)
+email  -    admin1@tenant1.com
+pass   -    admin123
+
+Company2/Tenant2 (roll=Admin)
+email  -    admin2@tenant2.com
+pass   -    admin123
+
+
+# Create the superadmin account:
+python manage.py createsuperadmin
+
+Enter superadmin email: superadmin@yourapp.com
+Enter superadmin password: superadmin123
+
+# Use the Django shell to create test tenants:
+python manage.py shell
+
+from backend.models import Tenant, Account
+tenant1 = Tenant.objects.create(name='Tenant1', subdomain='tenant1')
+tenant2 = Tenant.objects.create(name='Tenant2', subdomain='tenant2')
+Account.objects.create(email='admin1@tenant1.com', password=make_password('admin123'), role='admin', tenant=tenant1)
+Account.objects.create(email='admin2@tenant2.com', password=make_password('admin123'), role='admin', tenant=tenant2)

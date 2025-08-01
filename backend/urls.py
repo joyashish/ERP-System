@@ -3,6 +3,15 @@ from backend import views
 urlpatterns=[
 
     path('superadmin_dashboard/', views.superadmin_dashboard, name='superadmin_dashboard'),
+    path('create_tenant/', views.create_tenant, name='create_tenant'),
+    path('edit_tenant/<int:tenant_id>/', views.edit_tenant, name='edit_tenant'),
+    path('delete_tenant/<int:tenant_id>/', views.delete_tenant, name='delete_tenant'),
+    path('manage_accounts/<int:tenant_id>/', views.manage_accounts, name='manage_accounts'),
+
+    # --- NEW URLS FOR ACCOUNT MANAGEMENT ---
+    path('accounts/add/<int:tenant_id>/', views.add_account, name='add_account'),
+    path('accounts/delete/<int:account_id>/', views.delete_account, name='delete_account'),
+    path('accounts/edit/<int:account_id>/', views.edit_account, name='edit_account'),
     #..... Admin dash ......# 
     path('dash',views.DashVw,name='dash'),
 

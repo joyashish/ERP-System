@@ -54,38 +54,55 @@
 <style>
 :root {
   /* ========== LIGHT THEME ========== */
-  --content-bg-light: #c0dae9;
+  /* --content-bg-light: #f4f6f9; Lighter gray for content background */
+  --content-bg-light: #c0dae9; /* Light Blue for content background */
   --card-bg-light: #ffffff;
-  --text-color-light: #343a40;
-  --sidebar-bg-light: #1a222c;
-  --primary-color-light: #2b5876;
-  --secondary-color-light: #4e4376;
-  --border-color-light: #e0e0e0;
+  --text-color-light: #212529; /* Darker text for better readability */
+  --sidebar-bg-light: #343a40; /* AdminLTE default sidebar color */
+  --primary-color-light: #007bff;
+  --secondary-color-light: #6c757d;
+  --border-color-light: #dee2e6;
   
-  /* ========== DARK THEME - CHARCOAL ========== */
-  --content-bg-dark: #2d3748;
-  --card-bg-dark: #1a202c;
-  --text-color-dark: #e2e8f0;
-  --sidebar-bg-dark: #1a202c;
+  /* ========== DARK THEME - CHARCOAL & BLUE ========== */
+  --content-bg-dark: #1e2127; /* Darker content background */
+  --card-bg-dark: #2a2d34; /* Slightly lighter card background */
+  --text-color-dark: #e9ecef; /* Brighter text */
+  --sidebar-bg-dark: #2a2d34;
   --primary-color-dark: #3182ce;
   --secondary-color-dark: #805ad5;
-  --border-color-dark: #4a5568;
+  --border-color-dark: #454952; /* Adjusted border color */
 
-  /* Card specific variables */
+  /* Input specific variables */
+  --input-bg-light: #ffffff;
+  --input-bg-dark: #343a40;
+  
+  /* Modal specific variables */
+  --modal-bg-light: #ffffff;
+  --modal-bg-dark: #2a2d34;
+  --modal-header-bg-light: #f8f9fa;
+  --modal-header-bg-dark: #1e2127;
+
+  /* Universal variables based on theme */
+  --content-bg: var(--content-bg-light);
   --card-bg: var(--card-bg-light);
-  --card-text: var(--text-color-light);
+  --text-color: var(--text-color-light);
+  --sidebar-bg: var(--sidebar-bg-light);
+  --primary-color: var(--primary-color-light);
+  --border-color: var(--border-color-light);
+  --input-bg: var(--input-bg-light);
+  --modal-bg: var(--modal-bg-light);
+  --modal-header-bg: var(--modal-header-bg-light);
 }
 
 /* ===== BASE STYLES ===== */
 body {
   background-color: var(--content-bg);
   color: var(--text-color);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .content-wrapper {
   background-color: var(--content-bg) !important;
-  min-height: 100vh;
 }
 
 .card {
@@ -95,295 +112,134 @@ body {
   transition: all 0.3s ease;
 }
 
-.sidebar {
-  background-color: var(--sidebar-bg);
-  color: white;
+.card-header {
+  border-bottom: 1px solid var(--border-color);
 }
 
-/* Card specific styles - MOVED OUT OF THEME BLOCKS */
-.bg-card {
-  background-color: var(--card-bg) !important;
-  color: var(--card-text);
-  transition: all 0.3s ease;
-}
-
-.small-box .inner h4,
-.small-box .inner h5 {
-  color: var(--card-text);
-}
-
-/* Make sure icons inherit the text color */
-.small-box .inner i {
-  color: inherit;
-}
-
-/* ===== LIGHT THEME SPECIFIC ===== */
-:root, .light-theme {
+/* ===== LIGHT THEME ===== */
+.light-theme {
   --content-bg: var(--content-bg-light);
   --card-bg: var(--card-bg-light);
   --text-color: var(--text-color-light);
   --sidebar-bg: var(--sidebar-bg-light);
   --primary-color: var(--primary-color-light);
-  --secondary-color: var(--secondary-color-light);
   --border-color: var(--border-color-light);
-  --card-text: var(--text-color-light);
-  
-  .bg-gradient-blue {
-    background: linear-gradient(135deg, var(--primary-color-light) 0%, var(--secondary-color-light) 100%);
-  }
-  
-  .table {
-    color: var(--text-color-light);
-  }
-  
-  .table-hover tbody tr:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-  }
-  
-  .text-muted {
-    color: #6c757d !important;
-  }
+  --input-bg: var(--input-bg-light);
+  --modal-bg: var(--modal-bg-light);
+  --modal-header-bg: var(--modal-header-bg-light);
 }
 
-/* ===== DARK THEME - CHARCOAL ===== */
+/* ===== DARK THEME ===== */
 .dark-theme {
   --content-bg: var(--content-bg-dark);
   --card-bg: var(--card-bg-dark);
   --text-color: var(--text-color-dark);
   --sidebar-bg: var(--sidebar-bg-dark);
   --primary-color: var(--primary-color-dark);
-  --secondary-color: var(--secondary-color-dark);
   --border-color: var(--border-color-dark);
-  --card-text: var(--text-color-dark);
-  
-  .bg-gradient-blue {
-    background: linear-gradient(135deg, var(--primary-color-dark) 0%, var(--secondary-color-dark) 100%);
-  }
-  
-  .card-header {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid var(--border-color-dark);
-  }
-  
-  .table {
-    background-color: var(--card-bg-dark);
-    color: var(--text-color-dark);
-  }
-  
-  .table th {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-color: var(--border-color-dark);
-  }
-  
-  .table-hover tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #ffffff;
-  }
-  
-  .text-muted {
-    color: #a0aec0 !important;
-  }
-  
-  .btn-outline-primary {
-    border-color: var(--primary-color-dark);
-    color: var(--primary-color-dark);
-  }
-  
-  .btn-outline-primary:hover {
-    background-color: var(--primary-color-dark);
-    color: white;
-  }
-  
-  .btn-outline-success {
-    border-color: #38a169;
-    color: #38a169;
-  }
-  
-  .btn-outline-success:hover {
-    background-color: #38a169;
-    color: white;
-  }
+  --input-bg: var(--input-bg-dark);
+  --modal-bg: var(--modal-bg-dark);
+  --modal-header-bg: var(--modal-header-bg-dark);
 }
-</style>
-<!-- custom light/dark mode css for input form  -->
-<style>
-  /* Form specific styles */
-  .form-card {
-    border-radius: 8px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
 
-  .form-card .card-header {
-    border-bottom: 1px solid var(--border-color);
-    background-color: rgba(0, 0, 0, 0.03);
-  }
+.dark-theme .card-header {
+  background-color: rgba(0, 0, 0, 0.2);
+}
 
-  .dark-theme .form-card .card-header {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
+/*
+ * ========================================
+ * FIX: DARK MODE TABLE VISIBILITY
+ * ========================================
+ */
+.dark-theme .table {
+  background-color: var(--card-bg-dark);
+  color: var(--text-color-dark); /* Ensure text is bright */
+  border-color: var(--border-color-dark);
+}
 
-  /* Form input styling */
-  .form-control, .form-select {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-  }
+.dark-theme .table th,
+.dark-theme .table td {
+  border-color: var(--border-color-dark); /* Make cell borders visible */
+  color: var(--text-color-dark) !important; /* Force bright color for all table text */
+}
 
-  .form-control:focus, .form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(49, 130, 206, 0.25);
-  }
+.dark-theme .table thead th {
+  background-color: #343a40; /* Darker header for contrast */
+  color: #fff !important; /* White text for header */
+}
 
-  .dark-theme .form-control:focus, .dark-theme .form-select:focus {
-    box-shadow: 0 0 0 0.25rem rgba(49, 130, 206, 0.5);
-  }
+.dark-theme .table-hover tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+/* ======================================== */
 
-  /* Add these to your :root variables */
-  :root {
-    --input-bg-light: #ffffff;
-    --input-bg-dark: #2d3748;
-    --modal-bg-light: #ffffff;
-    --modal-bg-dark: #2d3748;
-    --modal-header-bg-light: #f8f9fa;
-    --modal-header-bg-dark: #1a202c;
-  }
+.dark-theme .text-muted {
+  color: #a0aec0 !important;
+}
 
-  .light-theme {
-    --input-bg: var(--input-bg-light);
-    --modal-bg: var(--modal-bg-light);
-    --modal-header-bg: var(--modal-header-bg-light);
-  }
+/* ===== FORM & INPUT STYLES ===== */
+.form-control, .form-select {
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
 
-  .dark-theme {
-    --input-bg: var(--input-bg-dark);
-    --modal-bg: var(--modal-bg-dark);
-    --modal-header-bg: var(--modal-header-bg-dark);
-  }
+.form-control:focus, .form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
 
-  /* Section headers */
-  .section-header {
-    padding: 8px 0;
-    margin: 20px 0 15px;
-    border-bottom: 2px solid var(--primary-color);
-    color: var(--primary-color);
-  }
+.dark-theme .form-control:focus, .dark-theme .form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(49, 130, 206, 0.4);
+}
 
-  /* Custom fields section */
-  .custom-fields-container {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    border: 1px dashed var(--border-color);
-  }
-
-  /* Save button */
-  .btn-save {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 8px 25px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-  }
-
-  .btn-save:hover {
-    background-color: var(--primary-color-dark);
-    transform: translateY(-2px);
-  }
-
-  /* Modal styling */
-  .modal-content {
-    background-color: var(--modal-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-  }
-
-  .modal-header {
-    background-color: var(--modal-header-bg);
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .modal-footer {
-    border-top: 1px solid var(--border-color);
-  }
-
-  /* Address textarea styling */
-  textarea.form-control {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    min-height: 100px;
-  }
-
-  /* Improved modal layout */
-  .address-modal .form-group {
-    margin-bottom: 1rem;
-  }
-
-  .address-modal label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-  }
-  /* Style readonly inputs in dark mode */
 .dark-theme .form-control[readonly] {
-    background-color: var(--input-bg-dark) !important;
-    color: var(--text-color-dark);
-    border-color: var(--border-color-dark);
-    cursor: not-allowed;
+  background-color: #343a40 !important;
+  color: var(--text-color-dark);
+  border-color: var(--border-color-dark);
+  opacity: 0.7;
 }
 
-/* Optional: Style for focus state */
-.dark-theme .form-control[readonly]:focus {
-    box-shadow: none;
-    border-color: var(--border-color-dark);
-}
-</style>
-
-<!-- light/dark mode pagination css -->
-<style>
-/* Dark Mode Pagination Styles */
-.dark-theme .pagination {
-    --pagination-bg: #2d3748;
-    --pagination-color: #e2e8f0;
-    --pagination-border: #4a5568;
-    --pagination-hover-bg: #4a5568;
-    --pagination-hover-color: #ffffff;
-    --pagination-active-bg: #3182ce;
-    --pagination-active-color: #ffffff;
-    --pagination-disabled-bg: #2d3748;
-    --pagination-disabled-color: #718096;
+/* ===== MODAL STYLES ===== */
+.modal-content {
+  background-color: var(--modal-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
 }
 
+.modal-header {
+  background-color: var(--modal-header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--border-color);
+}
+
+/* ===== PAGINATION STYLES ===== */
 .dark-theme .pagination .page-item .page-link {
-    background-color: var(--pagination-bg);
-    color: var(--pagination-color);
-    border-color: var(--pagination-border);
-    transition: all 0.3s ease;
+  background-color: var(--card-bg-dark);
+  color: var(--text-color-dark);
+  border-color: var(--border-color-dark);
 }
 
 .dark-theme .pagination .page-item:hover .page-link {
-    background-color: var(--pagination-hover-bg);
-    color: var(--pagination-hover-color);
-    border-color: var(--pagination-border);
+  background-color: var(--border-color-dark);
 }
 
 .dark-theme .pagination .page-item.active .page-link {
-    background-color: var(--pagination-active-bg);
-    color: var(--pagination-active-color);
-    border-color: var(--pagination-active-bg);
+  background-color: var(--primary-color-dark);
+  border-color: var(--primary-color-dark);
+  color: #fff;
 }
 
 .dark-theme .pagination .page-item.disabled .page-link {
-    background-color: var(--pagination-disabled-bg);
-    color: var(--pagination-disabled-color);
-    border-color: var(--pagination-border);
-    cursor: not-allowed;
-    opacity: 0.7;
+  color: #6c757d;
+  background-color: #212529;
+  border-color: var(--border-color-dark);
 }
-
 </style>
 <!-- css for message tag -->
 <style>

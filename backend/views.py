@@ -14,7 +14,8 @@ from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, login
-
+from django.db.models import OuterRef, Subquery
+from django.db import IntegrityError
 
 
 # Permission Decorators
@@ -40,6 +41,10 @@ def tenant_required(view_func):
 
 # Helper to get tenant
 def get_tenant(request):
+    if request.is_superadmin:
+        tenant_id = request.GET.get('tenant_id') or request.POST.get('tenant_id')
+        if tenant_id:
+            return get_object_or_404(Tenant, id=tenant_id)
     return getattr(request, 'tenant', None)
 
 # Print View
@@ -84,7 +89,7 @@ def Admin_loginVW(request):
             return redirect('/dash')
         messages.error(request, "Invalid Email or Password")
         return redirect('/')
-    return render(request, 'Admin_login.html')
+    return render(request, '/')
 
 # Dashboard View
 @tenant_required
@@ -118,12 +123,12 @@ def ChangePasswordVw(request):
 def Party_listVw(request):
     account = Account.objects.filter(email=request.session['email']).first()
     if account.role == 'superadmin':
-        party_list = Create_party.objects.filter(is_active=True)
-        tenant = None
+        tenant = get_tenant(request)
+        party_list = Create_party.objects.filter(is_active=True) if not tenant else Create_party.objects.filter(tenant=tenant, is_active=True)
     else:
         tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
         party_list = Create_party.objects.filter(tenant=tenant, is_active=True, user=account)
-    
+
     total_balance = party_list.aggregate(total=Sum('opening_balance'))['total'] or 0.00
     total_credit = party_list.aggregate(total=Sum('credit_limit'))['total'] or 0.00
     
@@ -142,8 +147,13 @@ def Party_listVw(request):
 def Create_partyVw(request):
     account = Account.objects.filter(email=request.session['email']).first()
     tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    tenants = Tenant.objects.all() if account.role == 'superadmin' else []
     
     if request.method == "POST":
+        if account.role == 'superadmin' and not tenant:
+            messages.error(request, "Please select a tenant.")
+            return redirect('Create_partyVw')
+
         party_name = request.POST['pname']
         mobile_num = request.POST['pnum']
         email = request.POST['pemail']
@@ -178,7 +188,7 @@ def Create_partyVw(request):
             )
             messages.info(request, 'Party Added Successfully...')
             return redirect('/Party_list')
-    return render(request, 'Create_party.html', {'add': account, 'tenant': tenant})
+    return render(request, 'Create_party.html', {'add': account, 'tenant': tenant,'tenants': tenants})
 
 # Delete Party View
 @tenant_required
@@ -190,7 +200,7 @@ def Dlt_Party_ListVw(request, id):
         Create_party.objects.filter(id=id).update(is_active=False)
     else:
         Create_party.objects.filter(id=id, tenant=tenant).update(is_active=False)
-    messages.info(request, 'Party Deleted ...!!')
+    messages.info(request, 'Party Deleted !')
     return redirect('/Party_list')
 
 # Update Party View
@@ -232,7 +242,7 @@ def Updt_Party_List(request, id):
             credit_period=credit_period,
             credit_limit=credit_limit
         )
-        messages.info(request, 'Party Update Successfully...')
+        messages.info(request, 'Party Update Successfully.')
         return redirect('/Party_list')
     return render(request, 'Update_party.html', {'add': account, 'party_list': party_list, 'tenant': tenant})
 
@@ -240,10 +250,11 @@ def Updt_Party_List(request, id):
 @tenant_required
 def item_list_view(request):
     account = Account.objects.filter(email=request.session['email']).first()
+    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+
     if account.role == 'superadmin':
-        products = Product.objects.all()
-        services = Service.objects.all()
-        tenant = None
+        products = Product.objects.all() if not tenant else Product.objects.filter(tenant=tenant)
+        services = Service.objects.all() if not tenant else Service.objects.filter(tenant=tenant)
     else:
         tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
         products = Product.objects.filter(tenant=tenant)
@@ -273,11 +284,16 @@ def item_list_view(request):
 def create_item_view(request):
     account = Account.objects.filter(email=request.session['email']).first()
     tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    tenants = Tenant.objects.all() if account.role == 'superadmin' else []
     
     units = Unit.objects.filter(tenant=tenant, is_active=True) if tenant else Unit.objects.all()
     categories = Category.objects.filter(tenant=tenant, is_active=True) if tenant else Category.objects.all()
     
     if request.method == "POST":
+        if account.role == 'superadmin' and not tenant:
+            messages.error(request, "Please select a tenant.")
+            return redirect('Create_item')
+
         try:
             item_type = request.POST.get('item_type', '').strip()
             if item_type not in ['product', 'service']:
@@ -362,7 +378,7 @@ def create_item_view(request):
         'add': account,
         'unit': units,
         'category': categories,
-        'tenant': tenant,
+        'tenant': tenant,'tenants': tenants,
     }
     return render(request, 'Create_item.html', context)
 
@@ -371,6 +387,7 @@ def create_item_view(request):
 def Create_saleVw(request):
     account = Account.objects.filter(email=request.session['email']).first()
     tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    tenants = Tenant.objects.all() if account.role == 'superadmin' else []
     
     context = {
         'items': ItemBase.objects.filter(tenant=tenant, is_active=True).order_by('item_name') if tenant else ItemBase.objects.filter(is_active=True).order_by('item_name'),
@@ -378,6 +395,7 @@ def Create_saleVw(request):
         'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}",
         'add': account,
         'tenant': tenant,
+        'tenants': tenants,
     }
     return render(request, 'Create_Sale.html', context)
 
@@ -386,8 +404,13 @@ def Create_saleVw(request):
 def create_sale_view(request):
     account = get_object_or_404(Account, email=request.session['email'])
     tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    tenants = Tenant.objects.all() if account.role == 'superadmin' else []
     
     if request.method == "POST":
+        if account.role == 'superadmin' and not tenant:
+            messages.error(request, "Please select a tenant.")
+            return redirect('Create_Sale')
+            
         try:
             with transaction.atomic():
                 post_data = request.POST
@@ -507,7 +530,7 @@ def create_sale_view(request):
         'parties': Create_party.objects.filter(tenant=tenant, is_active=True).order_by('party_name') if tenant else Create_party.objects.filter(is_active=True).order_by('party_name'),
         'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}",
         'add': account,
-        'tenant': tenant,
+        'tenant': tenant,'tenants': tenants,
     }
     return render(request, 'create_sale.html', context)
 
@@ -515,9 +538,10 @@ def create_sale_view(request):
 @tenant_required
 def sales_list(request):
     account = Account.objects.filter(email=request.session['email']).first()
+    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    
     if account.role == 'superadmin':
-        sales = Sale.objects.select_related('party').all().order_by('-invoice_date')
-        tenant = None
+        sales = Sale.objects.select_related('party').all().order_by('-invoice_date') if not tenant else Sale.objects.filter(tenant=tenant).select_related('party').order_by('-invoice_date')
     else:
         tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
         sales = Sale.objects.filter(tenant=tenant).select_related('party').all().order_by('-invoice_date')
@@ -648,11 +672,252 @@ def edit_sale_view(request, sale_id):
 # Superadmin Dashboard
 @superadmin_required
 def superadmin_dashboard(request):
-    account = Account.objects.filter(email=request.session['email']).first()
-    tenants = Tenant.objects.all()
+    # Fetch the first account's details for display purposes
+    first_account = Account.objects.filter(tenant=OuterRef('pk')).order_by('created_at')
+
+    # Use prefetch_related to efficiently load all accounts for each tenant.
+    # This avoids N+1 queries when accessing tenant.accounts in the template/modal.
+    tenants = Tenant.objects.prefetch_related('accounts').annotate(
+        admin_email=Subquery(first_account.values('email')[:1]),
+        admin_role=Subquery(first_account.values('role')[:1])
+    ).order_by('-created_at')
+    
+    account = Account.objects.filter(email=request.session.get('email')).first()
+    total_accounts = Account.objects.count()
+    total_parties = Create_party.objects.count()
+    total_items = ItemBase.objects.count()
+    total_sales = Sale.objects.count()
+    total_revenue = Sale.objects.aggregate(total=Sum('total_amount'))['total'] or 0.00
+
     context = {
         'add': account,
         'tenants': tenants,
-        'tenant': None,
+        'total_accounts': total_accounts,
+        'total_parties': total_parties,
+        'total_items': total_items,
+        'total_sales': total_sales,
+        'total_revenue': total_revenue,
     }
     return render(request, 'superadmin_dashboard.html', context)
+
+# Create Tenant
+@superadmin_required
+def create_tenant(request):
+    if request.method == "POST":
+        company_name = request.POST.get('company_name')
+        subdomain = request.POST.get('subdomain')
+        full_name = request.POST.get('full_name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        phone = request.POST.get('phone')
+        role = request.POST.get('role')
+
+        if not all([company_name, subdomain, full_name, email, password, role]):
+            messages.error(request, "Please fill all required fields.")
+            return redirect('superadmin_dashboard')
+
+        try:
+            # Using transaction.atomic would be even better here for production
+            tenant = Tenant.objects.create(name=company_name, subdomain=subdomain)
+            
+            # The Account model's save() method handles password hashing,
+            # so we pass the raw password directly.
+            Account.objects.create(
+                tenant=tenant,
+                full_name=full_name,
+                email=email,
+                password=password, # Corrected: Pass the password from the form
+                phone=phone,
+                role=role,
+                is_active=True
+            )
+            messages.success(request, f"Tenant '{company_name}' and Admin '{full_name}' created successfully!")
+        
+        except Exception as e:
+            messages.error(request, f"Error creating tenant: {str(e)}")
+            
+        return redirect('superadmin_dashboard')
+    return redirect('superadmin_dashboard')
+
+# --- NEW VIEWS FOR ACCOUNT MANAGEMENT ---
+# Add Account
+@superadmin_required
+def add_account(request, tenant_id):
+    if request.method == 'POST':
+        tenant = get_object_or_404(Tenant, id=tenant_id)
+        full_name = request.POST.get('full_name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        role = request.POST.get('role')
+
+        if not all([full_name, email, password, role]):
+            messages.error(request, "Please fill all fields to add a new account.")
+            return redirect('superadmin_dashboard')
+
+        if Account.objects.filter(email=email).exists():
+            messages.error(request, f"An account with the email '{email}' already exists.")
+            return redirect('superadmin_dashboard')
+        
+        try:
+            Account.objects.create(
+                tenant=tenant,
+                full_name=full_name,
+                email=email,
+                password=password, # Model's save() will hash it
+                role=role,
+                is_active=True
+            )
+            messages.success(request, f"Account '{full_name}' created for tenant '{tenant.name}'.")
+        except Exception as e:
+            messages.error(request, f"Failed to create account. Error: {e}")
+
+    return redirect('superadmin_dashboard')
+# Delete Account
+@superadmin_required
+def delete_account(request, account_id):
+    account = get_object_or_404(Account, id=account_id)
+    
+    # Optional: Add a check to prevent deleting the last admin of a tenant
+    tenant = account.tenant
+    if account.role == 'admin' and tenant.accounts.filter(role='admin').count() == 1:
+        messages.error(request, f"Cannot delete the last admin account for tenant '{tenant.name}'.")
+        return redirect('superadmin_dashboard')
+        
+    try:
+        account_name = account.full_name
+        account.delete()
+        messages.success(request, f"Account '{account_name}' has been deleted successfully.")
+    except Exception as e:
+        messages.error(request, f"Failed to delete account. Error: {e}")
+        
+    return redirect('superadmin_dashboard')
+# Edit Tenant
+@superadmin_required
+def edit_tenant(request, tenant_id):
+    tenant = get_object_or_404(Tenant, id=tenant_id)
+    if request.method == 'POST':
+        # Get data from the form
+        name = request.POST.get('company_name')
+        subdomain = request.POST.get('subdomain')
+        # The value from the form for 'is_active' will be "True" or "False" as a string
+        is_active = request.POST.get('is_active') == 'True'
+
+        tenant.name = name
+        tenant.subdomain = subdomain
+        tenant.is_active = is_active
+        
+        try:
+            tenant.save()
+            messages.success(request, f"Tenant '{tenant.name}' has been updated successfully.")
+            return redirect('superadmin_dashboard')
+        except IntegrityError:
+            messages.error(request, f"The subdomain '{subdomain}' is already in use. Please choose another.")
+            # Stay on the edit page so the user can correct the error
+    
+    context = {'tenant': tenant}
+    return render(request, 'edit_tenant.html', context)
+# Edit Account
+@superadmin_required
+def edit_account(request, account_id):
+    account = get_object_or_404(Account, id=account_id)
+    if request.method == 'POST':
+        account.full_name = request.POST.get('full_name')
+        account.role = request.POST.get('role')
+        account.phone = request.POST.get('phone', '')
+        account.is_active = request.POST.get('is_active') == 'True'
+        
+        # --- Securely handle password change ---
+        # Only change the password if a new one is provided.
+        new_password = request.POST.get('password')
+        if new_password:
+            # The model's save() method will hash it
+            account.password = new_password
+
+        try:
+            # Prevent changing the email to one that already exists
+            new_email = request.POST.get('email')
+            if account.email != new_email:
+                if Account.objects.filter(email=new_email).exists():
+                     raise IntegrityError
+                account.email = new_email
+            
+            account.save()
+            messages.success(request, f"Account '{account.full_name}' updated successfully.")
+            return redirect('superadmin_dashboard')
+
+        except IntegrityError:
+            messages.error(request, f"The email '{new_email}' is already in use by another account.")
+
+    context = {'account': account}
+    return render(request, 'edit_account.html', context)
+
+
+
+
+
+
+
+
+# Delete Tenant
+@superadmin_required
+def delete_tenant(request, tenant_id):
+    tenant = get_object_or_404(Tenant, id=tenant_id)
+    tenant_name = tenant.name
+    tenant.delete()
+    messages.success(request, f"Tenant '{tenant_name}' deleted successfully!")
+    return redirect('superadmin_dashboard')
+
+# Manage Accounts
+@superadmin_required
+def manage_accounts(request, tenant_id):
+    tenant = get_object_or_404(Tenant, id=tenant_id)
+    accounts = Account.objects.filter(tenant=tenant)
+    if request.method == "POST":
+        action = request.POST.get('action')
+        if action == 'create':
+            email = request.POST.get('email')
+            password = request.POST.get('password')
+            role = request.POST.get('role')
+            try:
+                Account.objects.create(
+                    email=email,
+                    password=make_password(password),
+                    role=role,
+                    tenant=tenant,
+                    is_active=True
+                )
+                messages.success(request, f"Account '{email}' created successfully!")
+            except Exception as e:
+                messages.error(request, f"Error creating account: {str(e)}")
+        elif action == 'edit':
+            account_id = request.POST.get('account_id')
+            account = get_object_or_404(Account, id=account_id, tenant=tenant)
+            email = request.POST.get('email')
+            password = request.POST.get('password')
+            role = request.POST.get('role')
+            is_active = request.POST.get('is_active') == 'on'
+            try:
+                account.email = email
+                if password:
+                    account.password = make_password(password)
+                account.role = role
+                account.is_active = is_active
+                account.save()
+                messages.success(request, f"Account '{email}' updated successfully!")
+            except Exception as e:
+                messages.error(request, f"Error updating account: {str(e)}")
+        elif action == 'delete':
+            account_id = request.POST.get('account_id')
+            account = get_object_or_404(Account, id=account_id, tenant=tenant)
+            email = account.email
+            account.delete()
+            messages.success(request, f"Account '{email}' deleted successfully!")
+        return redirect('manage_accounts', tenant_id=tenant_id)
+    
+    context = {
+        'add': Account.objects.filter(email=request.session['email']).first(),
+        'tenant': tenant,
+        'accounts': accounts,
+        'roles': Account.ROLES,
+    }
+    return render(request, 'manage_accounts.html', context)

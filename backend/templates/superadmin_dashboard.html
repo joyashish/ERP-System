@@ -1,22 +1,466 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Superadmin Dashboard</title>
-</head>
-<body>
-    <h1>Welcome, {{ add.email }} (Superadmin)</h1>
-    <h2>Manage Tenants</h2>
-    <ul>
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+
+<style>
+    /*
+     =============================================
+     DESKTOP STYLES (993px and up)
+     =============================================
+    */
+
+    /* The default Bootstrap table styles work perfectly for desktops. No custom CSS is needed. */
+
+
+    /*
+     =============================================
+     TABLET STYLES (max-width: 992px)
+     =============================================
+    */
+    @media (max-width: 992px) {
+
+        /* Reduce font size to fit more content on tablets */
+        #tenantTable {
+            font-size: 0.9rem;
+        }
+
+        /* Make action buttons slightly smaller */
+        #tenantTable .btn-xs {
+            padding: 0.1rem 0.4rem;
+            font-size: 0.8rem;
+        }
+
+        /* Adjust column width for actions to prevent wrapping */
+        #tenantTable th:last-child,
+        #tenantTable td:last-child {
+            width: 240px !important;
+        }
+    }
+
+
+    /*
+     =============================================
+     MOBILE STYLES (max-width: 768px)
+     =============================================
+    */
+    @media (max-width: 768px) {
+
+        /* Hide the original table header */
+        #tenantTable thead {
+            display: none;
+        }
+
+        /* Change table elements to block display for a vertical layout */
+        #tenantTable,
+        #tenantTable tbody,
+        #tenantTable tr,
+        #tenantTable td {
+            display: block;
+            width: 100%;
+        }
+
+        /* Style each table row to look like a card */
+        #tenantTable tr {
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Remove borders and position cells for the label layout */
+        #tenantTable td {
+            text-align: right;
+            /* Align cell content to the right */
+            padding-left: 50%;
+            /* Create space on the left for the label */
+            position: relative;
+            border: none;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Remove the bottom border from the last cell in each "card" */
+        #tenantTable tr td:last-child {
+            border-bottom: none;
+        }
+
+        /* Use the ::before pseudo-element to display the data labels from the `data-label` attribute */
+        #tenantTable td::before {
+            content: attr(data-label);
+            /* The magic happens here */
+            position: absolute;
+            left: 10px;
+            width: 45%;
+            padding-right: 10px;
+            font-weight: bold;
+            text-align: left;
+            white-space: nowrap;
+        }
+    }
+    
+</style>
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Superadmin Dashboard</h1>
+                    <p class="text-muted">Welcome, {{ add.email }}</p>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="#">Home</a></li>
+                        <li class="breadcrumb-item active">Superadmin Dashboard</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+    <section class="content">
+        <div class="container-fluid">
+
+            {% if messages %}
+            <div class="row">
+                <div class="col-12">
+                    {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+                        role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>{{ tenants.count }}</h3>
+                            <p>Total Tenants</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-building"></i></div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>{{ total_accounts }}</h3>
+                            <p>Total Accounts</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-users"></i></div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>{{ total_parties }}</h3>
+                            <p>Total Parties</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-user-friends"></i></div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>{{ total_items }}</h3>
+                            <p>Total Items</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-box-open"></i></div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-primary">
+                        <div class="inner">
+                            <h3>{{ total_sales }}</h3>
+                            <p>Total Sales</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-chart-line"></i></div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <div class="small-box bg-secondary">
+                        <div class="inner">
+                            <h3><i class="fas fa-rupee-sign"></i>&nbsp;{{ total_revenue|floatformat:2 }}</h3>
+                            <p>Total Revenue</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-wallet"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Manage Tenants</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <table id="tenantTable" class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Company / Subdomain</th>
+                                        <th>Primary Admin</th>
+                                        <th>Contact Email</th>
+                                        <th class="text-center">Users</th>
+                                        <th class="text-center">Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tenant in tenants %}
+                                    <tr>
+                                        <td data-label="Company">
+                                            <strong>{{ tenant.name }}</strong><br>
+                                            <small class="text-muted">{{ tenant.subdomain }}.yourdomain.com</small>
+                                        </td>
+                
+                                        <td data-label="Role">{{ tenant.admin_role|default:"N/A"|capfirst }}</td>
+                
+                                        <td data-label="Contact">{{ tenant.admin_email|default:"N/A" }}</td>
+                
+                                        <td data-label="Users" class="text-center">{{ tenant.accounts.count }}</td>
+                
+                                        <td data-label="Status" class="text-center">
+                                            {% if tenant.is_active %}
+                                            <span class="badge badge-success">Active</span>
+                                            {% else %}
+                                            <span class="badge badge-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                
+                                        <td data-label="Actions">
+                                            <a href="{% url 'edit_tenant' tenant.id %}" class="btn btn-xs btn-outline-primary"
+                                                title="Edit"><i class="fas fa-edit"></i></a>
+                                            <a href="{% url 'delete_tenant' tenant.id %}" class="btn btn-xs btn-outline-danger"
+                                                title="Delete"><i class="fas fa-trash"></i></a>
+
+                                            <button type="button" class="btn btn-xs btn-outline-secondary manage-accounts-btn" title="Manage Accounts"
+                                                data-toggle="modal" data-target="#accountsModal" data-tenant-id="{{ tenant.id }}"
+                                                data-tenant-name="{{ tenant.name }}">
+                                                <i class="fas fa-users-cog"></i>
+                                            </button>
+
+                                            <a href="{% url 'Party_list' %}?tenant_id={{ tenant.id }}"
+                                                class="btn btn-xs btn-outline-info" title="View Parties"><i
+                                                    class="fas fa-user-friends"></i></a>
+                                            <a href="{% url 'Item_list' %}?tenant_id={{ tenant.id }}"
+                                                class="btn btn-xs btn-outline-info" title="View Items"><i
+                                                    class="fas fa-box-open"></i></a>
+                                            <a href="{% url 'sales_list' %}?tenant_id={{ tenant.id }}"
+                                                class="btn btn-xs btn-outline-info" title="View Sales"><i
+                                                    class="fas fa-chart-line"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center p-4">No tenants found.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Create New Tenant</h3>
+                        </div>
+                        <form method="post" action="{% url 'create_tenant' %}">
+                            {% csrf_token %}
+                            <div class="card-body">
+                
+                                <h5 class="mt-2 mb-3" style="font-weight: 600; font-size: 1rem;">Company Details</h5>
+                
+                                <div class="form-group">
+                                    <label for="company_name">Company Name</label>
+                                    <input type="text" name="company_name" class="form-control" id="company_name"
+                                        placeholder="Enter company name" required>
+                                </div>
+                
+                                <div class="form-group">
+                                    <label for="subdomain">Subdomain</label>
+                                    <input type="text" name="subdomain" class="form-control" id="subdomain"
+                                        placeholder="e.g., 'acmecorp'" required>
+                                </div>
+                
+                                <hr>
+                
+                                <h5 class="mt-3 mb-3" style="font-weight: 600; font-size: 1rem;">New Account Details</h5>
+                
+                                <div class="form-group">
+                                    <label for="full_name">User's Full Name</label>
+                                    <input type="text" name="full_name" class="form-control" id="full_name"
+                                        placeholder="Enter user's full name" required>
+                                </div>
+                
+                                <div class="form-group">
+                                    <label for="email">Email</label>
+                                    <input type="email" name="email" class="form-control" id="email" placeholder="Enter user's email"
+                                        required>
+                                </div>
+                
+                                <div class="form-group">
+                                    <label for="password">Password</label>
+                                    <input type="password" name="password" class="form-control" id="password"
+                                        placeholder="Enter initial password" required>
+                                </div>
+                
+                                <div class="form-group">
+                                    <label for="phone">Phone Number</label>
+                                    <input type="tel" name="phone" class="form-control" id="phone"
+                                        placeholder="Enter phone number (optional)">
+                                </div>
+                
+                                <div class="form-group">
+                                    <label for="role">Role</label>
+                                    <input type="text" value="Admin" class="form-control" readonly>
+                                    <input type="hidden" name="role" value="admin">
+                                </div>
+                
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary w-100">Create Tenant</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="modal fade" id="accountsModal" tabindex="-1" role="dialog" aria-labelledby="accountsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="accountsModalLabel">Manage Accounts for <strong id="modalTenantName"></strong></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h6>Existing Accounts</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalAccountList">
+                            </tbody>
+                    </table>
+                </div>
+
+                <hr>
+
+                <h6 class="mt-4">Add New Account</h6>
+                <form id="addAccountForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label for="modal_full_name">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" id="modal_full_name" placeholder="Enter full name" required>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label for="modal_email">Email</label>
+                            <input type="email" name="email" class="form-control" id="modal_email" placeholder="Enter email" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label for="modal_password">Password</label>
+                            <input type="password" name="password" class="form-control" id="modal_password" placeholder="Set initial password" required>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label for="modal_role">Role</label>
+                            <select name="role" id="modal_role" class="form-control" required>
+                                <option value="admin">Admin</option>
+                                <option value="user" selected>User</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-2">Add Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // A dictionary to hold accounts data, passed from the Django template
+    const tenantsData = {
         {% for tenant in tenants %}
-            <li>{{ tenant.name }} ({{ tenant.subdomain }}) - 
-                <a href="{% url 'Party_listVw' %}?tenant_id={{ tenant.id }}">View Parties</a> |
-                <a href="{% url 'item_list_view' %}?tenant_id={{ tenant.id }}">View Items</a> |
-                <a href="{% url 'sales_list' %}?tenant_id={{ tenant.id }}">View Sales</a>
-            </li>
-        {% empty %}
-            <li>No tenants found.</li>
+            "{{ tenant.id }}": [
+                {% for account in tenant.accounts.all %}
+                    {
+                        "id": "{{ account.id }}",
+                        "fullName": "{{ account.full_name|escapejs }}",
+                        "email": "{{ account.email|escapejs }}",
+                        "role": "{{ account.role|capfirst }}"
+                    },
+                {% endfor %}
+            ],
         {% endfor %}
-    </ul>
-    <a href="{% url 'logout' %}">Logout</a>
-</body>
-</html>
+    };
+
+    $('#accountsModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget); // Button that triggered the modal
+        var tenantId = button.data('tenant-id');
+        var tenantName = button.data('tenant-name');
+        
+        var modal = $(this);
+        
+        // 1. Update Modal Title
+        modal.find('#modalTenantName').text(tenantName);
+
+        // 2. Update the "Add Account" form's action URL
+        var addAccountUrl = `/accounts/add/${tenantId}/`; // Assumes this URL pattern
+        modal.find('#addAccountForm').attr('action', addAccountUrl);
+
+        // 3. Populate the list of existing accounts
+        var accountListBody = modal.find('#modalAccountList');
+        accountListBody.empty(); // Clear previous content
+
+        var accounts = tenantsData[tenantId] || [];
+
+        if (accounts.length > 0) {
+            accounts.forEach(function (account) {
+                
+                // URLs for edit/delete actions
+                var editUrl = `/accounts/edit/${account.id}/`; // <-- ADD THIS LINE
+                var deleteUrl = `/accounts/delete/${account.id}/`; 
+                
+                var row = `<tr>
+                    <td>${account.fullName}</td>
+                    <td>${account.email}</td>
+                    <td><span class="badge badge-info">${account.role}</span></td>
+                    <td>
+                        <a href="${editUrl}" class="btn btn-xs btn-outline-primary" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="${deleteUrl}" class="btn btn-xs btn-outline-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this account?');">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>`;
+                accountListBody.append(row);
+            });
+        } else {
+            accountListBody.append('<tr><td colspan="4" class="text-center">No accounts found for this tenant.</td></tr>');
+        }
+    });
+});
+</script>
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

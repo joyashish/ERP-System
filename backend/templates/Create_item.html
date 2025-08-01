@@ -170,6 +170,16 @@
             <div class="card-header">
               <form method="POST" enctype="multipart/form-data" action="{% url 'Create_item' %}" id="itemForm">
                 {% csrf_token %}
+                {% if add.role == 'superadmin' %}
+                <label>Select Tenant:
+                  <select name="tenant_id" required>
+                    <option value="">Select Tenant</option>
+                    {% for t in tenants %}
+                    <option value="{{ t.id }}">{{ t.name }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                {% endif %}
                 <!-- Hidden input to track item type -->
                 <input type="hidden" name="item_type" id="itemType" value="product">
 
