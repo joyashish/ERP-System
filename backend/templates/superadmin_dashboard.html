@@ -102,6 +102,8 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Manage Tenant Card -->
             <div class="row">
                 <div class="col-md-8">
                     <div class="card">
@@ -195,36 +197,82 @@
                         </div>
                     </div>
 
-                    
+                    <!-- Recent Activity & Financial logs Tab/Card -->
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-history mr-2"></i>Recent Activity</h3>
+                        <div class="card-header p-0">
+                            <ul class="nav nav-tabs" id="log-tabs" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="all-activity-tab" data-toggle="tab" href="#all-activity" role="tab"
+                                        aria-controls="all-activity" aria-selected="true">
+                                        <i class="fas fa-history mr-1"></i>Recent Activity
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="financial-logs-tab" data-toggle="tab" href="#financial-logs" role="tab"
+                                        aria-controls="financial-logs" aria-selected="false">
+                                        <i class="fas fa-receipt mr-1"></i>Financial Logs
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                         <div class="card-body p-0">
-                            <ul class="list-group list-group-flush">
-                                {% for log in activity_logs %}
-                                <li class="list-group-item">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">
-                                            {% if log.action_type == 'LOGIN' %}<i class="fas fa-sign-in-alt text-success"></i>
-                                            {% elif log.action_type == 'PARTY_ADD' %}<i class="fas fa-user-plus text-primary"></i>
-                                            {% elif log.action_type == 'SALE_DEL' %}<i class="fas fa-trash text-danger"></i>
-                                            {% else %}<i class="fas fa-info-circle text-info"></i>
-                                            {% endif %}
-                                            {{ log.get_action_type_display }}
-                                        </h6>
-                                        <small class="text-muted">{{ log.timestamp|timesince }} ago</small>
+                            <div class="tab-content" id="log-tabs-content">
+                                <div class="tab-pane fade show active" id="all-activity" role="tabpanel" aria-labelledby="all-activity-tab">
+                                    <ul class="list-group list-group-flush">
+                                        {% for log in activity_logs %}
+                                        <li class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">
+                                                    {% if log.action_type == 'LOGIN' %}<i class="fas fa-sign-in-alt text-success"></i>
+                                                    {% elif log.action_type == 'PARTY_ADD' %}<i class="fas fa-user-plus text-primary"></i>
+                                                    {% elif log.action_type == 'SALE_DEL' %}<i class="fas fa-trash text-danger"></i>
+                                                    {% else %}<i class="fas fa-info-circle text-info"></i>
+                                                    {% endif %}
+                                                    {{ log.get_action_type_display }}
+                                                </h6>
+                                                <small class="text-muted">{{ log.timestamp|timesince }} ago</small>
+                                            </div>
+                                            <p class="mb-1">{{ log.details }}</p>
+                                            <small class="text-muted">Actor: {{ log.actor.email|default:'N/A' }} | Tenant: {{
+                                                log.tenant.name|default:'N/A' }}</small>
+                                        </li>
+                                        {% empty %}
+                                        <li class="list-group-item">No recent activity found.</li>
+                                        {% endfor %}
+                                    </ul>
+                                    <div class="card-footer text-center">
+                                        <a href="{% url 'all_activity_logs' %}">View All Activity Logs</a>
                                     </div>
-                                    <p class="mb-1">{{ log.details }}</p>
-                                    <small class="text-muted">
-                                        Actor: {{ log.actor.email|default:'N/A' }} |
-                                        Tenant: {{ log.tenant.name|default:'N/A' }}
-                                    </small>
-                                </li>
-                                {% empty %}
-                                <li class="list-group-item">No recent activity found.</li>
-                                {% endfor %}
-                            </ul>
+                                </div>
+                                <div class="tab-pane fade" id="financial-logs" role="tabpanel" aria-labelledby="financial-logs-tab">
+                                    <ul class="list-group list-group-flush">
+                                        {% for log in financial_logs %}
+                                        <li class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1">
+                                                    {% if log.action_type == 'SALE_ADD' %}<i
+                                                        class="fas fa-file-invoice-dollar text-success"></i>
+                                                    {% elif log.action_type == 'SALE_EDIT' %}<i class="fas fa-pencil-alt text-warning"></i>
+                                                    {% elif log.action_type == 'SALE_DEL' %}<i class="fas fa-trash text-danger"></i>
+                                                    {% elif log.action_type == 'PAY_ADD' %}<i class="fas fa-hand-holding-usd text-info"></i>
+                                                    {% endif %}
+                                                    {{ log.get_action_type_display }}
+                                                </h6>
+                                                <small class="text-muted">{{ log.timestamp|timesince }} ago</small>
+                                            </div>
+                                            <p class="mb-1">{{ log.details }}</p>
+                                            <small class="text-muted">Actor: {{ log.actor.email|default:'N/A' }} | Tenant: {{
+                                                log.tenant.name|default:'N/A' }}</small>
+                                        </li>
+                                        {% empty %}
+                                        <li class="list-group-item">No recent financial activity found.</li>
+                                        {% endfor %}
+                                    </ul>
+                                    <div class="card-footer text-center">
+                                        <a href="{% url 'financial_logs' %}">View All Financial Logs</a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

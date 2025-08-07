@@ -260,31 +260,42 @@ class ActivityLog(models.Model):
     """Stores a record of user activities across the platform."""
 
     class ActionTypes(models.TextChoices):
+        # User Management
         USER_LOGGED_IN = 'LOGIN', 'User Logged In'
+        TENANT_CREATED = 'TENANT_ADD', 'Tenant Created'
+        ACCOUNT_CREATED = 'ACC_ADD', 'Account Created'
+        ACCOUNT_EDITED = 'ACC_EDIT', 'Account Edited'
+        
+        # Data Management
         PARTY_CREATED = 'PARTY_ADD', 'Party Created'
+        PARTY_EDITED = 'PARTY_EDIT', 'Party Edited'
+        PARTY_DELETED = 'PARTY_DEL', 'Party Deleted'
         ITEM_CREATED = 'ITEM_ADD', 'Item Created'
+        
+        # Financial Transactions
         SALE_CREATED = 'SALE_ADD', 'Sale Created'
+        SALE_EDITED = 'SALE_EDIT', 'Sale Edited'
         SALE_DELETED = 'SALE_DEL', 'Sale Deleted'
-        # Add more action types as you need them
+        PAYMENT_RECORDED = 'PAY_ADD', 'Payment Recorded'
 
-    # Who performed the action. Null if the user is deleted.
+    class LogCategories(models.TextChoices):
+        GENERAL = 'GENERAL', 'General'
+        FINANCIAL = 'FINANCIAL', 'Financial'
+        AUTH = 'AUTH', 'Authentication'
+
+    # ... (actor, action_type, details, tenant, timestamp fields remain the same)
     actor = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True)
-    
-    # The type of action performed.
     action_type = models.CharField(max_length=10, choices=ActionTypes.choices)
-    
-    # A human-readable description of the action.
     details = models.TextField()
-    
-    # The tenant context for the action, if applicable.
     tenant = models.ForeignKey(Tenant, on_delete=models.SET_NULL, null=True, blank=True)
-    
-    # When the action occurred.
     timestamp = models.DateTimeField(auto_now_add=True)
+    
+    # --- ADD THIS NEW FIELD ---
+    category = models.CharField(max_length=10, choices=LogCategories.choices, default=LogCategories.GENERAL)
 
     class Meta:
-        ordering = ['-timestamp'] # Show the most recent logs first
+        ordering = ['-timestamp']
 
     def __str__(self):
-        actor_email = self.actor.email if self.actor else "System"
-        return f"{actor_email} - {self.get_action_type_display()} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+        # ... (__str__ method remains the same)
+        pass

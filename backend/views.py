@@ -954,8 +954,13 @@ def superadmin_dashboard(request):
     total_sales = Sale.objects.count()
     total_revenue = Sale.objects.aggregate(total=Sum('total_amount'))['total'] or 0.00
 
-     # Add this query to fetch the 10 most recent activity logs
+    # Fetch the 10 most recent logs of ANY type
     activity_logs = ActivityLog.objects.select_related('actor', 'tenant').order_by('-timestamp')[:10]
+    
+    # Fetch the 10 most recent FINANCIAL logs specifically
+    financial_logs = ActivityLog.objects.filter(
+        category=ActivityLog.LogCategories.FINANCIAL
+    ).select_related('actor', 'tenant').order_by('-timestamp')[:10]
 
     context = {
         'add': account,
@@ -966,6 +971,7 @@ def superadmin_dashboard(request):
         'total_sales': total_sales,
         'total_revenue': total_revenue,
         'activity_logs': activity_logs,
+        'financial_logs': financial_logs,
     }
     return render(request, 'superadmin_dashboard.html', context)
 
@@ -1190,3 +1196,26 @@ def manage_accounts(request, tenant_id):
         'roles': Account.ROLES,
     }
     return render(request, 'manage_accounts.html', context)
+
+# Activity Logs View
+@superadmin_required
+def all_activity_logs_view(request,):
+    logs = ActivityLog.objects.select_related('actor', 'tenant').all()
+    context = {
+        'add': Account.objects.get(email=request.session['email']),
+        'logs': logs,
+        'log_title': 'All Activities'
+    }
+    return render(request, 'activity_log_list.html', context)
+
+@superadmin_required
+def financial_logs_view(request):
+    logs = ActivityLog.objects.filter(
+        category=ActivityLog.LogCategories.FINANCIAL
+    ).select_related('actor', 'tenant')
+    context = {
+        'add': Account.objects.get(email=request.session['email']),
+        'logs': logs,
+        'log_title': 'Financial & Transaction Logs'
+    }
+    return render(request, 'activity_log_list.html', context)

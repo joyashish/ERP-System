@@ -75,5 +75,9 @@ urlpatterns=[
 
     #--------add_category---------#
     path('add_category', views.add_category, name='add_category'),
+
+    # Activity Logs
+    path('logs/all/', views.all_activity_logs_view, name='all_activity_logs'),
+    path('logs/financial/', views.financial_logs_view, name='financial_logs'),
     
 ]
