@@ -16,6 +16,9 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, login
 from django.db.models import OuterRef, Subquery
 from django.db import IntegrityError
+from django.db.models import Sum, Q
+from decimal import Decimal
+
 
 
 # Permission Decorators
@@ -89,7 +92,7 @@ def Admin_loginVW(request):
             return redirect('/dash')
         messages.error(request, "Invalid Email or Password")
         return redirect('/')
-    return render(request, '/')
+    return render(request, 'Admin_login.html')
 
 # Dashboard View
 @tenant_required
@@ -122,12 +125,23 @@ def ChangePasswordVw(request):
 @tenant_required
 def Party_listVw(request):
     account = Account.objects.filter(email=request.session['email']).first()
+    
     if account.role == 'superadmin':
-        tenant = get_tenant(request)
-        party_list = Create_party.objects.filter(is_active=True) if not tenant else Create_party.objects.filter(tenant=tenant, is_active=True)
+        tenant_id = request.GET.get('tenant_id')
+        tenant = None
+        party_list = Create_party.objects.none() # Default to an empty list
+
+        if tenant_id:
+            try:
+                tenant = Tenant.objects.get(id=tenant_id)
+                party_list = Create_party.objects.filter(tenant=tenant, is_active=True)
+            except Tenant.DoesNotExist:
+                # Handle case where an invalid tenant_id is passed
+                pass 
     else:
+        # This logic for regular users is correct and remains the same
         tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
-        party_list = Create_party.objects.filter(tenant=tenant, is_active=True, user=account)
+        party_list = Create_party.objects.filter(tenant=tenant, is_active=True)
 
     total_balance = party_list.aggregate(total=Sum('opening_balance'))['total'] or 0.00
     total_credit = party_list.aggregate(total=Sum('credit_limit'))['total'] or 0.00
@@ -138,57 +152,65 @@ def Party_listVw(request):
         'total_balance': total_balance,
         'total_credit': total_credit,
         'add': account,
-        'tenant': tenant,
+        'tenant': tenant, # Pass the specific tenant to the template
     }
     return render(request, 'Party_list.html', context)
 
 # Create Party View
 @tenant_required
 def Create_partyVw(request):
-    account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
-    tenants = Tenant.objects.all() if account.role == 'superadmin' else []
+    account = Account.objects.get(email=request.session['email'])
     
     if request.method == "POST":
-        if account.role == 'superadmin' and not tenant:
-            messages.error(request, "Please select a tenant.")
-            return redirect('Create_partyVw')
+        target_tenant = None
+        # Determine the correct tenant to assign the party to
+        if account.role == 'superadmin':
+            tenant_id = request.POST.get('tenant_id')
+            if not tenant_id:
+                messages.error(request, "Superadmin must select a tenant.")
+                return redirect('Create_Party')
+            target_tenant = get_object_or_404(Tenant, id=tenant_id)
+        else:
+            # For regular users, the tenant is set by middleware
+            target_tenant = request.tenant
 
-        party_name = request.POST['pname']
-        mobile_num = request.POST['pnum']
-        email = request.POST['pemail']
-        opening_balance = request.POST['op_bal']
-        gst_no = request.POST['gst_in']
-        pan_no = request.POST['pan_no']
-        party_type = request.POST['p_type']
-        party_category = request.POST['p_type']
-        billing_address = request.POST['billing_address']
-        shipping_address = request.POST['shipping_address']
-        credit_period = request.POST['credit_period']
-        credit_limit = request.POST['credit_limit']
-        
-        if Create_party.objects.filter(party_name=party_name, mobile_num=mobile_num, email=email, tenant=tenant).exists():
-            messages.info(request, f"{party_name} Already Exist...")
+        party_name = request.POST.get('pname')
+        # Check for duplicates within the correct tenant
+        if Create_party.objects.filter(party_name=party_name, tenant=target_tenant).exists():
+            messages.warning(request, f"Party '{party_name}' already exists for this tenant.")
         else:
             Create_party.objects.create(
+                tenant=target_tenant,  # Use the identified target tenant
+                user=account,
                 party_name=party_name,
-                mobile_num=mobile_num,
-                email=email,
-                opening_balance=opening_balance,
-                gst_no=gst_no,
-                pan_no=pan_no,
-                party_type=party_type,
-                party_category=party_category,
-                billing_address=billing_address,
-                shipping_address=shipping_address,
-                credit_period=credit_period,
-                credit_limit=credit_limit,
-                tenant=tenant,
-                user=account
+                mobile_num=request.POST.get('pnum'),
+                email=request.POST.get('pemail'),
+                opening_balance=request.POST.get('op_bal', 0),
+                gst_no=request.POST.get('gst_in'),
+                pan_no=request.POST.get('pan_no'),
+                party_type=request.POST.get('p_type'),
+                party_category=request.POST.get('p_category'), # Corrected from p_type
+                billing_address=request.POST.get('billing_address'),
+                shipping_address=request.POST.get('shipping_address'),
+                credit_period=request.POST.get('credit_period', 0),
+                credit_limit=request.POST.get('credit_limit', 0)
             )
-            messages.info(request, 'Party Added Successfully...')
-            return redirect('/Party_list')
-    return render(request, 'Create_party.html', {'add': account, 'tenant': tenant,'tenants': tenants})
+            messages.success(request, 'Party Added Successfully.')
+        
+        # Redirect based on who is logged in
+        if account.role == 'superadmin':
+             return redirect(f"/Party_list?tenant_id={target_tenant.id}")
+        else:
+             return redirect('Party_list')
+        
+    # For GET request, prepare context
+    context = {'add': account}
+    if account.role == 'superadmin':
+        context['tenants'] = Tenant.objects.all()
+        # Pre-select tenant if coming from a tenant-specific page
+        context['tenant_id_from_url'] = request.GET.get('tenant_id')
+
+    return render(request, 'Create_party.html', context)
 
 # Delete Party View
 @tenant_required
@@ -250,11 +272,19 @@ def Updt_Party_List(request, id):
 @tenant_required
 def item_list_view(request):
     account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    tenant = None
+    products = Product.objects.none()
+    services = Service.objects.none()
 
     if account.role == 'superadmin':
-        products = Product.objects.all() if not tenant else Product.objects.filter(tenant=tenant)
-        services = Service.objects.all() if not tenant else Service.objects.filter(tenant=tenant)
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            try:
+                tenant = Tenant.objects.get(id=tenant_id)
+                products = Product.objects.filter(tenant=tenant)
+                services = Service.objects.filter(tenant=tenant)
+            except Tenant.DoesNotExist:
+                pass
     else:
         tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
         products = Product.objects.filter(tenant=tenant)
@@ -282,33 +312,38 @@ def item_list_view(request):
 # Create Item View
 @tenant_required
 def create_item_view(request):
-    account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
-    tenants = Tenant.objects.all() if account.role == 'superadmin' else []
+    account = get_object_or_404(Account, email=request.session['email'])
     
-    units = Unit.objects.filter(tenant=tenant, is_active=True) if tenant else Unit.objects.all()
-    categories = Category.objects.filter(tenant=tenant, is_active=True) if tenant else Category.objects.all()
-    
+    # --- POST Request: Handle Form Submission ---
     if request.method == "POST":
-        if account.role == 'superadmin' and not tenant:
-            messages.error(request, "Please select a tenant.")
-            return redirect('Create_item')
+        target_tenant = None
+        # Determine the correct tenant for the new item
+        if account.role == 'superadmin':
+            tenant_id = request.POST.get('tenant_id')
+            if not tenant_id:
+                messages.error(request, "As a superadmin, you must select a tenant.")
+                return redirect('Create_item') # Redirect back to the form
+            target_tenant = get_object_or_404(Tenant, id=tenant_id)
+        else:
+            # For regular users, the tenant is assigned from their session by the middleware
+            target_tenant = request.tenant
 
         try:
             item_type = request.POST.get('item_type', '').strip()
             if item_type not in ['product', 'service']:
-                messages.error(request, "Invalid item type")
-                return redirect('Create_item')
+                raise ValidationError("Invalid item type submitted.")
             
             item_name = request.POST.get('item_name', '').strip()
             if not item_name:
-                messages.error(request, "Item name is required")
+                raise ValidationError("Item name is required.")
+            
+            # Check for duplicate item name within the target tenant
+            if Product.objects.filter(item_name=item_name, tenant=target_tenant).exists() or \
+               Service.objects.filter(item_name=item_name, tenant=target_tenant).exists():
+                messages.warning(request, f"An item named '{item_name}' already exists for this tenant.")
                 return redirect('Create_item')
             
-            if Product.objects.filter(item_name=item_name, tenant=tenant).exists() or Service.objects.filter(item_name=item_name, tenant=tenant).exists():
-                messages.warning(request, f"Item '{item_name}' already exists")
-                return redirect('Create_item')
-            
+            # Prepare data common to both Products and Services
             common_data = {
                 'item_name': item_name,
                 'item_type': item_type,
@@ -317,116 +352,130 @@ def create_item_view(request):
                 'gst_rate': request.POST.get('gst', '') or request.POST.get('gst_service', ''),
                 'hsn_sac_code': request.POST.get('hsn', '') or request.POST.get('hsn_service', ''),
                 'sale_price': request.POST.get('sale_price', '') or request.POST.get('sale_price_service', ''),
-                'tenant': tenant,
+                'tenant': target_tenant, # Assign the correct tenant
             }
             
+            # Handle image upload
             if 'product_image' in request.FILES:
                 common_data['image'] = request.FILES['product_image']
             elif 'service_image' in request.FILES:
                 common_data['image'] = request.FILES['service_image']
             
+            # Create either a Product or a Service
             if item_type == 'product':
                 product_data = {
                     **common_data,
-                    'unit_id': request.POST.get('unit', '') or None,
-                    'purchase_price': request.POST.get('purchase_price', '') or 0,
+                    'unit_id': request.POST.get('unit') or None,
+                    'purchase_price': request.POST.get('purchase_price', 0) or 0,
                     'opening_stock': request.POST.get('opening_stock', 0) or 0,
-                    'stock_date': request.POST.get('stock_date', '') or None,
-                    'expiry_date': request.POST.get('expiry_date', '') or None,
-                    'batch_number': request.POST.get('batch_number', '') or None,
+                    'stock_date': request.POST.get('stock_date') or None,
+                    'expiry_date': request.POST.get('expiry_date') or None,
+                    'batch_number': request.POST.get('batch_number') or None,
                 }
-                if not product_data['purchase_price']:
-                    product_data['purchase_price'] = 0
-                elif not str(product_data['purchase_price']).replace('.', '', 1).isdigit():
-                    raise ValidationError({'purchase_price': 'Purchase price must be a valid number'})
-                
                 product = Product(**product_data)
                 product.full_clean()
                 product.save()
                 messages.success(request, "Product created successfully!")
-            else:
+            else: # item_type == 'service'
                 service_data = {
                     **common_data,
-                    'service_unit': request.POST.get('ltype', '') or None,
+                    'service_unit': request.POST.get('ltype') or None,
                 }
-                if not service_data['sale_price']:
-                    raise ValidationError({'sale_price_service': 'Service price is required'})
-                elif not str(service_data['sale_price']).replace('.', '', 1).isdigit():
-                    raise ValidationError({'sale_price_service': 'Service price must be a valid number'})
-                
                 service = Service(**service_data)
                 service.full_clean()
                 service.save()
                 messages.success(request, "Service created successfully!")
             
-            return redirect('Item_list')
+            # Redirect appropriately
+            if account.role == 'superadmin':
+                return redirect(f"/Item_list?tenant_id={target_tenant.id}")
+            else:
+                return redirect('Item_list')
         
         except ValidationError as e:
-            if hasattr(e, 'error_dict'):
-                for field, errors in e.error_dict.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
-            else:
-                for error in e.messages:
-                    messages.error(request, error)
+            # Handle validation errors gracefully
+            error_messages = e.message_dict if hasattr(e, 'message_dict') else {'__all__': e.messages}
+            for field, errors in error_messages.items():
+                for error in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {error}")
         except Exception as e:
-            messages.error(request, f"Error creating item: {str(e)}")
+            messages.error(request, f"An unexpected error occurred: {str(e)}")
         
         return redirect('Create_item')
-    
-    context = {
-        'add': account,
-        'unit': units,
-        'category': categories,
-        'tenant': tenant,'tenants': tenants,
-    }
+
+    # --- GET Request: Display the Form ---
+    context = {'add': account}
+    if account.role == 'superadmin':
+        context['tenants'] = Tenant.objects.all().order_by('name')
+        # Pre-select tenant if coming from a tenant-specific page
+        context['tenant_id_from_url'] = request.GET.get('tenant_id')
+        # For superadmin, load all units/categories. A better approach for many tenants
+        # would be to use JavaScript to load these dynamically based on tenant selection.
+        context['unit'] = Unit.objects.all()
+        context['category'] = Category.objects.all()
+    else:
+        # For regular users, only load data for their tenant
+        tenant = request.tenant
+        context['tenant'] = tenant
+        context['unit'] = Unit.objects.filter(tenant=tenant, is_active=True)
+        context['category'] = Category.objects.filter(tenant=tenant, is_active=True)
+
     return render(request, 'Create_item.html', context)
 
 # Create Sale View
-@tenant_required
-def Create_saleVw(request):
-    account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
-    tenants = Tenant.objects.all() if account.role == 'superadmin' else []
+# @tenant_required
+# def Create_saleVw(request):
+#     account = Account.objects.filter(email=request.session['email']).first()
+#     tenant = get_tenant(request) if not account.role == 'superadmin' else None
+#     tenants = Tenant.objects.all() if account.role == 'superadmin' else []
     
-    context = {
-        'items': ItemBase.objects.filter(tenant=tenant, is_active=True).order_by('item_name') if tenant else ItemBase.objects.filter(is_active=True).order_by('item_name'),
-        'parties': Create_party.objects.filter(tenant=tenant, is_active=True).order_by('party_name') if tenant else Create_party.objects.filter(is_active=True).order_by('party_name'),
-        'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}",
-        'add': account,
-        'tenant': tenant,
-        'tenants': tenants,
-    }
-    return render(request, 'Create_Sale.html', context)
+#     context = {
+#         'items': ItemBase.objects.filter(tenant=tenant, is_active=True).order_by('item_name') if tenant else ItemBase.objects.filter(is_active=True).order_by('item_name'),
+#         'parties': Create_party.objects.filter(tenant=tenant, is_active=True).order_by('party_name') if tenant else Create_party.objects.filter(is_active=True).order_by('party_name'),
+#         'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}",
+#         'add': account,
+#         'tenant': tenant,
+#         'tenants': tenants,
+#     }
+#     return render(request, 'Create_Sale.html', context)
 
 # Create Sale View (Detailed)
 @tenant_required
 def create_sale_view(request):
     account = get_object_or_404(Account, email=request.session['email'])
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
-    tenants = Tenant.objects.all() if account.role == 'superadmin' else []
-    
+
+    # --- POST Request: Handle Form Submission ---
     if request.method == "POST":
-        if account.role == 'superadmin' and not tenant:
-            messages.error(request, "Please select a tenant.")
-            return redirect('Create_Sale')
-            
+        # Check if the request is an AJAX request (used for "Save & Print")
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        
         try:
             with transaction.atomic():
+                target_tenant = None
+                # Determine the correct tenant for the new sale
+                if account.role == 'superadmin':
+                    tenant_id = request.POST.get('tenant_id')
+                    if not tenant_id:
+                        raise ValidationError("As a superadmin, you must select a tenant.")
+                    target_tenant = get_object_or_404(Tenant, id=tenant_id)
+                else:
+                    target_tenant = request.tenant
+
                 post_data = request.POST
-                party = get_object_or_404(Create_party, id=post_data.get('party_id'), tenant=tenant) if tenant else get_object_or_404(Create_party, id=post_data.get('party_id'))
+                party = get_object_or_404(Create_party, id=post_data.get('party_id'), tenant=target_tenant)
                 
                 invoice_date_str = post_data.get('invoice_date')
-                due_date_str = post_data.get('due_date')
                 if not invoice_date_str:
                     raise ValidationError("Invoice Date is required.")
                 
                 invoice_date_obj = datetime.strptime(invoice_date_str, '%Y-%m-%d').date()
+                due_date_str = post_data.get('due_date')
                 due_date_obj = datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else None
                 
                 items_data = []
                 total_item_subtotal = 0
                 total_tax = 0
+                # Find all unique item indices from the form data
                 item_indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(post_data.keys())))))
                 
                 for index in item_indices:
@@ -434,7 +483,9 @@ def create_sale_view(request):
                     quantity = int(post_data.get(f'items[{index}][quantity]', 0))
                     if not item_id or quantity <= 0:
                         continue
-                    item = get_object_or_404(ItemBase, id=item_id, tenant=tenant) if tenant else get_object_or_404(ItemBase, id=item_id)
+                    
+                    item = get_object_or_404(ItemBase, id=item_id, tenant=target_tenant)
+                    
                     unit_price = float(item.sale_price)
                     item_discount = float(post_data.get(f'items[{index}][discount]', 0))
                     item_subtotal = quantity * unit_price
@@ -443,19 +494,22 @@ def create_sale_view(request):
                     tax_amount_item = taxable_amount_item * (gst_rate / 100)
                     total_item_subtotal += item_subtotal
                     total_tax += tax_amount_item
+                    
+                    # Stock deduction for products
                     if item.item_type == 'product':
-                        product = Product.objects.select_for_update().get(id=item.id, tenant=tenant) if tenant else Product.objects.select_for_update().get(id=item.id)
+                        product = Product.objects.select_for_update().get(id=item.id, tenant=target_tenant)
                         if product.opening_stock < quantity:
-                            raise ValidationError(f"Insufficient stock for {item.item_name}.")
+                            raise ValidationError(f"Insufficient stock for {item.item_name}. Available: {product.opening_stock}")
                         product.opening_stock -= quantity
                         product.save()
+                    
                     items_data.append({
                         'item_instance': item, 'quantity': quantity, 'discount': item_discount,
                         'tax_amount': tax_amount_item, 'amount': taxable_amount_item + tax_amount_item
                     })
                 
                 if not items_data:
-                    raise ValidationError("At least one valid item must be added.")
+                    raise ValidationError("At least one valid item must be added to the sale.")
                 
                 discount_overall = float(post_data.get('discount', 0))
                 additional_charges = float(post_data.get('additional_charges', 0))
@@ -464,6 +518,8 @@ def create_sale_view(request):
                 amount_received = float(post_data.get('amount_received', 0))
                 
                 sale = Sale.objects.create(
+                    tenant=target_tenant,
+                    user=account,
                     invoice_no=post_data.get('invoice_no'),
                     party=party,
                     invoice_date=invoice_date_obj,
@@ -478,74 +534,137 @@ def create_sale_view(request):
                     balance_amount=total_amount - amount_received,
                     notes=post_data.get('notes', ''),
                     terms_conditions=post_data.get('terms_conditions', ''),
-                    user=account,
-                    tenant=tenant
                 )
                 
+                sale_items_for_json = []
                 for data in items_data:
-                    SaleItem.objects.create(sale=sale, item=data['item_instance'], **{k: v for k, v in data.items() if k != 'item_instance'})
-                
-                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                    return JsonResponse({
-                        'status': 'success',
-                        'message': 'Sale created successfully!',
-                        'sale_data': {
-                            'invoice_no': sale.invoice_no,
-                            'invoice_date': sale.invoice_date.strftime('%d-%m-%Y'),
-                            'due_date': sale.due_date.strftime('%d-%m-%Y') if sale.due_date else 'N/A',
-                            'party_name': party.party_name,
-                            'party_address': party.billing_address,
-                            'party_gst': party.gst_no,
-                            'subtotal': f'₹ {sale.subtotal:.2f}',
-                            'discount': f'(-) {sale.discount:.2f}',
-                            'charges_note': sale.additional_charges_note or 'Charges',
-                            'additional_charges': f'(+) {sale.additional_charges:.2f}',
-                            'total_amount_str': f'₹ {sale.total_amount:.2f}',
-                            'total_amount_val': sale.total_amount,
-                            'amount_received': f'₹ {sale.amount_received:.2f}',
-                            'balance_amount': f'₹ {sale.balance_amount:.2f}',
-                            'notes': sale.notes,
-                            'terms': sale.terms_conditions,
-                            'items': [{
-                                'name': item.item.item_name, 'qty': item.quantity, 'rate': f'{item.item.sale_price:.2f}',
-                                'tax_rate': f'{float(re.sub(r"[^0-9.]", "", item.item.gst_rate or "0")):.0f}%',
-                                'amount': f'{item.amount:.2f}'
-                            } for item in sale.items.all()],
-                        }
+                    sale_item = SaleItem.objects.create(sale=sale, item=data['item_instance'], **{k: v for k, v in data.items() if k != 'item_instance'})
+                    sale_items_for_json.append({
+                        'name': sale_item.item.item_name,
+                        'qty': sale_item.quantity,
+                        'rate': f'{sale_item.item.sale_price:.2f}',
+                        'tax_rate': f'{float(re.sub(r"[^0-9.]", "", sale_item.item.gst_rate or "0")):.0f}%',
+                        'amount': f'{sale_item.amount:.2f}'
                     })
-                else:
-                    messages.success(request, "Sale created successfully!")
-                    return redirect('Create_Sale')
-        
+
+            # --- SUCCESS RESPONSE ---
+            if is_ajax:
+                # Build the data payload for the successful AJAX response
+                sale_data = {
+                    'invoice_no': sale.invoice_no,
+                    'invoice_date': sale.invoice_date.strftime('%d-%m-%Y'),
+                    'due_date': sale.due_date.strftime('%d-%m-%Y') if sale.due_date else 'N/A',
+                    'party_name': party.party_name,
+                    'party_address': party.billing_address,
+                    'party_gst': party.gst_no,
+                    'subtotal': f'₹ {sale.subtotal:.2f}',
+                    'discount': f'(-) {sale.discount:.2f}',
+                    'charges_note': sale.additional_charges_note or 'Charges',
+                    'additional_charges': f'(+) {sale.additional_charges:.2f}',
+                    'total_amount_str': f'₹ {sale.total_amount:.2f}',
+                    'total_amount_val': sale.total_amount,
+                    'amount_received': f'₹ {sale.amount_received:.2f}',
+                    'balance_amount': f'₹ {sale.balance_amount:.2f}',
+                    'notes': sale.notes,
+                    'terms': sale.terms_conditions,
+                    'items': sale_items_for_json,
+                    # Add taxable_amount and total_tax for print summary
+                    'taxable_amount': f'₹ {taxable_amount_total:.2f}',
+                    'total_tax': f'₹ {total_tax:.2f}',
+                }
+                return JsonResponse({'status': 'success', 'sale_data': sale_data})
+            
+            messages.success(request, "Sale created successfully!")
+            if account.role == 'superadmin':
+                return redirect(f"/sales_list?tenant_id={target_tenant.id}")
+            else:
+                return redirect('sales_list')
+
         except (ValidationError, Exception) as e:
-            error_message = str(e.message if hasattr(e, 'message') else e)
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            # --- THIS IS THE CORRECTED ERROR HANDLING BLOCK ---
+            # Extract the main error message, however it's formatted
+            error_message = getattr(e, 'message', str(e))
+            if hasattr(e, 'message_dict'):
+                 error_message = next(iter(e.message_dict.values()))[0]
+
+            if is_ajax:
+                # For AJAX requests, ALWAYS return a JSON response, even for errors.
                 return JsonResponse({'status': 'error', 'message': error_message}, status=400)
             else:
+                # For regular form submissions, use Django messages and redirect.
                 messages.error(request, error_message)
                 return redirect('Create_Sale')
+
+    # --- GET Request: Display the Form (no changes needed here) ---
+    context = {'add': account}
+    if account.role == 'superadmin':
+        context['tenants'] = Tenant.objects.all().order_by('name')
+        context['tenant_id_from_url'] = request.GET.get('tenant_id')
+        context['items'] = ItemBase.objects.filter(is_active=True).order_by('item_name')
+        context['parties'] = Create_party.objects.filter(is_active=True).order_by('party_name')
+    else:
+        tenant = request.tenant
+        context['tenant'] = tenant
+        context['items'] = ItemBase.objects.filter(tenant=tenant, is_active=True).order_by('item_name')
+        context['parties'] = Create_party.objects.filter(tenant=tenant, is_active=True).order_by('party_name')
     
-    context = {
-        'items': ItemBase.objects.filter(tenant=tenant, is_active=True).order_by('item_name') if tenant else ItemBase.objects.filter(is_active=True).order_by('item_name'),
-        'parties': Create_party.objects.filter(tenant=tenant, is_active=True).order_by('party_name') if tenant else Create_party.objects.filter(is_active=True).order_by('party_name'),
-        'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}",
-        'add': account,
-        'tenant': tenant,'tenants': tenants,
-    }
+    context['invoice_no'] = f"INV-{uuid.uuid4().hex[:8].upper()}"
     return render(request, 'create_sale.html', context)
+
 
 # Sales List View
 @tenant_required
 def sales_list(request):
-    account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
-    
+    account = get_object_or_404(Account, email=request.session['email'])
+    tenant = None
+    sales = Sale.objects.none()
+    filter_parties = Create_party.objects.none()
+
+    # 1. Determine the base queryset
     if account.role == 'superadmin':
-        sales = Sale.objects.select_related('party').all().order_by('-invoice_date') if not tenant else Sale.objects.filter(tenant=tenant).select_related('party').order_by('-invoice_date')
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            try:
+                tenant = Tenant.objects.get(id=tenant_id)
+                sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-invoice_date')
+                filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True)
+            except Tenant.DoesNotExist:
+                pass
     else:
-        tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
-        sales = Sale.objects.filter(tenant=tenant).select_related('party').all().order_by('-invoice_date')
-    
+        tenant = request.tenant
+        sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-invoice_date')
+        filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True)
+
+    # 2. Get filter parameters
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    party_id = request.GET.get('party')
+    status = request.GET.get('status')
+
+    # 3. Apply filters
+    if start_date:
+        sales = sales.filter(invoice_date__gte=start_date)
+    if end_date:
+        sales = sales.filter(invoice_date__lte=end_date)
+    if party_id:
+        sales = sales.filter(party__id=party_id)
+    if status:
+        today = timezone.now().date()
+        if status == 'PAID':
+            sales = sales.filter(balance_amount__lte=0)
+        
+        # --- THIS IS THE CORRECTED LOGIC ---
+        elif status == 'UNPAID':
+            sales = sales.filter(
+                Q(balance_amount__gt=0) & 
+                (Q(due_date__gte=today) | Q(due_date__isnull=True))
+            )
+        # ------------------------------------
+
+        elif status == 'OVERDUE':
+            sales = sales.filter(balance_amount__gt=0, due_date__lt=today)
+            
+    # Calculate totals AFTER filtering
     totals = sales.aggregate(
         total_sales=Sum('total_amount'),
         total_received=Sum('amount_received'),
@@ -559,8 +678,152 @@ def sales_list(request):
         'unpaid_amount': totals['total_balance'] or 0,
         'add': account,
         'tenant': tenant,
+        'filter_parties': filter_parties,
+        'current_filters': {
+            'start_date': start_date,
+            'end_date': end_date,
+            'party': party_id,
+            'status': status,
+        }
     }
     return render(request, 'sales_list.html', context)
+
+# --- VIEW to Get tenant data for sale ---
+def get_tenant_data_for_sale_form(request, tenant_id):
+    # Ensure only authenticated superadmins can access this
+    account = Account.objects.filter(email=request.session.get('email')).first()
+    if not account or account.role != 'superadmin':
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    # Fetch parties and items for the requested tenant
+    parties = Create_party.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'party_name')
+    items = ItemBase.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'item_name', 'sale_price', 'gst_rate')
+
+    data = {
+        'parties': list(parties),
+        'items': list(items),
+    }
+    return JsonResponse(data)
+# Sale Detail View
+@tenant_required
+def sale_detail_view(request, sale_id):
+    account = get_object_or_404(Account, email=request.session['email'])
+    sale = get_object_or_404(Sale.objects.prefetch_related('items', 'items__item', 'payments'), id=sale_id)
+
+    # Security check: Ensure the user has permission to view this sale
+    if account.role != 'superadmin' and sale.tenant != request.tenant:
+        messages.error(request, "You are not authorized to view this sale.")
+        return redirect('sales_list')
+
+    context = {
+        'add': account,
+        'sale': sale,
+        'tenant': sale.tenant,
+    }
+    return render(request, 'sale_detail.html', context)
+
+# Reacord Payment
+@tenant_required
+def record_payment(request, sale_id):
+    sale = get_object_or_404(Sale, id=sale_id)
+    account = get_object_or_404(Account, email=request.session['email'])
+
+    # Security check
+    if account.role != 'superadmin' and sale.tenant != request.tenant:
+        messages.error(request, "You are not authorized to modify this sale.")
+        return redirect('sales_list')
+
+    if request.method == 'POST':
+        try:
+            amount_str = request.POST.get('amount')
+            if not amount_str:
+                raise ValueError("Amount is required.")
+                
+            amount = Decimal(amount_str)
+            
+            if amount <= 0:
+                raise ValueError("Payment amount must be positive.")
+            if amount > sale.balance_amount:
+                raise ValueError("Payment cannot be greater than the balance due.")
+
+            # Use a database transaction to ensure data integrity
+            with transaction.atomic():
+                # 1. Update the Sale object
+                sale.amount_received += amount
+                sale.balance_amount -= amount
+                sale.save()
+
+                # 2. Create the Payment record
+                Payment.objects.create(
+                    sale=sale,
+                    payment_date=request.POST.get('payment_date'),
+                    amount=amount,
+                    payment_mode=request.POST.get('payment_mode'),
+                    notes=request.POST.get('notes', ''),
+                    user=account
+                )
+            
+            messages.success(request, f"Payment of ₹{amount} recorded successfully.")
+
+        except (ValueError, Exception) as e:
+            messages.error(request, f"Error recording payment: {e}")
+
+    return redirect('sale_detail', sale_id=sale.id)
+
+# Delete Sales View
+from django.urls import reverse
+
+@tenant_required
+def delete_sale(request, sale_id):
+    account = get_object_or_404(Account, email=request.session['email'])
+    sale_to_delete = get_object_or_404(Sale, id=sale_id)
+    
+    # Store the tenant ID before deleting the sale
+    tenant_id = sale_to_delete.tenant.id
+
+    if account.role != 'superadmin' and sale_to_delete.tenant != request.tenant:
+        messages.error(request, "You are not authorized to delete this sale.")
+        return redirect('sales_list')
+
+    try:
+        with transaction.atomic():
+            for item in sale_to_delete.items.all():
+                if item.item and item.item.item_type == 'product':
+                    product = get_object_or_404(Product, id=item.item.id)
+                    product.opening_stock += item.quantity
+                    product.save()
+            
+            invoice_no = sale_to_delete.invoice_no
+            sale_to_delete.delete()
+            messages.success(request, f"Invoice {invoice_no} has been deleted successfully.")
+    
+    except Exception as e:
+        messages.error(request, f"An error occurred while deleting the sale: {e}")
+
+    # Redirect correctly based on the user's role
+    if account.role == 'superadmin':
+        # For superadmin, redirect back to the specific tenant's sales list
+        redirect_url = f"{reverse('sales_list')}?tenant_id={tenant_id}"
+        return redirect(redirect_url)
+    else:
+        # For regular users, redirect to their own sales list
+        return redirect('sales_list')
+
+# Sale Invoice Pdf
+@tenant_required
+def sale_invoice_pdf(request, sale_id):
+    account = get_object_or_404(Account, email=request.session['email'])
+    sale = get_object_or_404(Sale, id=sale_id)
+
+    # Security check
+    if account.role != 'superadmin' and sale.tenant != request.tenant:
+        messages.error(request, "You are not authorized to view this invoice.")
+        return redirect('sales_list')
+
+    context = {
+        'sale': sale,
+    }
+    return render(request, 'sale_invoice_pdf.html', context)
 
 # Edit Sale View
 @never_cache
@@ -678,8 +941,10 @@ def superadmin_dashboard(request):
     # Use prefetch_related to efficiently load all accounts for each tenant.
     # This avoids N+1 queries when accessing tenant.accounts in the template/modal.
     tenants = Tenant.objects.prefetch_related('accounts').annotate(
+        admin_name=Subquery(first_account.values('full_name')[:1]),
         admin_email=Subquery(first_account.values('email')[:1]),
-        admin_role=Subquery(first_account.values('role')[:1])
+        admin_phone=Subquery(first_account.values('phone')[:1]),
+        admin_role=Subquery(first_account.values('role')[:1]),
     ).order_by('-created_at')
     
     account = Account.objects.filter(email=request.session.get('email')).first()
@@ -689,6 +954,9 @@ def superadmin_dashboard(request):
     total_sales = Sale.objects.count()
     total_revenue = Sale.objects.aggregate(total=Sum('total_amount'))['total'] or 0.00
 
+     # Add this query to fetch the 10 most recent activity logs
+    activity_logs = ActivityLog.objects.select_related('actor', 'tenant').order_by('-timestamp')[:10]
+
     context = {
         'add': account,
         'tenants': tenants,
@@ -697,6 +965,7 @@ def superadmin_dashboard(request):
         'total_items': total_items,
         'total_sales': total_sales,
         'total_revenue': total_revenue,
+        'activity_logs': activity_logs,
     }
     return render(request, 'superadmin_dashboard.html', context)
 

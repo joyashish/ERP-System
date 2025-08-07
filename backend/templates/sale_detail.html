@@ -1,0 +1,202 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Sale Details</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'sales_list' %}">Sales List</a></li>
+                        <li class="breadcrumb-item active">{{ sale.invoice_no }}</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                {% if messages %}
+                <div class="row">
+                    <div class="col-md-12">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show msg_sec" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                                    aria-hidden="true">&times;</span></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between">
+                            <h3 class="card-title">Invoice #{{ sale.invoice_no }}</h3>
+                            <div>
+                                {% if sale.balance_amount > 0 %}
+                                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#paymentModal">
+                                    <i class="fas fa-plus-circle"></i> Record Payment
+                                </button>
+                                {% endif %}
+                            
+                                <a href="{% url 'sale_invoice_pdf' sale.id %}" target="_blank" class="btn btn-sm btn-secondary"><i
+                                        class="fas fa-print"></i> Print</a>
+                                <a href="{% url 'edit_sale' sale.id %}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i> Edit</a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row invoice-info">
+                                <div class="col-sm-4 invoice-col">
+                                    <strong>From:</strong>
+                                    <address>
+                                        <strong>{{ sale.tenant.name }}</strong><br>
+                                        {{ sale.tenant.address|linebreaksbr }}
+                                    </address>
+                                </div>
+                                <div class="col-sm-4 invoice-col">
+                                    <strong>To:</strong>
+                                    <address>
+                                        <strong>{{ sale.party.party_name }}</strong><br>
+                                        {{ sale.party.billing_address|linebreaksbr }}<br>
+                                        Phone: {{ sale.party.mobile_num }}<br>
+                                        Email: {{ sale.party.email }}
+                                    </address>
+                                </div>
+                                <div class="col-sm-4 invoice-col">
+                                    <b>Invoice Date:</b> {{ sale.invoice_date|date:"d M, Y" }}<br>
+                                    <b>Due Date:</b> {{ sale.due_date|date:"d M, Y"|default:"N/A" }}<br>
+                                    <b>Status:</b> 
+                                    {% if sale.status == "PAID" %}
+                                        <span class="badge badge-success">Paid</span>
+                                    {% elif sale.status == "OVERDUE" %}
+                                        <span class="badge badge-danger">Overdue</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Unpaid</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-12 table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Item</th>
+                                                <th>Qty</th>
+                                                <th>Price</th>
+                                                <th>Discount</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in sale.items.all %}
+                                            <tr>
+                                                <td>{{ forloop.counter }}</td>
+                                                <td>{{ item.item.item_name }}</td>
+                                                <td>{{ item.quantity }}</td>
+                                                <td>₹{{ item.item.sale_price|floatformat:2 }}</td>
+                                                <td>₹{{ item.discount|floatformat:2 }}</td>
+                                                <td>₹{{ item.amount|floatformat:2 }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <hr>
+                             <div class="row">
+                                <div class="col-md-6">
+                                    <h4>Payment History</h4>
+                                    <table class="table table-sm">
+                                        <thead><tr><th>Date</th><th>Amount</th><th>Mode</th></tr></thead>
+                                        <tbody>
+                                            {% for payment in sale.payments.all %}
+                                            <tr>
+                                                <td>{{ payment.payment_date|date:"d M, Y" }}</td>
+                                                <td>₹{{ payment.amount|floatformat:2 }}</td>
+                                                <td>{{ payment.get_payment_mode_display }}</td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr><td colspan="3" class="text-muted">No payments recorded yet.</td></tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <tr><th style="width:50%">Subtotal:</th><td>₹{{ sale.subtotal|floatformat:2 }}</td></tr>
+                                            <tr><th>Discount:</th><td>(-) ₹{{ sale.discount|floatformat:2 }}</td></tr>
+                                            <tr><th>Total Tax:</th><td>(+) ₹{{ sale.total_tax|floatformat:2 }}</td></tr>
+                                            <tr><th>Additional Charges:</th><td>(+) ₹{{ sale.additional_charges|floatformat:2 }}</td></tr>
+                                            <tr><th>Total:</th><td><strong>₹{{ sale.total_amount|floatformat:2 }}</strong></td></tr>
+                                            <tr><th>Amount Paid:</th><td>₹{{ sale.amount_received|floatformat:2 }}</td></tr>
+                                            <tr><th>Balance Due:</th><td><strong>₹{{ sale.balance_amount|floatformat:2 }}</strong></td></tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+<div class="modal fade" id="paymentModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">Record Payment for Invoice #{{ sale.invoice_no }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{% url 'record_payment' sale.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="amount">Amount Received</label>
+                        <input type="number" name="amount" class="form-control" max="{{ sale.balance_amount }}" step="0.01" placeholder="Enter amount" required>
+                        <small class="form-text text-muted">Balance Due: ₹{{ sale.balance_amount|floatformat:2 }}</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment_date">Payment Date</label>
+                        <input type="date" name="payment_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment_mode">Payment Mode</label>
+                        <select name="payment_mode" class="form-control">
+                            <option value="CASH">Cash</option>
+                            <option value="BANK">Bank Transfer</option>
+                            <option value="UPI">UPI</option>
+                            <option value="CARD">Card</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes (Optional)</label>
+                        <input type="text" name="notes" class="form-control" placeholder="e.g., Transaction ID, check number">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

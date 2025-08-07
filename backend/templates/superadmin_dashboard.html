@@ -5,100 +5,10 @@
 
 
 <style>
-    /*
-     =============================================
-     DESKTOP STYLES (993px and up)
-     =============================================
-    */
-
-    /* The default Bootstrap table styles work perfectly for desktops. No custom CSS is needed. */
-
-
-    /*
-     =============================================
-     TABLET STYLES (max-width: 992px)
-     =============================================
-    */
-    @media (max-width: 992px) {
-
-        /* Reduce font size to fit more content on tablets */
-        #tenantTable {
-            font-size: 0.9rem;
-        }
-
-        /* Make action buttons slightly smaller */
-        #tenantTable .btn-xs {
-            padding: 0.1rem 0.4rem;
-            font-size: 0.8rem;
-        }
-
-        /* Adjust column width for actions to prevent wrapping */
-        #tenantTable th:last-child,
-        #tenantTable td:last-child {
-            width: 240px !important;
-        }
-    }
-
-
-    /*
-     =============================================
-     MOBILE STYLES (max-width: 768px)
-     =============================================
-    */
-    @media (max-width: 768px) {
-
-        /* Hide the original table header */
-        #tenantTable thead {
-            display: none;
-        }
-
-        /* Change table elements to block display for a vertical layout */
-        #tenantTable,
-        #tenantTable tbody,
-        #tenantTable tr,
-        #tenantTable td {
-            display: block;
-            width: 100%;
-        }
-
-        /* Style each table row to look like a card */
-        #tenantTable tr {
-            margin-bottom: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Remove borders and position cells for the label layout */
-        #tenantTable td {
-            text-align: right;
-            /* Align cell content to the right */
-            padding-left: 50%;
-            /* Create space on the left for the label */
-            position: relative;
-            border: none;
-            border-bottom: 1px solid #eee;
-        }
-
-        /* Remove the bottom border from the last cell in each "card" */
-        #tenantTable tr td:last-child {
-            border-bottom: none;
-        }
-
-        /* Use the ::before pseudo-element to display the data labels from the `data-label` attribute */
-        #tenantTable td::before {
-            content: attr(data-label);
-            /* The magic happens here */
-            position: absolute;
-            left: 10px;
-            width: 45%;
-            padding-right: 10px;
-            font-weight: bold;
-            text-align: left;
-            white-space: nowrap;
-        }
-    }
-    
+     /* Keeps table content on a single 3dot menu, perfect for action buttons */
+    #tenantTable td:last-child {
+    white-space: nowrap;
+}
 </style>
 <div class="content-wrapper">
     <div class="content-header">
@@ -124,7 +34,7 @@
             <div class="row">
                 <div class="col-12">
                     {% for message in messages %}
-                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show msg_sec"
                         role="alert">
                         {{ message }}
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -138,7 +48,7 @@
 
             <div class="row">
                 <div class="col-lg-2 col-6">
-                    <div class="small-box bg-info">
+                    <div class="small-box bg-primary">
                         <div class="inner">
                             <h3>{{ tenants.count }}</h3>
                             <p>Total Tenants</p>
@@ -147,7 +57,7 @@
                     </div>
                 </div>
                 <div class="col-lg-2 col-6">
-                    <div class="small-box bg-success">
+                    <div class="small-box bg-primary">
                         <div class="inner">
                             <h3>{{ total_accounts }}</h3>
                             <p>Total Accounts</p>
@@ -156,7 +66,7 @@
                     </div>
                 </div>
                 <div class="col-lg-2 col-6">
-                    <div class="small-box bg-warning">
+                    <div class="small-box bg-primary">
                         <div class="inner">
                             <h3>{{ total_parties }}</h3>
                             <p>Total Parties</p>
@@ -165,7 +75,7 @@
                     </div>
                 </div>
                 <div class="col-lg-2 col-6">
-                    <div class="small-box bg-danger">
+                    <div class="small-box bg-primary">
                         <div class="inner">
                             <h3>{{ total_items }}</h3>
                             <p>Total Items</p>
@@ -183,7 +93,7 @@
                     </div>
                 </div>
                 <div class="col-lg-2 col-6">
-                    <div class="small-box bg-secondary">
+                    <div class="small-box bg-primary">
                         <div class="inner">
                             <h3><i class="fas fa-rupee-sign"></i>&nbsp;{{ total_revenue|floatformat:2 }}</h3>
                             <p>Total Revenue</p>
@@ -199,69 +109,122 @@
                             <h3 class="card-title">Manage Tenants</h3>
                         </div>
                         <div class="card-body p-0">
-                            <table id="tenantTable" class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Company / Subdomain</th>
-                                        <th>Primary Admin</th>
-                                        <th>Contact Email</th>
-                                        <th class="text-center">Users</th>
-                                        <th class="text-center">Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for tenant in tenants %}
-                                    <tr>
-                                        <td data-label="Company">
-                                            <strong>{{ tenant.name }}</strong><br>
-                                            <small class="text-muted">{{ tenant.subdomain }}.yourdomain.com</small>
-                                        </td>
-                
-                                        <td data-label="Role">{{ tenant.admin_role|default:"N/A"|capfirst }}</td>
-                
-                                        <td data-label="Contact">{{ tenant.admin_email|default:"N/A" }}</td>
-                
-                                        <td data-label="Users" class="text-center">{{ tenant.accounts.count }}</td>
-                
-                                        <td data-label="Status" class="text-center">
-                                            {% if tenant.is_active %}
-                                            <span class="badge badge-success">Active</span>
-                                            {% else %}
-                                            <span class="badge badge-secondary">Inactive</span>
+                            <div class="table-responsive">
+                                <table id="tenantTable" class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Company / Subdomain</th>
+                                            <th>Primary Admin</th>
+                                            <th>Contact / Email</th>
+                                            <th class="text-center">Users</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="actions-column">Actions</th> 
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for tenant in tenants %}
+                                        <tr>
+                                            <td data-label="Company">
+                                                <strong>{{ tenant.name }}</strong><br>
+                                                <small class="text-muted">{{ tenant.subdomain }}.yourdomain.com</small>
+                                            </td>
+                            
+                                            <td data-label="Role">
+                                                <strong>{{ tenant.admin_name|default:"N/A" }}</strong><br>
+                                                ({{ tenant.admin_role|default:"N/A"|capfirst }})
+                                            </td>
+                            
+                                            <td data-label="Contact">
+                                                <strong>{{ tenant.admin_phone|default_if_none:'' }}</strong><br>
+                                                {{ tenant.admin_email|default:"N/A" }}
+                                            </td>
+                            
+                                            <td data-label="Users" class="text-center">{{ tenant.accounts.count }}</td>
+                            
+                                            <td data-label="Status" class="text-center">
+                                                {% if tenant.is_active %}
+                                                <span class="badge badge-success">Active</span>
+                                                {% else %}
+                                                <span class="badge badge-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                            
+                                            <td data-label="Actions">
+                                            
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-toggle="dropdown"
+                                                        aria-haspopup="true" aria-expanded="false">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-right">
+                                                        <a class="dropdown-item" href="{% url 'edit_tenant' tenant.id %}">
+                                                            <i class="fas fa-edit mr-2"></i>Edit Tenant
+                                                        </a>
+                                                        <button class="dropdown-item" type="button" data-toggle="modal" data-target="#accountsModal"
+                                                            data-tenant-id="{{ tenant.id }}" data-tenant-name="{{ tenant.name }}">
+                                                            <i class="fas fa-users-cog mr-2"></i>Manage Accounts
+                                                        </button>
+                                                        <div class="dropdown-divider"></div>
+                                                        <a class="dropdown-item" href="{% url 'Party_list' %}?tenant_id={{ tenant.id }}">
+                                                            <i class="fas fa-user-friends mr-2"></i>View Parties
+                                                        </a>
+                                                        <a class="dropdown-item" href="{% url 'Item_list' %}?tenant_id={{ tenant.id }}">
+                                                            <i class="fas fa-box-open mr-2"></i>View Items
+                                                        </a>
+                                                        <a class="dropdown-item" href="{% url 'sales_list' %}?tenant_id={{ tenant.id }}">
+                                                            <i class="fas fa-chart-line mr-2"></i>View Sales
+                                                        </a>
+                                                        <div class="dropdown-divider"></div>
+                                                        <a class="dropdown-item text-danger" href="{% url 'delete_tenant' tenant.id %}"
+                                                            onclick="return confirm('Are you sure you want to delete this tenant and all its data? This action cannot be undone.');">
+                                                            <i class="fas fa-trash mr-2"></i>Delete Tenant
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="6" class="text-center p-4">No tenants found.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-history mr-2"></i>Recent Activity</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                {% for log in activity_logs %}
+                                <li class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">
+                                            {% if log.action_type == 'LOGIN' %}<i class="fas fa-sign-in-alt text-success"></i>
+                                            {% elif log.action_type == 'PARTY_ADD' %}<i class="fas fa-user-plus text-primary"></i>
+                                            {% elif log.action_type == 'SALE_DEL' %}<i class="fas fa-trash text-danger"></i>
+                                            {% else %}<i class="fas fa-info-circle text-info"></i>
                                             {% endif %}
-                                        </td>
-                
-                                        <td data-label="Actions">
-                                            <a href="{% url 'edit_tenant' tenant.id %}" class="btn btn-xs btn-outline-primary"
-                                                title="Edit"><i class="fas fa-edit"></i></a>
-                                            <a href="{% url 'delete_tenant' tenant.id %}" class="btn btn-xs btn-outline-danger"
-                                                title="Delete"><i class="fas fa-trash"></i></a>
-
-                                            <button type="button" class="btn btn-xs btn-outline-secondary manage-accounts-btn" title="Manage Accounts"
-                                                data-toggle="modal" data-target="#accountsModal" data-tenant-id="{{ tenant.id }}"
-                                                data-tenant-name="{{ tenant.name }}">
-                                                <i class="fas fa-users-cog"></i>
-                                            </button>
-
-                                            <a href="{% url 'Party_list' %}?tenant_id={{ tenant.id }}"
-                                                class="btn btn-xs btn-outline-info" title="View Parties"><i
-                                                    class="fas fa-user-friends"></i></a>
-                                            <a href="{% url 'Item_list' %}?tenant_id={{ tenant.id }}"
-                                                class="btn btn-xs btn-outline-info" title="View Items"><i
-                                                    class="fas fa-box-open"></i></a>
-                                            <a href="{% url 'sales_list' %}?tenant_id={{ tenant.id }}"
-                                                class="btn btn-xs btn-outline-info" title="View Sales"><i
-                                                    class="fas fa-chart-line"></i></a>
-                                        </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr>
-                                        <td colspan="6" class="text-center p-4">No tenants found.</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                            {{ log.get_action_type_display }}
+                                        </h6>
+                                        <small class="text-muted">{{ log.timestamp|timesince }} ago</small>
+                                    </div>
+                                    <p class="mb-1">{{ log.details }}</p>
+                                    <small class="text-muted">
+                                        Actor: {{ log.actor.email|default:'N/A' }} |
+                                        Tenant: {{ log.tenant.name|default:'N/A' }}
+                                    </small>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item">No recent activity found.</li>
+                                {% endfor %}
+                            </ul>
                         </div>
                     </div>
                 </div>

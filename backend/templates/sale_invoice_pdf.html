@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice {{ sale.invoice_no }}</title>
+    <style>
+        /* This CSS is specifically for printing a professional invoice */
+        @page { size: A4; margin: 1cm; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+        .print-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;}
+        .print-header h2 { margin: 0; font-size: 24px; font-weight: bold; }
+        .print-header p { margin: 2px 0; font-size: 12px; }
+        .invoice-meta-container { display: flex; justify-content: space-between; }
+        .bill-to { width: 50%; }
+        .invoice-details-table { width: 45%; border-collapse: collapse; }
+        .invoice-details-table th, .invoice-details-table td { border: 1px solid #999; padding: 5px; text-align: center; }
+        .invoice-details-table th { background-color: #f2f2f2; font-weight: bold; }
+        .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .print-table th { border-bottom: 2px solid #000; padding: 8px; text-align: right; }
+        .print-table td { padding: 8px; text-align: right; border-bottom: 1px solid #ccc; }
+        .print-table th:nth-child(2), .print-table td:nth-child(2) { text-align: left; }
+        .print-table tr:last-child td { border-bottom: 2px solid #000; }
+        .print-summary-container { display: flex; justify-content: space-between; margin-top: 10px; }
+        .print-summary-left { width: 60%; }
+        .print-summary-right { width: 35%; }
+        .summary-line { display: flex; justify-content: space-between; padding: 4px 0; }
+        .summary-line.total { font-weight: bold; font-size: 12px; border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 5px; }
+    </style>
+</head>
+<body onload="window.print()">
+    <div id="invoice-print">
+        <div class="print-header">
+            <h2>{{ sale.tenant.name|default:"Your Company Name" }}</h2>
+            <p>{{ sale.tenant.address|default:"Your Address, City, State, PIN" }}</p>
+            <p>GSTIN: {{ sale.tenant.gstin|default:"YOURGSTINHERE" }}</p>
+        </div>
+        <div class="invoice-meta-container">
+            <div class="bill-to">
+                <strong>BILL TO:</strong><br>
+                <span style="font-weight: bold;">{{ sale.party.party_name }}</span><br>
+                {{ sale.party.billing_address|linebreaksbr }}<br>
+                GSTIN: {{ sale.party.gst_no|default:"N/A" }}
+            </div>
+            <table class="invoice-details-table">
+                <thead><tr><th>Invoice No.</th><th>Invoice Date</th><th>Due Date</th></tr></thead>
+                <tbody><tr><td>{{ sale.invoice_no }}</td><td>{{ sale.invoice_date|date:"d-m-Y" }}</td><td>{{ sale.due_date|date:"d-m-Y"|default:"N/A" }}</td></tr></tbody>
+            </table>
+        </div>
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th style="text-align:center; width:5%;">S.NO.</th>
+                    <th style="text-align:left; width:45%;">ITEMS</th>
+                    <th style="width:10%;">QTY</th>
+                    <th style="width:15%;">RATE</th>
+                    <th style="width:10%;">TAX</th>
+                    <th style="width:15%;">AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in sale.items.all %}
+                <tr>
+                    <td style="text-align:center;">{{ forloop.counter }}</td>
+                    <td style="text-align:left;">{{ item.item.item_name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.item.sale_price|floatformat:2 }}</td>
+                    <td>{{ item.item.gst_rate|default:"0%" }}</td>
+                    <td>{{ item.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="print-summary-container">
+            <div class="print-summary-left">
+                <p style="font-weight: bold;">Total Amount (In Words): {{ amount_in_words }}</p>
+            </div>
+            <div class="print-summary-right">
+                <div class="summary-line"><span>Subtotal</span><span>{{ sale.subtotal|floatformat:2 }}</span></div>
+                <div class="summary-line"><span>Discount</span><span>(-) {{ sale.discount|floatformat:2 }}</span></div>
+                <div class="summary-line"><span>{{ sale.additional_charges_note|default:"Charges" }}</span><span>(+) {{ sale.additional_charges|floatformat:2 }}</span></div>
+                <div class="summary-line total"><span>TOTAL</span><span>{{ sale.total_amount|floatformat:2 }}</span></div>
+                <div class="summary-line"><span>RECEIVED AMOUNT</span><span>{{ sale.amount_received|floatformat:2 }}</span></div>
+                <div class="summary-line"><span>BALANCE</span><span>{{ sale.balance_amount|floatformat:2 }}</span></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -132,12 +132,12 @@
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1 class="m-0">Dashboard</h1>
+          <h1 class="m-0">Create Item</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
-            <li class="breadcrumb-item active">Add Item</li>
+            <li class="breadcrumb-item active">Create Item</li>
           </ol>
         </div>
       </div>
@@ -171,14 +171,19 @@
               <form method="POST" enctype="multipart/form-data" action="{% url 'Create_item' %}" id="itemForm">
                 {% csrf_token %}
                 {% if add.role == 'superadmin' %}
-                <label>Select Tenant:
-                  <select name="tenant_id" required>
+                <!-- Use a div with a form-group class for proper spacing and styling -->
+                <div class="form-group">
+                  <label for="tenantSelect">Select Tenant</label>
+                  <select name="tenant_id" id="tenantSelect" class="form-control" required>
                     <option value="">Select Tenant</option>
                     {% for t in tenants %}
-                    <option value="{{ t.id }}">{{ t.name }}</option>
+                    <!-- The logic to check the ID and add 'selected' is correct -->
+                    <option value="{{ t.id }}" {% if t.id == tenant_id_from_url|add:0 %}selected{% endif %}>
+                      {{ t.name }}
+                    </option>
                     {% endfor %}
                   </select>
-                </label>
+                </div>
                 {% endif %}
                 <!-- Hidden input to track item type -->
                 <input type="hidden" name="item_type" id="itemType" value="product">

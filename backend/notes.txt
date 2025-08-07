@@ -25,3 +25,55 @@ tenant1 = Tenant.objects.create(name='Tenant1', subdomain='tenant1')
 tenant2 = Tenant.objects.create(name='Tenant2', subdomain='tenant2')
 Account.objects.create(email='admin1@tenant1.com', password=make_password('admin123'), role='admin', tenant=tenant1)
 Account.objects.create(email='admin2@tenant2.com', password=make_password('admin123'), role='admin', tenant=tenant2)
+
+
+3. Roadmap for New Features
+Here is a clear plan to implement the powerful new features you requested.
+
+A. Filtering and Sorting
+Update Template (sales_list.html): Above your table, add a form with fields for a start date, end date, a dropdown for parties, and a dropdown for status (Paid, Unpaid, Overdue).
+
+Update View (sales_list):
+
+In the GET request part of the view, read the values from the form (request.GET.get('start_date'), etc.).
+
+Apply .filter() conditions to your sales queryset based on these values if they exist (e.g., sales = sales.filter(invoice_date__gte=start_date)).
+
+Pass the filter values back into the context so the form fields remember what was selected.
+
+B. Detailed View Page
+URL (urls.py): Add a new path: path('sales/view/<int:sale_id>/', views.sale_detail_view, name='sale_detail').
+
+Template (sale_detail.html): Create a new page that displays all details of a single sale, its items, and a section for "Payment History."
+
+View (views.py): Create a new sale_detail_view that fetches the Sale object and any related Payment objects.
+
+Update sales_list.html: Change the invoice number in the table to be a link: <a href="{% url 'sale_detail' sale.id %}">{{ sale.invoice_no }}</a>.
+
+C. Record Payments
+Model (models.py): Create a new Payment model with a ForeignKey to Sale, and fields for amount, payment_date, and payment_method.
+
+Template (sale_detail.html): Add a "Record Payment" button that opens a modal with a form to enter the payment details.
+
+View (views.py): Create a new record_payment view. This view will:
+
+Create a new Payment object.
+
+Update the parent Sale object's amount_received and balance_amount fields.
+
+Use @transaction.atomic to ensure both operations succeed or fail together.
+
+D. Export to Excel/CSV
+Install Library: Install a package for handling Excel files: pip install openpyxl.
+
+URL (urls.py): Add a path like path('sales/export/', views.export_sales_to_excel, name='export_sales').
+
+View (views.py): Create an export_sales_to_excel view. This view will:
+
+Fetch the sales data (applying the same filters as the list page).
+
+Use openpyxl to create an in-memory Excel workbook.
+
+Loop through the sales data and write it to the workbook's sheet.
+
+Return an HttpResponse with the correct Excel content type to trigger a file download for the user.

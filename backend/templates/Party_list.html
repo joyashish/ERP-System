@@ -68,14 +68,20 @@
                 <div class="card-header">
                   <h3 class="card-title">Party List</h3>
                   <div class="card-tools">
+                    {% if tenant %}
+                    <a href="{% url 'Create_party' %}?tenant_id={{ tenant.id }}" class="btn btn-success">
+                      <i class="fas fa-plus"></i> Create Party
+                    </a>
+                    {% elif add.role != 'superadmin' %}
                     <a href="{% url 'Create_party' %}" class="btn btn-success">
                       <i class="fas fa-plus"></i> Create Party
                     </a>
+                    {% endif %}
                   </div>
                 </div>
                 
                 {% if messages %}
-                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <div class="alert alert-warning alert-dismissible fade show msg_sec" role="alert">
                   {% for message in messages %}
                   <i class="fas fa-check-circle"></i>&nbsp;&nbsp;{{message}}
                   <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -86,7 +92,8 @@
                 {% endif %}
                 
                 <div class="card-body">
-                  <table id="example1" class="table data-table stripe hover nowrap table-bordered">
+                  <div class="table-responsive">
+                    <table id="example1" class="table data-table stripe hover nowrap table-bordered">
                     <thead>
                       <tr>
                         <th>Party Name</th>
@@ -137,6 +144,8 @@
                       {% endfor %}
                     </tbody>
                   </table>
+                  </div>
+                  
                 </div>
               </div>
             </div>

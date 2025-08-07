@@ -33,7 +33,7 @@
                             <div class="card-body">
                                 {% if messages %}
                                     {% for message in messages %}
-                                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+                                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} msg_sec">
                                             {{ message }}
                                         </div>
                                     {% endfor %}

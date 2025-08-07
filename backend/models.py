@@ -235,3 +235,56 @@ class SaleItem(models.Model):
             raise ValidationError("Quantity must be greater than zero")
         if self.discount < 0:
             raise ValidationError("Discount cannot be negative")
+
+# Payment Represents payment made on sale
+class Payment(models.Model):
+    """Represents a single payment made towards a sale."""
+    PAYMENT_MODES = (
+        ('CASH', 'Cash'),
+        ('BANK', 'Bank Transfer'),
+        ('UPI', 'UPI'),
+        ('CARD', 'Card'),
+        ('OTHER', 'Other'),
+    )
+
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='payments')
+    payment_date = models.DateField(default=timezone.now)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_mode = models.CharField(max_length=10, choices=PAYMENT_MODES, default='CASH')
+    notes = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True)
+
+# Activity Log 
+class ActivityLog(models.Model):
+    """Stores a record of user activities across the platform."""
+
+    class ActionTypes(models.TextChoices):
+        USER_LOGGED_IN = 'LOGIN', 'User Logged In'
+        PARTY_CREATED = 'PARTY_ADD', 'Party Created'
+        ITEM_CREATED = 'ITEM_ADD', 'Item Created'
+        SALE_CREATED = 'SALE_ADD', 'Sale Created'
+        SALE_DELETED = 'SALE_DEL', 'Sale Deleted'
+        # Add more action types as you need them
+
+    # Who performed the action. Null if the user is deleted.
+    actor = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # The type of action performed.
+    action_type = models.CharField(max_length=10, choices=ActionTypes.choices)
+    
+    # A human-readable description of the action.
+    details = models.TextField()
+    
+    # The tenant context for the action, if applicable.
+    tenant = models.ForeignKey(Tenant, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # When the action occurred.
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp'] # Show the most recent logs first
+
+    def __str__(self):
+        actor_email = self.actor.email if self.actor else "System"
+        return f"{actor_email} - {self.get_action_type_display()} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
