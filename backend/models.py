@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from datetime import timedelta
 from django.contrib.auth.hashers import make_password
 
 # Tenant Model
@@ -299,3 +300,4 @@ class ActivityLog(models.Model):
     def __str__(self):
         # ... (__str__ method remains the same)
         pass
+

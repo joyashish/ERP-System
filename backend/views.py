@@ -1208,6 +1208,7 @@ def all_activity_logs_view(request,):
     }
     return render(request, 'activity_log_list.html', context)
 
+# Records Finaincial Logs
 @superadmin_required
 def financial_logs_view(request):
     logs = ActivityLog.objects.filter(
@@ -1219,3 +1220,15 @@ def financial_logs_view(request):
         'log_title': 'Financial & Transaction Logs'
     }
     return render(request, 'activity_log_list.html', context)
+
+# Tenanat Status (Activated/Deactivated)
+@superadmin_required
+def toggle_tenant_status(request, tenant_id):
+    tenant = get_object_or_404(Tenant, id=tenant_id)
+    # Flip the boolean status
+    tenant.is_active = not tenant.is_active
+    tenant.save()
+    
+    status = "activated" if tenant.is_active else "deactivated"
+    messages.success(request, f"Tenant '{tenant.name}' has been successfully {status}.")
+    return redirect('superadmin_dashboard')

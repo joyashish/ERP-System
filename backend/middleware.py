@@ -38,14 +38,17 @@ class TenantMiddleware:
             tenant_id = request.session.get('tenant_id')
             
             if not tenant_id:
-                # This shouldn't happen for a logged-in user, but as a safeguard:
                 raise Http404("User has no assigned tenant. Please contact support.")
 
             try:
+                # This line is correct, it already checks for is_active=True
                 request.tenant = Tenant.objects.get(id=tenant_id, is_active=True)
             except Tenant.DoesNotExist:
-                # Tenant was deleted or deactivated while user was logged in.
-                raise Http404("Tenant not found or is inactive.")
+                # --- THIS IS THE CHANGE ---
+                # Instead of a 404, log the user out and show a clear message.
+                request.session.flush()
+                messages.error(request, "Your company's account has been deactivated. Please contact support.")
+                return redirect('/')
                 
         # If all checks pass, continue to the view.
         return self.get_response(request)

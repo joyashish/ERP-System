@@ -145,9 +145,15 @@
                             
                                             <td data-label="Status" class="text-center">
                                                 {% if tenant.is_active %}
-                                                <span class="badge badge-success">Active</span>
+                                                <a href="{% url 'toggle_tenant_status' tenant.id %}" class="btn btn-xs btn-outline-success"
+                                                    title="Click to Deactivate">
+                                                    Active
+                                                </a>
                                                 {% else %}
-                                                <span class="badge badge-secondary">Inactive</span>
+                                                <a href="{% url 'toggle_tenant_status' tenant.id %}" class="btn btn-xs btn-outline-danger"
+                                                    title="Click to Activate">
+                                                    Inactive
+                                                </a>
                                                 {% endif %}
                                             </td>
                             
@@ -195,7 +201,7 @@
                                 </table>
                             </div>
                         </div>
-                    </div>
+                    </div
 
                     <!-- Recent Activity & Financial logs Tab/Card -->
                     <div class="card">
