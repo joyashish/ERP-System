@@ -27,53 +27,166 @@ Account.objects.create(email='admin1@tenant1.com', password=make_password('admin
 Account.objects.create(email='admin2@tenant2.com', password=make_password('admin123'), role='admin', tenant=tenant2)
 
 
-3. Roadmap for New Features
-Here is a clear plan to implement the powerful new features you requested.
+Excellent. This is a crucial and exciting step in turning your application into a true SaaS (Software as a Service) product. Let's implement the Tenant Lifecycle Management first, and then I'll provide a detailed, professional roadmap for building the public website and subscription system.
 
-A. Filtering and Sorting
-Update Template (sales_list.html): Above your table, add a form with fields for a start date, end date, a dropdown for parties, and a dropdown for status (Paid, Unpaid, Overdue).
+Part 1: Tenant Lifecycle Management (Activation/Deactivation)
+This feature will allow you to "suspend" a tenant's account without deleting their data. Your middleware is already very close to supporting this.
 
-Update View (sales_list):
+Step 1: Update Your TenantMiddleware
+The current middleware raises a generic "Tenant not found" error if a tenant is inactive. It's a much better user experience to log the user out and show them a specific message.
 
-In the GET request part of the view, read the values from the form (request.GET.get('start_date'), etc.).
+In your backend/middleware.py, make this small change in the else block:
 
-Apply .filter() conditions to your sales queryset based on these values if they exist (e.g., sales = sales.filter(invoice_date__gte=start_date)).
+Python
 
-Pass the filter values back into the context so the form fields remember what was selected.
+# backend/middleware.py
 
-B. Detailed View Page
-URL (urls.py): Add a new path: path('sales/view/<int:sale_id>/', views.sale_detail_view, name='sale_detail').
+# ... (rest of your middleware code is correct) ...
+        else:
+            # 5. If it's a regular user, they MUST have a tenant in their session.
+            request.is_superadmin = False
+            tenant_id = request.session.get('tenant_id')
+            
+            if not tenant_id:
+                raise Http404("User has no assigned tenant. Please contact support.")
 
-Template (sale_detail.html): Create a new page that displays all details of a single sale, its items, and a section for "Payment History."
+            try:
+                # This line is correct, it already checks for is_active=True
+                request.tenant = Tenant.objects.get(id=tenant_id, is_active=True)
+            except Tenant.DoesNotExist:
+                # --- THIS IS THE CHANGE ---
+                # Instead of a 404, log the user out and show a clear message.
+                request.session.flush()
+                messages.error(request, "Your company's account has been deactivated. Please contact support.")
+                return redirect('/')
+                
+        # If all checks pass, continue to the view.
+        return self.get_response(request)
+Step 2: Create the Activation/Deactivation Logic
+Now, we need a view that the superadmin can use to toggle a tenant's is_active status.
 
-View (views.py): Create a new sale_detail_view that fetches the Sale object and any related Payment objects.
+A. Add the URL in your urls.py:
 
-Update sales_list.html: Change the invoice number in the table to be a link: <a href="{% url 'sale_detail' sale.id %}">{{ sale.invoice_no }}</a>.
+Python
 
-C. Record Payments
-Model (models.py): Create a new Payment model with a ForeignKey to Sale, and fields for amount, payment_date, and payment_method.
+# your_app/urls.py
+urlpatterns = [
+    # ... your other urls
+    path('tenants/toggle-status/<int:tenant_id>/', views.toggle_tenant_status, name='toggle_tenant_status'),
+]
+B. Add the View in your views.py:
 
-Template (sale_detail.html): Add a "Record Payment" button that opens a modal with a form to enter the payment details.
+Python
 
-View (views.py): Create a new record_payment view. This view will:
+# your_app/views.py
 
-Create a new Payment object.
+@superadmin_required
+def toggle_tenant_status(request, tenant_id):
+    tenant = get_object_or_404(Tenant, id=tenant_id)
+    # Flip the boolean status
+    tenant.is_active = not tenant.is_active
+    tenant.save()
+    
+    status = "activated" if tenant.is_active else "deactivated"
+    messages.success(request, f"Tenant '{tenant.name}' has been successfully {status}.")
+    return redirect('superadmin_dashboard')
+Step 3: Update the Superadmin Dashboard Button
+Finally, change the static "Status" badge into a clickable button that toggles the status.
 
-Update the parent Sale object's amount_received and balance_amount fields.
+In your superadmin_dashboard.html, find the <td> for the status and replace it with this:
 
-Use @transaction.atomic to ensure both operations succeed or fail together.
+HTML
 
-D. Export to Excel/CSV
-Install Library: Install a package for handling Excel files: pip install openpyxl.
+<td data-label="Status" class="text-center">
+    {% if tenant.is_active %}
+        <a href="{% url 'toggle_tenant_status' tenant.id %}" class="btn btn-xs btn-outline-danger" title="Click to Deactivate">
+            Active
+        </a>
+    {% else %}
+        <a href="{% url 'toggle_tenant_status' tenant.id %}" class="btn btn-xs btn-outline-success" title="Click to Activate">
+            Inactive
+        </a>
+    {% endif %}
+</td>
+With these changes, your Tenant Lifecycle Management is complete. You can now easily suspend and unsuspend tenant accounts.
 
-URL (urls.py): Add a path like path('sales/export/', views.export_sales_to_excel, name='export_sales').
+Part 2: Roadmap for Public Website, Subscriptions & Trials
+You're right, this is the most crucial part of acquiring users. Building a full system like mybillbook.in is a big project, so it's best to break it down into a clear roadmap.
 
-View (views.py): Create an export_sales_to_excel view. This view will:
+Phase 1: The Foundation (Models & Public Pages)
+Create Subscription Models: In models.py, you need to track plans and which tenant is on which plan.
 
-Fetch the sales data (applying the same filters as the list page).
+Python
 
-Use openpyxl to create an in-memory Excel workbook.
+class Plan(models.Model):
+    name = models.CharField(max_length=100) # e.g., "Trial", "Pro", "Enterprise"
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    duration_days = models.IntegerField(help_text="Duration of the plan in days. Use 36500 for 'lifetime'.")
 
-Loop through the sales data and write it to the workbook's sheet.
+class Subscription(models.Model):
+    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE)
+    plan = models.ForeignKey(Plan, on_delete=models.PROTECT) # Don't delete a plan if tenants are using it
+    start_date = models.DateField(auto_now_add=True)
+    end_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+Create Public Views and Templates:
 
-Return an HttpResponse with the correct Excel content type to trigger a file download for the user.
+Views (views.py): Create new views that do not use the @tenant_required decorator.
+
+landing_page(request): Renders your homepage.
+
+pricing_page(request): Fetches all Plan objects and displays them.
+
+signup_view(request, plan_id): The form to register a new tenant for a specific plan.
+
+Templates: Create new HTML files (landing.html, pricing.html, signup.html) that are separate from your app's internal layout (i.e., they don't include your sidebar).
+
+Phase 2: The Signup & Trial Flow
+This is the core of user onboarding.
+
+Signup View (signup_view):
+
+On GET, it shows a form asking for Company Name, Full Name, Email, and Password.
+
+On POST, it performs these actions within a @transaction.atomic() block:
+
+Create the Account with is_active=False.
+
+Create the Tenant with is_active=False.
+
+Link the new Account to the new Tenant.
+
+Calculate the trial end date: end_date = timezone.now().date() + timedelta(days=15).
+
+Create the Subscription record for the "Trial" plan with the calculated end_date.
+
+Trigger Email Verification.
+
+Email Verification:
+
+Set up Email Backend: In settings.py, configure Django's email backend. For development, you can use the console backend or a service like Mailtrap. For production, you'll use a transactional email service (e.g., SendGrid, Postmark).
+
+Send the Email: After creating the user, generate a secure verification token (using Django's signing library), build a verification URL (e.g., /verify-email/<token>/), and use send_mail() to send it to the user.
+
+Verification View (verify_email_view): This view takes the token from the URL, validates it, finds the user, and sets both account.is_active and tenant.is_active to True. After verification, it automatically logs the new user in and redirects them to their dashboard.
+
+Phase 3: Automation & Monetization
+Automate Subscription Checks:
+
+You need a way to automatically deactivate tenants whose trials have expired.
+
+The Best Approach: Create a custom Django Management Command.
+
+Create the Command: In your_app/management/commands/check_subscriptions.py, write a script that finds all active subscriptions where end_date has passed and sets the corresponding tenant.is_active to False.
+
+Automate It: In production, you would set up a cron job on your server to run python manage.py check_subscriptions once every day.
+
+Integrate Payments:
+
+Once a user's trial is ending, you'll need to prompt them to upgrade.
+
+Choose a payment gateway (e.g., Stripe, Razorpay).
+
+Integrate their API to handle plan selection, payment processing, and webhook notifications to automatically update the user's Subscription record upon successful payment.
+
+This roadmap breaks a very large project into logical, manageable phases. Start with Phase 1, and you'll be well on your way to building a complete SaaS application.

@@ -3,6 +3,8 @@ from backend.models import *
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.db.models import Sum, F
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import datetime
 from datetime import timedelta
@@ -1232,3 +1234,51 @@ def toggle_tenant_status(request, tenant_id):
     status = "activated" if tenant.is_active else "deactivated"
     messages.success(request, f"Tenant '{tenant.name}' has been successfully {status}.")
     return redirect('superadmin_dashboard')
+
+# Create API Endpoints for Chart Data
+@superadmin_required
+def superadmin_analytics_api(request):
+    """
+    Provides aggregated data for the superadmin analytics dashboard.
+    """
+    # 1. Tenant Signup Trend (last 12 months)
+    twelve_months_ago = datetime.now() - timedelta(days=365)
+    tenant_signups = Tenant.objects.filter(created_at__gte=twelve_months_ago) \
+        .annotate(month=TruncMonth('created_at')) \
+        .values('month') \
+        .annotate(count=Count('id')) \
+        .order_by('month')
+
+    # Format data for Chart.js
+    signup_labels = [s['month'].strftime('%b %Y') for s in tenant_signups]
+    signup_data = [s['count'] for s in tenant_signups]
+
+    # 2. Top 5 Tenants by Sales Volume
+    top_tenants = Tenant.objects.annotate(total_sales_volume=Sum('sales__total_amount')) \
+        .order_by('-total_sales_volume') \
+        .filter(total_sales_volume__gt=0)[:5]
+
+    top_tenants_labels = [t.name for t in top_tenants]
+    top_tenants_data = [t.total_sales_volume for t in top_tenants]
+    
+    # 3. Plan distribution (if you have the subscription model)
+    # plan_distribution = Subscription.objects.values('plan__name').annotate(count=Count('id'))
+    # plan_labels = [p['plan__name'] for p in plan_distribution]
+    # plan_data = [p['count'] for p in plan_distribution]
+
+    data = {
+        'tenant_signups': {
+            'labels': signup_labels,
+            'data': signup_data,
+        },
+        'top_tenants': {
+            'labels': top_tenants_labels,
+            'data': top_tenants_data,
+        },
+        # 'plan_distribution': {
+        #     'labels': plan_labels,
+        #     'data': plan_data,
+        # }
+    }
+    
+    return JsonResponse(data)

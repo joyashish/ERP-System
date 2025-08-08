@@ -103,6 +103,29 @@
                 </div>
             </div>
 
+            <!-- Analytical Card -->
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-chart-line mr-1"></i>Monthly Tenant Signups</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="tenantSignupsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-trophy mr-1"></i>Top Tenants by Revenue</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="topTenantsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- Manage Tenant Card -->
             <div class="row">
                 <div class="col-md-8">
@@ -201,9 +224,8 @@
                                 </table>
                             </div>
                         </div>
-                    </div
-
-                    <!-- Recent Activity & Financial logs Tab/Card -->
+                    </div>
+                    <!-- Recent Activity & Financial logs Tab Card -->
                     <div class="card">
                         <div class="card-header p-0">
                             <ul class="nav nav-tabs" id="log-tabs" role="tablist">
@@ -477,6 +499,66 @@ document.addEventListener('DOMContentLoaded', function () {
             accountListBody.append('<tr><td colspan="4" class="text-center">No accounts found for this tenant.</td></tr>');
         }
     });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Fetch analytics data from the API endpoint
+    fetch("{% url 'superadmin_analytics_api' %}")
+        .then(response => response.json())
+        .then(data => {
+            // --- 1. Render Tenant Signups Chart (Bar Chart) ---
+            const signupsCtx = document.getElementById('tenantSignupsChart').getContext('2d');
+            new Chart(signupsCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.tenant_signups.labels,
+                    datasets: [{
+                        label: 'New Tenants',
+                        data: data.tenant_signups.data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // --- 2. Render Top Tenants Chart (Pie Chart) ---
+            const topTenantsCtx = document.getElementById('topTenantsChart').getContext('2d');
+            new Chart(topTenantsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.top_tenants.labels,
+                    datasets: [{
+                        label: 'Total Revenue',
+                        data: data.top_tenants.data,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)',
+                        ],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Error fetching analytics data:', error));
 });
 </script>
 {% include 'footer.html' %}

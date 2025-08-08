@@ -18,7 +18,7 @@ urlpatterns=[
     path('accounts/add/<int:tenant_id>/', views.add_account, name='add_account'),
     path('accounts/delete/<int:account_id>/', views.delete_account, name='delete_account'),
     path('accounts/edit/<int:account_id>/', views.edit_account, name='edit_account'),
-    
+
     path('tenants/toggle-status/<int:tenant_id>/', views.toggle_tenant_status, name='toggle_tenant_status'),
     #..... Admin dash ......# 
     path('dash',views.DashVw,name='dash'),
@@ -81,5 +81,8 @@ urlpatterns=[
     # Activity Logs
     path('logs/all/', views.all_activity_logs_view, name='all_activity_logs'),
     path('logs/financial/', views.financial_logs_view, name='financial_logs'),
+
+    # API Endpoints for Chart Data
+    path('api/superadmin/analytics/', views.superadmin_analytics_api, name='superadmin_analytics_api'),
     
 ]

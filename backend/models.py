@@ -301,3 +301,14 @@ class ActivityLog(models.Model):
         # ... (__str__ method remains the same)
         pass
 
+# class Plan(models.Model):
+#     name = models.CharField(max_length=100) # e.g., "Trial", "Pro", "Enterprise"
+#     price = models.DecimalField(max_digits=10, decimal_places=2)
+#     duration_days = models.IntegerField(help_text="Duration of the plan in days. Use 36500 for 'lifetime'.")
+
+# class Subscription(models.Model):
+#     tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE)
+#     plan = models.ForeignKey(Plan, on_delete=models.PROTECT) # Don't delete a plan if tenants are using it
+#     start_date = models.DateField(auto_now_add=True)
+#     end_date = models.DateField()
+#     is_active = models.BooleanField(default=True)
