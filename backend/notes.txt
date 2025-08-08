@@ -1,6 +1,6 @@
 # Super Admin 
 email  -    erp_superadmin@gmail.com
-pass   -    superadmin123
+pass   -    superadmin123/super123
 
 Company1/Tenant1 (roll=Admin)
 email  -    admin1@tenant1.com

@@ -20,6 +20,8 @@ from django.db.models import OuterRef, Subquery
 from django.db import IntegrityError
 from django.db.models import Sum, Q
 from decimal import Decimal
+from django.db.models.functions import TruncMonth
+from dateutil.relativedelta import relativedelta
 
 
 
@@ -1239,21 +1241,31 @@ def toggle_tenant_status(request, tenant_id):
 @superadmin_required
 def superadmin_analytics_api(request):
     """
-    Provides aggregated data for the superadmin analytics dashboard.
+    Provides richer, timezone-aware data for the superadmin analytics dashboard.
     """
-    # 1. Tenant Signup Trend (last 12 months)
-    twelve_months_ago = datetime.now() - timedelta(days=365)
-    tenant_signups = Tenant.objects.filter(created_at__gte=twelve_months_ago) \
+    now = timezone.now() # Use Django's timezone.now() to fix the warning
+
+    # 1. Tenant Signup Trend (last 6 months)
+    six_months_ago = now - relativedelta(months=5)
+    six_months_ago = six_months_ago.replace(day=1)
+
+    tenant_signups = Tenant.objects.filter(created_at__gte=six_months_ago) \
         .annotate(month=TruncMonth('created_at')) \
         .values('month') \
         .annotate(count=Count('id')) \
         .order_by('month')
 
-    # Format data for Chart.js
-    signup_labels = [s['month'].strftime('%b %Y') for s in tenant_signups]
-    signup_data = [s['count'] for s in tenant_signups]
+    # Format data to ensure all 6 months are present, even with zero signups
+    signup_counts = {s['month'].strftime('%b %Y'): s['count'] for s in tenant_signups}
+    signup_labels = []
+    signup_data = []
+    for i in range(6):
+        current_month = (six_months_ago + relativedelta(months=i))
+        month_key = current_month.strftime('%b %Y')
+        signup_labels.append(month_key)
+        signup_data.append(signup_counts.get(month_key, 0))
 
-    # 2. Top 5 Tenants by Sales Volume
+    # 2. Top 5 Tenants by Sales Volume (No change needed here, it's a good metric)
     top_tenants = Tenant.objects.annotate(total_sales_volume=Sum('sales__total_amount')) \
         .order_by('-total_sales_volume') \
         .filter(total_sales_volume__gt=0)[:5]
@@ -1261,24 +1273,19 @@ def superadmin_analytics_api(request):
     top_tenants_labels = [t.name for t in top_tenants]
     top_tenants_data = [t.total_sales_volume for t in top_tenants]
     
-    # 3. Plan distribution (if you have the subscription model)
-    # plan_distribution = Subscription.objects.values('plan__name').annotate(count=Count('id'))
-    # plan_labels = [p['plan__name'] for p in plan_distribution]
-    # plan_data = [p['count'] for p in plan_distribution]
+    # 3. NEW: Tenant Status Distribution (Active vs. Inactive)
+    status_distribution = Tenant.objects.values('is_active').annotate(count=Count('id')).order_by('is_active')
+    
+    status_labels = []
+    status_data = []
+    for status in status_distribution:
+        status_labels.append("Active" if status['is_active'] else "Inactive")
+        status_data.append(status['count'])
 
     data = {
-        'tenant_signups': {
-            'labels': signup_labels,
-            'data': signup_data,
-        },
-        'top_tenants': {
-            'labels': top_tenants_labels,
-            'data': top_tenants_data,
-        },
-        # 'plan_distribution': {
-        #     'labels': plan_labels,
-        #     'data': plan_data,
-        # }
+        'tenant_signups': { 'labels': signup_labels, 'data': signup_data },
+        'top_tenants': { 'labels': top_tenants_labels, 'data': top_tenants_data },
+        'status_distribution': { 'labels': status_labels, 'data': status_data },
     }
     
     return JsonResponse(data)

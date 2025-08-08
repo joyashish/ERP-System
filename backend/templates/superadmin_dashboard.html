@@ -9,6 +9,9 @@
     #tenantTable td:last-child {
     white-space: nowrap;
 }
+.bg-primary {
+    background-color: #b482eb !important;
+}
 </style>
 <div class="content-wrapper">
     <div class="content-header">
@@ -105,23 +108,33 @@
 
             <!-- Analytical Card -->
             <div class="row">
-                <div class="col-lg-8">
+                <div class="col-lg-6">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-chart-line mr-1"></i>Monthly Tenant Signups</h3>
+                            <h3 class="card-title"><i class="fas fa-chart-line mr-1"></i>Monthly Tenant Signups (Last 6 Months)</h3>
                         </div>
                         <div class="card-body">
                             <canvas id="tenantSignupsChart"></canvas>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-3">
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title"><i class="fas fa-trophy mr-1"></i>Top Tenants by Revenue</h3>
                         </div>
                         <div class="card-body">
                             <canvas id="topTenantsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-toggle-on mr-1"></i>Tenant Status</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="tenantStatusChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -504,11 +517,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Fetch analytics data from the API endpoint
     fetch("{% url 'superadmin_analytics_api' %}")
         .then(response => response.json())
         .then(data => {
-            // --- 1. Render Tenant Signups Chart (Bar Chart) ---
+            // --- 1. Tenant Signups Chart (Improved Bar Chart) ---
             const signupsCtx = document.getElementById('tenantSignupsChart').getContext('2d');
             new Chart(signupsCtx, {
                 type: 'bar',
@@ -517,20 +529,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     datasets: [{
                         label: 'New Tenants',
                         data: data.tenant_signups.data,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
+                        backgroundColor: '#29a0b1',
+                        borderColor: '#167d7f',
+                        borderWidth: 1,
+                        borderRadius: 5
                     }]
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
+                options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
             });
 
-            // --- 2. Render Top Tenants Chart (Pie Chart) ---
+            // --- 2. Top Tenants Chart (Improved Doughnut Chart) ---
             const topTenantsCtx = document.getElementById('topTenantsChart').getContext('2d');
             new Chart(topTenantsCtx, {
                 type: 'doughnut',
@@ -539,23 +547,25 @@ document.addEventListener('DOMContentLoaded', function () {
                     datasets: [{
                         label: 'Total Revenue',
                         data: data.top_tenants.data,
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)',
-                            'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)',
-                            'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)',
-                        ],
+                        backgroundColor: ['#c1a9ed','#0dcaf0', '#28a745', '#ffc107', '#dc3545', '#6f42c1'],
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
-                }
+                options: { responsive: true, plugins: { legend: { position: 'top' } } }
+            });
+
+            // --- 3. NEW: Tenant Status Chart (Pie Chart) ---
+            const statusCtx = document.getElementById('tenantStatusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'pie',
+                data: {
+                    labels: data.status_distribution.labels,
+                    datasets: [{
+                        label: 'Tenants',
+                        data: data.status_distribution.data,
+                        backgroundColor: [ '#6c757d','#20c997' ], // Green for Active, Gray for Inactive
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'top' } } }
             });
         })
         .catch(error => console.error('Error fetching analytics data:', error));
