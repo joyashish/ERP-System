@@ -240,7 +240,8 @@ def Create_partyVw(request):
                 billing_address=request.POST.get('billing_address'),
                 shipping_address=request.POST.get('shipping_address'),
                 credit_period=request.POST.get('credit_period', 0),
-                credit_limit=request.POST.get('credit_limit', 0)
+                credit_limit=request.POST.get('credit_limit', 0),
+                is_active=True
             )
             messages.success(request, 'Party Added Successfully.')
         

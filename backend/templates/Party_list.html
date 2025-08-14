@@ -119,11 +119,11 @@
                         <td>{{ party.party_category }}</td>
                         <td class="text-right">{{ party.opening_balance }}</td>
                         <td class="text-right">{{ party.credit_limit }}</td>
-                        <td>
-                          {% if party.status %}
-                            <span class="badge badge-success">Active</span>
+                        <td data-label="Status" class="text-center">
+                          {% if party.is_active %}
+                          <span class="badge badge-success">Active</span>
                           {% else %}
-                            <span class="badge badge-danger">Inactive</span>
+                          <span class="badge badge-secondary">Inactive</span>
                           {% endif %}
                         </td>
                         <td data-label="Actions">
