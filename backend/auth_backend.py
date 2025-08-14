@@ -7,6 +7,7 @@ class AccountBackend(BaseBackend):
         try:
             account = Account.objects.get(email=username)
             if account.is_active and check_password(password, account.password):
+                # The 'is_authenticated' property on the model now handles this.
                 return account
             return None
         except Account.DoesNotExist:
@@ -14,6 +15,8 @@ class AccountBackend(BaseBackend):
 
     def get_user(self, user_id):
         try:
-            return Account.objects.get(pk=user_id, is_active=True)
+            account = Account.objects.get(pk=user_id, is_active=True)
+            # The 'is_authenticated' property on the model now handles this.
+            return account
         except Account.DoesNotExist:
             return None

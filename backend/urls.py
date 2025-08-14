@@ -30,7 +30,8 @@ urlpatterns=[
     path('',views.Admin_loginVW,name='admin_login'),
 
     #..... Logout ......#
-    path('logout',views.logout,name='logout'),
+    # path('logout',views.logout,name='logout'),
+    path('logout/', views.logout_view, name='logout'),
 
     #..... Change_Password......#
     path('change_pass',views.ChangePasswordVw,name="change_pass"),
@@ -84,5 +85,10 @@ urlpatterns=[
 
     # API Endpoints for Chart Data
     path('api/superadmin/analytics/', views.superadmin_analytics_api, name='superadmin_analytics_api'),
+    # Impersonation Mode
+    path('impersonate/start/<int:account_id>/', views.impersonate_start, name='impersonate_start'),
+    path('impersonate/stop/', views.impersonate_stop, name='impersonate_stop'),
+
+    path('profile/', views.profile_view, name='profile'),
     
 ]

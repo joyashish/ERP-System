@@ -1,6 +1,44 @@
 {% load static %}
+<style>
+    /* Default banner style */
+    .impersonation-banner {
+        background-color: #343a40; /* A dark color that matches your theme */
+        color: #f8f9fa; /* Light text for contrast */
+        border-bottom: 2px solid #ffc107; /* A yellow accent border to draw attention */
+        border-radius: 0;
+        position: sticky;
+        top: 0;
+        z-index: 1040;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 0.75rem;
+    }
+    .impersonation-banner strong {
+        color: #ffffff;
+    }
+    .impersonation-banner a{
+        color: #fff;
+        text-decoration: none;
+    }
+    
+    /* Mobile-specific styles for the banner */
+    @media (max-width: 768px) {
+        .impersonation-banner {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            flex-direction: column; /* Stack items vertically */
+        }
+        .impersonation-banner .btn {
+            margin-top: 0.5rem; /* Add space between text and button */
+        }
+    }
+</style>
 <!-- Navbar -->
 <nav class="main-header navbar navbar-expand navbar-dark" style="background: #1a222c; border-bottom: 1px solid rgba(255,255,255,0.1);">
+
     <!-- Left navbar links -->
     <ul class="navbar-nav">
         <li class="nav-item">
@@ -15,6 +53,16 @@
             <a href="#" class="nav-link">Contact</a>
         </li>
     </ul>
+
+    {% if request.impersonator %}
+    <div class="impersonation-banner">
+        <span>
+            <i class="fas fa-user-secret mr-2"></i>
+            <strong>Impersonation Mode:</strong> You are logged in as <strong>{{ request.user.email }}</strong>.
+        </span>
+        <a href="{% url 'impersonate_stop' %}" class="ml-3 btn btn-sm btn-danger">Exit Impersonation</a>
+    </div>
+    {% endif %}
 
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
@@ -51,7 +99,7 @@
                 </li>
                 <!-- Menu Footer -->
                 <li class="user-footer px-2 py-1">
-                    <a href="#" class="btn btn-block btn-sm btn-outline-primary">
+                    <a href="{% url 'profile' %}" class="btn btn-block btn-sm btn-outline-primary">
                         <i class="fas fa-user-circle mr-1"></i> Profile
                     </a>
                 </li>

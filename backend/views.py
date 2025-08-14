@@ -1,6 +1,7 @@
 from django.shortcuts import render,redirect, get_object_or_404
 from backend.models import *
 from django.core.exceptions import ValidationError
+from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.db.models import Sum, F
 from django.db.models import Count, Sum
@@ -83,20 +84,62 @@ def add_category(request):
     return redirect('/Create_item')
 
 # Admin Login View
+# def Admin_loginVW(request):
+#     if request.method == "POST":
+#         email = request.POST.get('email')
+#         password = request.POST.get('pass')
+#         account = authenticate(request, username=email, password=password)
+#         if account and account.is_active:
+#             request.session['email'] = account.email
+#             request.session['account_id'] = account.id
+#             if account.role != 'superadmin':
+#                 request.session['tenant_id'] = account.tenant.id
+#             return redirect('/dash')
+#         messages.error(request, "Invalid Email or Password")
+#         return redirect('/')
+#     return render(request, 'Admin_login.html')
+
+
 def Admin_loginVW(request):
     if request.method == "POST":
         email = request.POST.get('email')
         password = request.POST.get('pass')
+        
+        # This uses your auth_backend.py to find the user and check the password
         account = authenticate(request, username=email, password=password)
-        if account and account.is_active:
+        
+        # Check if authentication was successful
+        if account is not None:
+            
+            # 1. Call login() FIRST. This is crucial for firing the user_logged_in signal
+            #    and setting up Django's proper session management.
+            login(request, account) 
+            
+            # 2. THEN, manually set the 'email' session key that your middleware is looking for.
+            #    This ensures the middleware will find the user on the next request.
             request.session['email'] = account.email
-            request.session['account_id'] = account.id
-            if account.role != 'superadmin':
+            
+            # 3. Set the tenant_id for regular users, as you did before.
+            # Check the account's role and redirect accordingly.
+            if account.role == 'superadmin':
+                # If the user is a superadmin, go to the superadmin dashboard.
+                return redirect('/superadmin_dashboard')
+            else:
+                # For all other roles (admin, user), go to the regular dashboard.
                 request.session['tenant_id'] = account.tenant.id
-            return redirect('/dash')
+                return redirect('/dash')
+            
+        # If authentication fails, the account will be None
         messages.error(request, "Invalid Email or Password")
         return redirect('/')
+        
     return render(request, 'Admin_login.html')
+
+def logout_view(request): # Renamed to avoid conflict with the imported logout
+    # Use Django's logout function for proper session clearing
+    logout(request)
+    messages.info(request, "You have been logged out successfully!")
+    return redirect('/')
 
 # Dashboard View
 @tenant_required
@@ -106,10 +149,10 @@ def DashVw(request):
     return render(request, 'Dash.html', {'add': account, 'tenant': tenant})
 
 # Logout View
-def logout(request):
-    request.session.flush()
-    messages.info(request, "Logout Successfully!!")
-    return redirect('/')
+# def logout(request):
+#     request.session.flush()
+#     messages.info(request, "Logout Successfully!!")
+#     return redirect('/')
 
 # Change Password View
 @tenant_required
@@ -1289,3 +1332,93 @@ def superadmin_analytics_api(request):
     }
     
     return JsonResponse(data)
+
+# Implement Impersonation Mode view 
+@superadmin_required
+def impersonate_start(request, account_id):
+    # 1. Get the superadmin's ID before doing anything else.
+    superadmin_account = request.user
+    superadmin_id = superadmin_account.id # Store the ID in a variable
+    
+    # 2. Store the superadmin's ID in the session. This is the "return ticket".
+    request.session['impersonator_id'] = superadmin_account.id
+
+    # 3. Find the user account to be impersonated.
+    target_account = get_object_or_404(Account, id=account_id)
+
+    # 4. Security check: Prevent a superadmin from impersonating another superadmin.
+    if target_account.role == 'superadmin':
+        messages.error(request, "Superadmins cannot impersonate other superadmins.")
+        return redirect('superadmin_dashboard')
+
+    # 5. Log this important security event.
+    ActivityLog.objects.create(
+        actor=superadmin_account,
+        action_type=ActivityLog.ActionTypes.IMPERSONATE_START,
+        details=f"Started impersonating user '{target_account.email}'.",
+        tenant=target_account.tenant,
+        category=ActivityLog.LogCategories.AUTH
+    )
+    
+    # 6. Log the superadmin out and log the target user in.
+    logout(request)
+    # Log the target user in using Django's function.
+    # 7. Log the target user in. This creates a NEW, clean session.
+    login(request, target_account, backend='backend.auth_backend.AccountBackend')
+
+    # 8. NOW, add all necessary keys to the NEW session.
+    request.session['impersonator_id'] = superadmin_id # Use the ID we saved earlier
+    request.session['email'] = target_account.email
+    if target_account.tenant:
+        request.session['tenant_id'] = target_account.tenant.id
+    
+    messages.info(request, f"You are now impersonating {target_account.full_name or target_account.email}.")
+    return redirect('dash') # Redirect to the standard user dashboard
+
+
+def impersonate_stop(request):
+    impersonator_id = request.session.get('impersonator_id')
+
+    if not impersonator_id:
+        return redirect('/') # Should not happen if accessed via the banner
+
+    impersonated_user = request.user
+    superadmin_account = get_object_or_404(Account, id=impersonator_id)
+    
+    # Log the end of the impersonation.
+    ActivityLog.objects.create(
+        actor=superadmin_account,
+        action_type=ActivityLog.ActionTypes.IMPERSONATE_STOP,
+        details=f"Stopped impersonating user '{impersonated_user.email}'.",
+        tenant=impersonated_user.tenant,
+        category=ActivityLog.LogCategories.AUTH
+    )
+
+    # Log the impersonated user out and the superadmin back in.
+    logout(request)
+    # Specify the backend when logging the superadmin back in.
+    login(request, superadmin_account, backend='backend.auth_backend.AccountBackend')
+    
+    # The session is renewed on login, but we'll remove the key just in case.
+    if 'impersonator_id' in request.session:
+        del request.session['impersonator_id']
+
+    messages.success(request, "You have returned to your superadmin account. Please log in again.")
+    # Instead of redirecting to the dashboard, redirect to the login page.
+    return redirect('/')
+
+# Profile View
+@tenant_required # Use your existing decorator to ensure user is logged in
+def profile_view(request):
+    # The logged-in user is already on the request object from your middleware
+    account = request.user
+
+    # Fetch the 10 most recent activities performed by this specific user
+    user_activity_logs = ActivityLog.objects.filter(actor=account).order_by('-timestamp')[:10]
+
+    context = {
+        'add': account, # For your sidebar/navbar
+        'profile_user': account,
+        'activity_logs': user_activity_logs,
+    }
+    return render(request, 'profile.html', context)

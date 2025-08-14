@@ -1,0 +1,143 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+<style>
+    .profile-card {
+        text-align: center;
+        padding: 2rem;
+    }
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 1rem;
+        border: 4px solid #dee2e6;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .profile-info p {
+        margin-bottom: 0.5rem;
+        color: #6c757d;
+    }
+    .profile-info p strong {
+        color: #343a40;
+    }
+    .nav-tabs .nav-link.active {
+        background-color: #f8f9fa;
+        border-bottom-color: #f8f9fa;
+    }
+</style>
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">User Profile</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item active">User Profile</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card card-primary card-outline">
+                        <div class="card-body profile-card">
+                            <img src="{% static 'dist/img/user-logo.png' %}" alt="User Avatar" class="profile-avatar">
+                            <h3 class="profile-username">{{ profile_user.full_name|default:profile_user.email }}</h3>
+                            <p class="text-muted">{{ profile_user.get_role_display }} {% if profile_user.tenant %} at {{ profile_user.tenant.name }} {% endif %}</p>
+                            
+                            <hr>
+
+                            <div class="profile-info text-left">
+                                <p><strong><i class="fas fa-envelope mr-2"></i>Email:</strong> {{ profile_user.email }}</p>
+                                <p><strong><i class="fas fa-phone mr-2"></i>Phone:</strong> {{ profile_user.phone|default:"Not provided" }}</p>
+                                <p><strong><i class="fas fa-clock mr-2"></i>Member since:</strong> {{ profile_user.created_at|date:"d M, Y" }}</p>
+                            </div>
+
+                            <a href="#" class="btn btn-primary btn-block mt-3"><b>Edit Profile</b></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header p-2">
+                            <ul class="nav nav-pills">
+                                <li class="nav-item"><a class="nav-link active" href="#security" data-toggle="tab">Security</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#activity" data-toggle="tab">Activity</a></li>
+                                {% if request.user.role == 'superadmin' %}
+                                <li class="nav-item"><a class="nav-link" href="#settings" data-toggle="tab">System Settings</a></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <div class="active tab-pane" id="security">
+                                    <h4>Change Password</h4>
+                                    <hr>
+                                    <form class="form-horizontal" action="{% url 'change_pass' %}" method="POST">
+                                        {% csrf_token %}
+                                        <div class="form-group row">
+                                            <label for="inputPassword" class="col-sm-3 col-form-label">New Password</label>
+                                            <div class="col-sm-9">
+                                                <input type="password" name="password" class="form-control" id="inputPassword" placeholder="Enter new password" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="inputPasswordConfirm" class="col-sm-3 col-form-label">Confirm Password</label>
+                                            <div class="col-sm-9">
+                                                <input type="password" class="form-control" id="inputPasswordConfirm" placeholder="Confirm new password" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="offset-sm-3 col-sm-9">
+                                                <button type="submit" class="btn btn-danger">Update Password</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div class="tab-pane" id="activity">
+                                    <h4>My Recent Activity</h4>
+                                    <hr>
+                                    <ul class="list-group list-group-flush">
+                                        {% for log in activity_logs %}
+                                            <li class="list-group-item">
+                                                <strong>{{ log.get_action_type_display }}</strong> - {{ log.details }}
+                                                <span class="float-right text-muted">{{ log.timestamp|timesince }} ago</span>
+                                            </li>
+                                        {% empty %}
+                                            <li class="list-group-item">No recent activity found.</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+
+                                {% if request.user.role == 'superadmin' %}
+                                <div class="tab-pane" id="settings">
+                                    <h4>System Settings</h4>
+                                    <hr>
+                                    <p>This section is reserved for future system-wide configurations, such as SMTP email settings, API keys, or application branding.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

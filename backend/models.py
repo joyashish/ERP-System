@@ -33,6 +33,14 @@ class Account(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
+    last_login = models.DateTimeField(blank=True, null=True)
+    @property
+    def is_authenticated(self):
+        """
+        Always return True for an active user instance.
+        This is a required property for Django's auth system.
+        """
+        return True
 
     def save(self, *args, **kwargs):
         # Hashes password on creation or when it's updated.
@@ -266,6 +274,10 @@ class ActivityLog(models.Model):
         TENANT_CREATED = 'TENANT_ADD', 'Tenant Created'
         ACCOUNT_CREATED = 'ACC_ADD', 'Account Created'
         ACCOUNT_EDITED = 'ACC_EDIT', 'Account Edited'
+
+        # Impersonat start and stop
+        IMPERSONATE_START = 'IMP_START', 'Impersonation Started'
+        IMPERSONATE_STOP = 'IMP_STOP', 'Impersonation Stopped'
         
         # Data Management
         PARTY_CREATED = 'PARTY_ADD', 'Party Created'

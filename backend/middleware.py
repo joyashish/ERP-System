@@ -1,5 +1,7 @@
 from django.http import Http404
 from django.shortcuts import redirect
+from django.contrib import messages
+from django.contrib.auth import logout
 from backend.models import Tenant, Account
 
 class TenantMiddleware:
@@ -7,48 +9,49 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        # Impersonation check remains the same
+        impersonator_id = request.session.get('impersonator_id')
+        if impersonator_id:
+            try:
+                request.impersonator = Account.objects.get(id=impersonator_id)
+            except Account.DoesNotExist:
+                del request.session['impersonator_id']
+        else:
+            request.impersonator = None
+
+        public_urls = ['/', '/logout/', '/impersonate/stop/']
         
-        # 1. Define public URLs that don't need a tenant or login.
-        # Make sure these paths match your urls.py
-        public_urls = ['/', '/logout/'] # Add '/admin/' if you use the Django admin
-        
-        # 2. Check if the current request path is public. If so, do nothing and continue.
         if request.path in public_urls:
             return self.get_response(request)
             
-        # 3. For all other private pages, the user must be logged in.
-        if 'email' not in request.session:
-            # If not logged in, redirect to the login page.
+        # 1. For all private pages, check if a user is authenticated.
+        if not request.user.is_authenticated:
             return redirect('/')
 
-        # 4. Find the account and check if it's a superadmin.
-        account = Account.objects.filter(email=request.session['email']).first()
+        # 2. Get the account directly from request.user.
+        account = request.user
         
-        if not account:
-            # If account in session doesn't exist in DB, force logout.
-            request.session.flush()
-            return redirect('/')
-
+        # 3. Handle superadmin case.
         if account.role == 'superadmin':
             request.tenant = None
             request.is_superadmin = True
         else:
-            # 5. If it's a regular user, they MUST have a tenant in their session.
+            # 4. For regular users, get the tenant DIRECTLY from their account.
             request.is_superadmin = False
-            tenant_id = request.session.get('tenant_id')
+            tenant = account.tenant
             
-            if not tenant_id:
-                raise Http404("User has no assigned tenant. Please contact support.")
-
-            try:
-                # This line is correct, it already checks for is_active=True
-                request.tenant = Tenant.objects.get(id=tenant_id, is_active=True)
-            except Tenant.DoesNotExist:
-                # --- THIS IS THE CHANGE ---
-                # Instead of a 404, log the user out and show a clear message.
-                request.session.flush()
+            if not tenant:
+                # This user has no company assigned, which is an error.
+                logout(request)
+                messages.error(request, "Your account is not associated with a company. Please contact support.")
+                return redirect('/')
+            
+            if not tenant.is_active:
+                # The user's company account has been deactivated.
+                logout(request)
                 messages.error(request, "Your company's account has been deactivated. Please contact support.")
                 return redirect('/')
+
+            request.tenant = tenant
                 
-        # If all checks pass, continue to the view.
         return self.get_response(request)

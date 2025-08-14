@@ -55,7 +55,10 @@ MIDDLEWARE = [
     'backend.middleware.TenantMiddleware',  # tenant middleware
 ]
 
-AUTHENTICATION_BACKENDS = ['backend.auth_backend.AccountBackend']
+AUTHENTICATION_BACKENDS = [
+    'backend.auth_backend.AccountBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 ROOT_URLCONF = 'Erp_system.urls'
 
@@ -70,6 +73,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'backend.context_processors.impersonation_context',
             ],
         },
     },

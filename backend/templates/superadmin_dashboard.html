@@ -274,8 +274,7 @@
                                                 <small class="text-muted">{{ log.timestamp|timesince }} ago</small>
                                             </div>
                                             <p class="mb-1">{{ log.details }}</p>
-                                            <small class="text-muted">Actor: {{ log.actor.email|default:'N/A' }} | Tenant: {{
-                                                log.tenant.name|default:'N/A' }}</small>
+                                           <small class="text-muted">Actor: {{ log.actor.email|default:'N/A' }} |Tenant: {% if log.tenant %}{{ log.tenant.name }}{% else %}<span class="font-italic">Super Admin level</span>{% endif %}</small>
                                         </li>
                                         {% empty %}
                                         <li class="list-group-item">No recent activity found.</li>
@@ -302,8 +301,7 @@
                                                 <small class="text-muted">{{ log.timestamp|timesince }} ago</small>
                                             </div>
                                             <p class="mb-1">{{ log.details }}</p>
-                                            <small class="text-muted">Actor: {{ log.actor.email|default:'N/A' }} | Tenant: {{
-                                                log.tenant.name|default:'N/A' }}</small>
+                                            <small class="text-muted">Actor: {{ log.actor.email|default:'N/A' }} | Tenant: {{ log.tenant.name|default:'N/A' }}</small>
                                         </li>
                                         {% empty %}
                                         <li class="list-group-item">No recent financial activity found.</li>
@@ -492,6 +490,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 // URLs for edit/delete actions
                 var editUrl = `/accounts/edit/${account.id}/`; // <-- ADD THIS LINE
                 var deleteUrl = `/accounts/delete/${account.id}/`; 
+                var impersonateUrl = `/impersonate/start/${account.id}/`;
+                var impersonateButton = '';
+
+                // Only show the impersonate button for non-superadmin accounts
+                if (account.role !== 'Superadmin') {
+                    impersonateButton = `
+                        <a href="${impersonateUrl}" class="btn btn-xs btn-outline-warning" title="Log in as ${account.fullName}">
+                            <i class="fas fa-user-secret"></i>
+                        </a>`;
+                }
                 
                 var row = `<tr>
                     <td>${account.fullName}</td>
@@ -501,6 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <a href="${editUrl}" class="btn btn-xs btn-outline-primary" title="Edit">
                             <i class="fas fa-edit"></i>
                         </a>
+                        ${impersonateButton} 
                         <a href="${deleteUrl}" class="btn btn-xs btn-outline-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this account?');">
                             <i class="fas fa-trash"></i>
                         </a>
@@ -514,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-
+<!-- script for charts -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     fetch("{% url 'superadmin_analytics_api' %}")
