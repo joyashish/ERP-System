@@ -90,5 +90,6 @@ urlpatterns=[
     path('impersonate/stop/', views.impersonate_stop, name='impersonate_stop'),
 
     path('profile/', views.profile_view, name='profile'),
+    path('profile/edit/', views.edit_profile_view, name='edit_profile'),
     
 ]

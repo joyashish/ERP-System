@@ -47,6 +47,21 @@
         </div>
     </div>
 
+    <!-- Message tag -->
+    {% if messages %}
+    <div class="row">
+        <div class="col-md-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show msg_sec" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <section class="content">
         <div class="container-fluid">
             <div class="row">
@@ -65,7 +80,7 @@
                                 <p><strong><i class="fas fa-clock mr-2"></i>Member since:</strong> {{ profile_user.created_at|date:"d M, Y" }}</p>
                             </div>
 
-                            <a href="#" class="btn btn-primary btn-block mt-3"><b>Edit Profile</b></a>
+                            <a href="{% url 'edit_profile' %}" class="btn btn-primary btn-block mt-3"><b>Edit Profile</b></a>
                         </div>
                     </div>
                 </div>

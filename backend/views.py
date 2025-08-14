@@ -1422,3 +1422,27 @@ def profile_view(request):
         'activity_logs': user_activity_logs,
     }
     return render(request, 'profile.html', context)
+
+@tenant_required
+def edit_profile_view(request):
+    # Get the currently logged-in user
+    account_to_edit = request.user
+
+    if request.method == 'POST':
+        # Get the submitted data from the form
+        full_name = request.POST.get('full_name')
+        phone = request.POST.get('phone')
+
+        # Update the account object
+        account_to_edit.full_name = full_name
+        account_to_edit.phone = phone
+        account_to_edit.save()
+
+        messages.success(request, 'Your profile has been updated successfully.')
+        return redirect('profile') # Redirect back to the main profile page
+
+    context = {
+        'add': account_to_edit,
+        'profile_user': account_to_edit,
+    }
+    return render(request, 'edit_profile.html', context)

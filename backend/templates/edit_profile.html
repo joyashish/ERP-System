@@ -1,0 +1,68 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Edit Profile</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'profile' %}">User Profile</a></li>
+                        <li class="breadcrumb-item active">Edit</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Edit Your Information</h3>
+                        </div>
+                        <form class="form-horizontal" method="POST">
+                            {% csrf_token %}
+                            <div class="card-body">
+                                <div class="form-group row">
+                                    <label for="inputEmail" class="col-sm-3 col-form-label">Email</label>
+                                    <div class="col-sm-9">
+                                        <input type="email" class="form-control" id="inputEmail" value="{{ profile_user.email }}" readonly>
+                                        <small class="form-text text-muted">Your email address cannot be changed.</small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="inputName" class="col-sm-3 col-form-label">Full Name</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" name="full_name" class="form-control" id="inputName" value="{{ profile_user.full_name|default:'' }}" placeholder="Enter your full name">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="inputPhone" class="col-sm-3 col-form-label">Phone Number</label>
+                                    <div class="col-sm-9">
+                                        <input type="tel" name="phone" class="form-control" id="inputPhone" value="{{ profile_user.phone|default:'' }}" placeholder="Enter your phone number">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-success">Save Changes</button>
+                                <a href="{% url 'profile' %}" class="btn btn-secondary float-right">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}
