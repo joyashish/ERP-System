@@ -451,6 +451,147 @@ body {
     text-decoration: none;
 }
 </style>
+
+<style>
+  /* ===== STAT CARD STYLES ===== */
+.stat-card {
+    position: relative;
+    padding: 1.5rem;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
+}
+
+.stat-card.active {
+    border: 2px solid var(--primary-color);
+    background-color: rgba(var(--primary-color-rgb), 0.08);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--secondary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.stat-icon {
+    position: absolute;
+    right: 1.5rem;
+    top: 1.5rem;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    opacity: 0.2;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+    opacity: 0.4;
+}
+
+.filter-status {
+    padding: 0.75rem 1.25rem;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.clear-filter {
+    margin-left: 1rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Light Theme Specific */
+.light-theme {
+    --primary-color-rgb: 0, 123, 255;
+    --secondary-color-rgb: 108, 117, 125;
+    
+    .stat-card {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+    }
+    
+    .stat-card:hover {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .clear-filter {
+        color: #dc3545;
+        background-color: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.2);
+    }
+    
+    .clear-filter:hover {
+        background-color: rgba(220, 53, 69, 0.2);
+    }
+    
+    .stat-label {
+        color: #6c757d;
+    }
+}
+
+/* Dark Theme Specific */
+.dark-theme {
+    --primary-color-rgb: 49, 130, 206;
+    --secondary-color-rgb: 160, 174, 192;
+    
+    .stat-card {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-card:hover {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .clear-filter {
+        color: #fc8181;
+        background-color: rgba(220, 53, 69, 0.15);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+    
+    .clear-filter:hover {
+        background-color: rgba(220, 53, 69, 0.25);
+    }
+    
+    .stat-label {
+        color: #a0aec0;
+        opacity: 0.9;
+    }
+    
+    .stat-value {
+        color: #f7fafc;
+    }
+}
+</style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">

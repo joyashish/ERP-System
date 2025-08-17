@@ -51,7 +51,10 @@ urlpatterns=[
     #.....Item_list......#
     # path('Item_list',views.Item_listVw,name="Item_list"),
     path('Item_list/', views.item_list_view, name='Item_list'),
-    path('item/update/<int:id>/', lambda x, id: None, name='update_item'),
+    path('item/update/<int:item_id>/', views.update_item_view, name='update_item'),
+    path('item/delete/<int:item_id>/', views.delete_item_view, name='delete_item'),
+    path('item/toggle-status/<int:item_id>/', views.toggle_item_status, name='toggle_item_status'),
+    # path('item/update/<int:id>/', lambda x, id: None, name='update_item'),
     path('item/delete/<int:id>/', lambda x, id: None, name='delete_item'),
 
 

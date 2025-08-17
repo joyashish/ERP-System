@@ -26,34 +26,45 @@
     <!-- Stats Boxes -->   
     <section class="content">
         <div class="container-fluid">
-          <div class="row">
-              <div class="col-lg-4 col-md-6">
-                <div class="small-box bg-card">
-                  <div class="inner">
-                    <h5><i class="fa-solid fa-arrow-trend-up"></i> All Party</h5>
-                    <h4>{{ total_parties }}</h4>
+          <div class="stats-container">
+            <div class="row">
+              <!-- All Party Count -->
+              <div class="col-lg-4 col-md-6 mb-3">
+                <div class="stat-card">
+                  <p class="stat-label">All Party</p>
+                  <h4 class="stat-value">{{ total_parties }}</h4>
+                  <div class="stat-icon">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
                   </div>
                 </div>
               </div>
-
-              <div class="col-lg-4 col-md-6">
-                <div class="small-box bg-card">
-                  <div class="inner">
-                    <h5><i class="fa-solid fa-arrow-trend-up"></i>To Collect</h5>
-                    <h4><i class="fa-solid fa-indian-rupee-sign"></i>{{ total_balance }}</h4>
+          
+              <!-- To Collect -->
+              <div class="col-lg-4 col-md-6 mb-3">
+                <div class="stat-card">
+                  <p class="stat-label">To Collect</p>
+                  <h4 class="stat-value">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>{{ total_balance }}
+                  </h4>
+                  <div class="stat-icon">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
                   </div>
                 </div>
               </div>
-
-              <div class="col-lg-4 col-md-6">
-                <div class="small-box bg-card">
-                  <div class="inner">
-                    <h5><i class="fa-solid fa-arrow-trend-up"></i> To Pay</h5>
-                    <h4><i class="fa-solid fa-indian-rupee-sign"></i>{{ total_credit }}</h4>
+          
+              <!-- To Pay -->
+              <div class="col-lg-4 col-md-6 mb-3">
+                <div class="stat-card">
+                  <p class="stat-label">To Pay</p>
+                  <h4 class="stat-value">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>{{ total_credit }}
+                  </h4>
+                  <div class="stat-icon">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
                   </div>
                 </div>
               </div>
-            <!-- ./col -->
+            </div>
           </div>
           <!-- /.row -->
         </div><!-- /.container-fluid -->

@@ -324,6 +324,7 @@ def item_list_view(request):
     products = Product.objects.none()
     services = Service.objects.none()
 
+    # Determine tenant context
     if account.role == 'superadmin':
         tenant_id = request.GET.get('tenant_id')
         if tenant_id:
@@ -338,13 +339,41 @@ def item_list_view(request):
         products = Product.objects.filter(tenant=tenant)
         services = Service.objects.filter(tenant=tenant)
     
-    items = list(products) + list(services)
-    current_date = timezone.now().date()
-    thirty_days_from_now = current_date + timedelta(days=30)
+    # --- NEW: Get and apply the filter from the URL ---
+    item_filter = request.GET.get('filter')
+    
+    products_to_display = products
+    services_to_display = services
+
+    filter_display_name = ''
+    if item_filter == 'products_only':
+        services_to_display = services.none()
+        filter_display_name = 'Products Only'
+    elif item_filter == 'services_only':
+        products_to_display = products.none()
+        filter_display_name = 'Services Only'
+    elif item_filter == 'expiring_soon':
+        today = timezone.now().date()
+        thirty_days_from_now = today + timedelta(days=30)
+        products_to_display = products.filter(
+            expiry_date__isnull=False,
+            expiry_date__gte=today,
+            expiry_date__lte=thirty_days_from_now
+        )
+        services_to_display = services.none()
+        filter_display_name = 'Expiring Soon'
+    # Combine the filtered querysets for display
+    items = list(products_to_display) + list(services_to_display)
+    
+    # --- Calculate counts based on the UNFILTERED base querysets ---
+    product_count = products.count()
+    service_count = services.count()
+    today = timezone.now().date()
+    thirty_days_from_now = today + timedelta(days=30)
     expiring_count = products.filter(
         expiry_date__isnull=False,
-        expiry_date__lte=thirty_days_from_now,
-        expiry_date__gte=current_date
+        expiry_date__gte=today,
+        expiry_date__lte=thirty_days_from_now
     ).count()
     
     context = {
@@ -354,6 +383,8 @@ def item_list_view(request):
         'service_count': services.count(),
         'expiring_count': expiring_count,
         'tenant': tenant,
+        'active_filter': item_filter,
+        'filter_display_name': filter_display_name,
     }
     return render(request, 'Item_list.html', context)
 
@@ -428,6 +459,7 @@ def create_item_view(request):
                 service_data = {
                     **common_data,
                     'service_unit': request.POST.get('ltype') or None,
+                    'service_start_date': request.POST.get('service_start_date') or None,
                 }
                 service = Service(**service_data)
                 service.full_clean()
@@ -470,22 +502,139 @@ def create_item_view(request):
 
     return render(request, 'Create_item.html', context)
 
-# Create Sale View
-# @tenant_required
-# def Create_saleVw(request):
-#     account = Account.objects.filter(email=request.session['email']).first()
-#     tenant = get_tenant(request) if not account.role == 'superadmin' else None
-#     tenants = Tenant.objects.all() if account.role == 'superadmin' else []
+# Update Item View
+@tenant_required
+def update_item_view(request, item_id):
+    account = get_object_or_404(Account, email=request.session['email'])
     
-#     context = {
-#         'items': ItemBase.objects.filter(tenant=tenant, is_active=True).order_by('item_name') if tenant else ItemBase.objects.filter(is_active=True).order_by('item_name'),
-#         'parties': Create_party.objects.filter(tenant=tenant, is_active=True).order_by('party_name') if tenant else Create_party.objects.filter(is_active=True).order_by('party_name'),
-#         'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}",
-#         'add': account,
-#         'tenant': tenant,
-#         'tenants': tenants,
-#     }
-#     return render(request, 'Create_Sale.html', context)
+    # Fetch the base item to check its type and for security
+    item_base = get_object_or_404(ItemBase, id=item_id)
+    
+    # Security Check: Ensure user is a superadmin or belongs to the correct tenant
+    if account.role != 'superadmin' and item_base.tenant != request.tenant:
+        messages.error(request, "You are not authorized to edit this item.")
+        return redirect('Item_list')
+        
+    # Determine if the item is a Product or Service to fetch the specific instance
+    if item_base.item_type == 'product':
+        item_instance = get_object_or_404(Product, id=item_id)
+    else: # 'service'
+        item_instance = get_object_or_404(Service, id=item_id)
+        
+    if request.method == "POST":
+        try:
+            # For simplicity, we'll update the fields directly.
+            # A Django ModelForm would be a more advanced way to handle this.
+            
+            # Common fields
+            item_instance.item_name = request.POST.get('item_name', '').strip()
+            item_instance.description = request.POST.get('item_des', '')
+            item_instance.category_id = request.POST.get('category')
+            item_instance.gst_rate = request.POST.get('gst')
+            item_instance.hsn_sac_code = request.POST.get('hsn')
+            item_instance.sale_price = request.POST.get('sale_price')
+            
+            if 'product_image' in request.FILES:
+                item_instance.image = request.FILES['product_image']
+
+            # Product-specific fields
+            if item_instance.item_type == 'product':
+                item_instance.unit_id = request.POST.get('unit')
+                item_instance.purchase_price = request.POST.get('purchase_price')
+                item_instance.opening_stock = request.POST.get('opening_stock')
+                item_instance.stock_date = request.POST.get('stock_date') or None
+                item_instance.expiry_date = request.POST.get('expiry_date') or None
+                item_instance.batch_number = request.POST.get('batch_number')
+            
+            # Service-specific fields (if you add them to the form)
+            elif item_instance.item_type == 'service':
+                item_instance.sale_price = request.POST.get('sale_price')
+            
+            item_instance.full_clean()
+            item_instance.save()
+            messages.success(request, f"Item '{item_instance.item_name}' updated successfully.")
+
+            if account.role == 'superadmin':
+                return redirect(f"/Item_list?tenant_id={item_instance.tenant.id}")
+            else:
+                return redirect('Item_list')
+        
+        except ValidationError as e:
+            error_messages = e.message_dict if hasattr(e, 'message_dict') else {'__all__': e.messages}
+            for field, errors in error_messages.items():
+                for error in errors:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {error}")
+        except Exception as e:
+            messages.error(request, f"An unexpected error occurred: {str(e)}")
+        
+        return redirect('update_item', item_id=item_instance.id)
+
+    # For GET request, prepare the context
+    context = {
+        'add': account,
+        'item': item_instance,
+    }
+    # Load tenant-specific or all Units/Categories for the dropdowns
+    if account.role == 'superadmin':
+        context['unit'] = Unit.objects.filter(tenant=item_instance.tenant)
+        context['category'] = Category.objects.filter(tenant=item_instance.tenant)
+    else:
+        context['unit'] = Unit.objects.filter(tenant=request.tenant, is_active=True)
+        context['category'] = Category.objects.filter(tenant=request.tenant, is_active=True)
+
+    return render(request, 'update_item.html', context)
+
+# Delete Item View 
+@tenant_required
+def delete_item_view(request, item_id):
+    account = get_object_or_404(Account, email=request.session['email'])
+    item_to_delete = get_object_or_404(ItemBase, id=item_id)
+    
+    # Store the tenant ID for the redirect before changing the item
+    tenant_id = item_to_delete.tenant.id
+
+    # Security Check: Ensure the user is a superadmin or belongs to the item's tenant
+    if account.role != 'superadmin' and item_to_delete.tenant != request.tenant:
+        messages.error(request, "You are not authorized to delete this item.")
+        return redirect('Item_list')
+
+    try:
+        # Perform a "soft delete" by setting the item to inactive
+        item_to_delete.is_active = False
+        item_to_delete.save()
+        messages.success(request, f"Item '{item_to_delete.item_name}' has been successfully deleted.")
+    except Exception as e:
+        messages.error(request, f"An error occurred while deleting the item: {e}")
+
+    # Redirect back to the item list, maintaining the tenant context for the superadmin
+    if account.role == 'superadmin':
+        return redirect(f"{reverse('Item_list')}?tenant_id={tenant_id}")
+    else:
+        return redirect('Item_list')
+# Toggle Item Activate/Deactivate
+@tenant_required
+def toggle_item_status(request, item_id):
+    account = get_object_or_404(Account, email=request.session['email'])
+    item_to_toggle = get_object_or_404(ItemBase, id=item_id)
+
+    # Security Check
+    if account.role != 'superadmin' and item_to_toggle.tenant != request.tenant:
+        messages.error(request, "You are not authorized to modify this item.")
+        return redirect('Item_list')
+
+    # Flip the boolean status
+    item_to_toggle.is_active = not item_to_toggle.is_active
+    item_to_toggle.save()
+
+    status = "activated" if item_to_toggle.is_active else "deactivated"
+    messages.success(request, f"Item '{item_to_toggle.item_name}' has been {status}.")
+
+    # Redirect back, preserving the tenant context for the superadmin
+    if account.role == 'superadmin':
+        tenant_id = item_to_toggle.tenant.id
+        return redirect(f"{reverse('Item_list')}?tenant_id={tenant_id}")
+    else:
+        return redirect('Item_list')
 
 # Create Sale View (Detailed)
 @tenant_required

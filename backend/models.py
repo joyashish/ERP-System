@@ -162,6 +162,16 @@ class Service(ItemBase):
         ('UNT', 'Unit')
     ], blank=True, null=True)
     estimated_duration = models.PositiveIntegerField(blank=True, null=True, help_text="Duration in minutes")
+    service_start_date = models.DateField(null=True, blank=True, help_text="The date the service validity begins.")
+
+    @property
+    def is_in_service_period(self):
+        """Checks if the service period has started."""
+        if not self.service_start_date:
+            return False # Not in service if no start date is set
+        
+        today = timezone.now().date()
+        return today >= self.service_start_date
 
     def clean(self):
         super().clean()
