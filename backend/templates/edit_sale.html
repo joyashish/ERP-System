@@ -163,7 +163,8 @@
 
         <section class="content">
             <div class="container-fluid">
-                <form method="POST" action="{% url 'edit_sale' sale.id %}">
+                <!-- Change the form action to include tenant_id for superadmin -->
+                <form method="POST" action="{% url 'edit_sale' sale.id %}{% if add.role == 'superadmin' and sale.tenant %}?tenant_id={{ sale.tenant.id }}{% endif %}">
                     {% csrf_token %}
                     <div class="d-flex justify-content-end mb-3">
                         <a href="{% url 'sales_list' %}" class="btn btn-secondary mr-2">Cancel</a>

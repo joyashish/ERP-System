@@ -2,6 +2,16 @@ from django.urls import path
 from backend import views 
 urlpatterns=[
 
+    #..... Admin Login ......# 
+    path('',views.Admin_loginVW,name='admin_login'),
+
+    #..... Logout ......#
+    path('logout/', views.logout_view, name='logout'),
+
+    #..... Change_Password......#
+    path('change_pass',views.ChangePasswordVw,name="change_pass"),
+    
+
     # Super Admin Dashboard
     path('superadmin_dashboard/', views.superadmin_dashboard, name='superadmin_dashboard'),
 
@@ -11,6 +21,8 @@ urlpatterns=[
     path('edit_tenant/<int:tenant_id>/', views.edit_tenant, name='edit_tenant'),
     # Delete Tenant
     path('delete_tenant/<int:tenant_id>/', views.delete_tenant, name='delete_tenant'),
+
+
     # Manage Accounts
     path('manage_accounts/<int:tenant_id>/', views.manage_accounts, name='manage_accounts'),
 
@@ -26,15 +38,6 @@ urlpatterns=[
     #..... Print ......# 
     path('print',views.printVw,name='print'),
 
-    #..... Admin Login ......# 
-    path('',views.Admin_loginVW,name='admin_login'),
-
-    #..... Logout ......#
-    # path('logout',views.logout,name='logout'),
-    path('logout/', views.logout_view, name='logout'),
-
-    #..... Change_Password......#
-    path('change_pass',views.ChangePasswordVw,name="change_pass"),
 
     #.....Party_list......#
     path('Party_list',views.Party_listVw,name="Party_list"),
@@ -48,7 +51,9 @@ urlpatterns=[
     #.....create_party......#
     path('Create_party',views.Create_partyVw,name="Create_party"),
 
-    #.....Item_list......#
+    #.....Item_Url......#
+        #.....create_item......#
+    path('Create_item',views.create_item_view,name="Create_item"),
     # path('Item_list',views.Item_listVw,name="Item_list"),
     path('Item_list/', views.item_list_view, name='Item_list'),
     path('item/update/<int:item_id>/', views.update_item_view, name='update_item'),
@@ -58,17 +63,15 @@ urlpatterns=[
     path('item/delete/<int:id>/', lambda x, id: None, name='delete_item'),
 
 
-    #.....create_item......#
-    path('Create_item',views.create_item_view,name="Create_item"),
-
-    #.....create_sale......#
-    path('Create_Sale',views.create_sale_view,name="Create_Sale"),
+    
     # Get Tenant Data 
     path('api/get_tenant_data/<int:tenant_id>/', views.get_tenant_data_for_sale_form, name='get_tenant_data'),
     path('sale_list/', lambda x: None, name='sale_list'),
     
 
-    #.....Sales......#
+    #.....Sales URL......#
+    #.....create_sale......#
+    path('Create_Sale',views.create_sale_view,name="Create_Sale"),
     path('sales_list/', views.sales_list, name='sales_list'),
     path('sale/<int:sale_id>/edit/', views.edit_sale_view, name='edit_sale'),
     path('sales/delete/<int:sale_id>/', views.delete_sale, name='delete_sale'),
@@ -92,6 +95,7 @@ urlpatterns=[
     path('impersonate/start/<int:account_id>/', views.impersonate_start, name='impersonate_start'),
     path('impersonate/stop/', views.impersonate_stop, name='impersonate_stop'),
 
+    # Profile URL
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.edit_profile_view, name='edit_profile'),
     

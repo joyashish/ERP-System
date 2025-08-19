@@ -23,6 +23,8 @@ from django.db.models import Sum, Q
 from decimal import Decimal
 from django.db.models.functions import TruncMonth
 from dateutil.relativedelta import relativedelta
+from django.urls import reverse
+
 
 
 
@@ -168,40 +170,7 @@ def ChangePasswordVw(request):
         return redirect('/')
     return render(request, 'change_pass.html', {'data': account, 'add': account, 'tenant': tenant})
 
-# Party List View
-@tenant_required
-def Party_listVw(request):
-    account = Account.objects.filter(email=request.session['email']).first()
-    
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        tenant = None
-        party_list = Create_party.objects.none() # Default to an empty list
 
-        if tenant_id:
-            try:
-                tenant = Tenant.objects.get(id=tenant_id)
-                party_list = Create_party.objects.filter(tenant=tenant, is_active=True)
-            except Tenant.DoesNotExist:
-                # Handle case where an invalid tenant_id is passed
-                pass 
-    else:
-        # This logic for regular users is correct and remains the same
-        tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
-        party_list = Create_party.objects.filter(tenant=tenant, is_active=True)
-
-    total_balance = party_list.aggregate(total=Sum('opening_balance'))['total'] or 0.00
-    total_credit = party_list.aggregate(total=Sum('credit_limit'))['total'] or 0.00
-    
-    context = {
-        'party_list': party_list,
-        'total_parties': party_list.count(),
-        'total_balance': total_balance,
-        'total_credit': total_credit,
-        'add': account,
-        'tenant': tenant, # Pass the specific tenant to the template
-    }
-    return render(request, 'Party_list.html', context)
 
 # Create Party View
 @tenant_required
@@ -260,18 +229,66 @@ def Create_partyVw(request):
 
     return render(request, 'Create_party.html', context)
 
+# Party List View
+@tenant_required
+def Party_listVw(request):
+    account = Account.objects.filter(email=request.session['email']).first()
+    
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        tenant = None
+        party_list = Create_party.objects.none() # Default to an empty list
+
+        if tenant_id:
+            try:
+                tenant = Tenant.objects.get(id=tenant_id)
+                party_list = Create_party.objects.filter(tenant=tenant, is_active=True)
+            except Tenant.DoesNotExist:
+                # Handle case where an invalid tenant_id is passed
+                pass 
+    else:
+        # This logic for regular users is correct and remains the same
+        tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
+        party_list = Create_party.objects.filter(tenant=tenant, is_active=True)
+
+    total_balance = party_list.aggregate(total=Sum('opening_balance'))['total'] or 0.00
+    total_credit = party_list.aggregate(total=Sum('credit_limit'))['total'] or 0.00
+    
+    context = {
+        'party_list': party_list,
+        'total_parties': party_list.count(),
+        'total_balance': total_balance,
+        'total_credit': total_credit,
+        'add': account,
+        'tenant': tenant, # Pass the specific tenant to the template
+    }
+    return render(request, 'Party_list.html', context)
+
 # Delete Party View
 @tenant_required
 def Dlt_Party_ListVw(request, id):
     account = Account.objects.filter(email=request.session['email']).first()
     tenant = get_tenant(request) if not account.role == 'superadmin' else None
     
+    # Get the party first to preserve tenant info
     if account.role == 'superadmin':
-        Create_party.objects.filter(id=id).update(is_active=False)
+        party = Create_party.objects.filter(id=id).first()
     else:
-        Create_party.objects.filter(id=id, tenant=tenant).update(is_active=False)
-    messages.info(request, 'Party Deleted !')
-    return redirect('/Party_list')
+        party = Create_party.objects.filter(id=id, tenant=tenant).first()
+    
+    if party:
+        party.is_active = False
+        party.save()
+        messages.info(request, 'Party Deleted!')
+        
+        # Redirect based on who is logged in
+        if account.role == 'superadmin':
+            return redirect(f"/Party_list?tenant_id={party.tenant.id}")
+        else:
+            return redirect('/Party_list')
+    else:
+        messages.error(request, 'Party not found!')
+        return redirect('/Party_list')
 
 # Update Party View
 @tenant_required
@@ -292,7 +309,7 @@ def Updt_Party_List(request, id):
         gst_no = request.POST['gst_in']
         pan_no = request.POST['pan_no']
         party_type = request.POST['p_type']
-        party_category = request.POST['p_type']
+        party_category = request.POST['p_category']
         billing_address = request.POST['billing_address']
         shipping_address = request.POST['shipping_address']
         credit_period = request.POST['credit_period']
@@ -313,8 +330,23 @@ def Updt_Party_List(request, id):
             credit_limit=credit_limit
         )
         messages.info(request, 'Party Update Successfully.')
-        return redirect('/Party_list')
-    return render(request, 'Update_party.html', {'add': account, 'party_list': party_list, 'tenant': tenant})
+        
+        # Redirect based on who is logged in
+        if account.role == 'superadmin':
+            # Get the tenant_id from the party being updated
+            party = party_list.first()
+            return redirect(f"/Party_list?tenant_id={party.tenant.id}")
+        else:
+            return redirect('/Party_list')
+    
+    # For GET request, pass tenant_id to template for potential use
+    context = {'add': account, 'party_list': party_list, 'tenant': tenant}
+    if account.role == 'superadmin':
+        # Get the tenant_id from the party being updated
+        party = party_list.first()
+        context['tenant_id'] = party.tenant.id if party else None
+    
+    return render(request, 'Update_party.html', context)
 
 # Item List View
 @tenant_required
@@ -885,143 +917,6 @@ def sales_list(request):
     }
     return render(request, 'sales_list.html', context)
 
-# --- VIEW to Get tenant data for sale ---
-def get_tenant_data_for_sale_form(request, tenant_id):
-    # Ensure only authenticated superadmins can access this
-    account = Account.objects.filter(email=request.session.get('email')).first()
-    if not account or account.role != 'superadmin':
-        return JsonResponse({'error': 'Unauthorized'}, status=403)
-
-    # Fetch parties and items for the requested tenant
-    parties = Create_party.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'party_name')
-    items = ItemBase.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'item_name', 'sale_price', 'gst_rate')
-
-    data = {
-        'parties': list(parties),
-        'items': list(items),
-    }
-    return JsonResponse(data)
-# Sale Detail View
-@tenant_required
-def sale_detail_view(request, sale_id):
-    account = get_object_or_404(Account, email=request.session['email'])
-    sale = get_object_or_404(Sale.objects.prefetch_related('items', 'items__item', 'payments'), id=sale_id)
-
-    # Security check: Ensure the user has permission to view this sale
-    if account.role != 'superadmin' and sale.tenant != request.tenant:
-        messages.error(request, "You are not authorized to view this sale.")
-        return redirect('sales_list')
-
-    context = {
-        'add': account,
-        'sale': sale,
-        'tenant': sale.tenant,
-    }
-    return render(request, 'sale_detail.html', context)
-
-# Reacord Payment
-@tenant_required
-def record_payment(request, sale_id):
-    sale = get_object_or_404(Sale, id=sale_id)
-    account = get_object_or_404(Account, email=request.session['email'])
-
-    # Security check
-    if account.role != 'superadmin' and sale.tenant != request.tenant:
-        messages.error(request, "You are not authorized to modify this sale.")
-        return redirect('sales_list')
-
-    if request.method == 'POST':
-        try:
-            amount_str = request.POST.get('amount')
-            if not amount_str:
-                raise ValueError("Amount is required.")
-                
-            amount = Decimal(amount_str)
-            
-            if amount <= 0:
-                raise ValueError("Payment amount must be positive.")
-            if amount > sale.balance_amount:
-                raise ValueError("Payment cannot be greater than the balance due.")
-
-            # Use a database transaction to ensure data integrity
-            with transaction.atomic():
-                # 1. Update the Sale object
-                sale.amount_received += amount
-                sale.balance_amount -= amount
-                sale.save()
-
-                # 2. Create the Payment record
-                Payment.objects.create(
-                    sale=sale,
-                    payment_date=request.POST.get('payment_date'),
-                    amount=amount,
-                    payment_mode=request.POST.get('payment_mode'),
-                    notes=request.POST.get('notes', ''),
-                    user=account
-                )
-            
-            messages.success(request, f"Payment of ₹{amount} recorded successfully.")
-
-        except (ValueError, Exception) as e:
-            messages.error(request, f"Error recording payment: {e}")
-
-    return redirect('sale_detail', sale_id=sale.id)
-
-# Delete Sales View
-from django.urls import reverse
-
-@tenant_required
-def delete_sale(request, sale_id):
-    account = get_object_or_404(Account, email=request.session['email'])
-    sale_to_delete = get_object_or_404(Sale, id=sale_id)
-    
-    # Store the tenant ID before deleting the sale
-    tenant_id = sale_to_delete.tenant.id
-
-    if account.role != 'superadmin' and sale_to_delete.tenant != request.tenant:
-        messages.error(request, "You are not authorized to delete this sale.")
-        return redirect('sales_list')
-
-    try:
-        with transaction.atomic():
-            for item in sale_to_delete.items.all():
-                if item.item and item.item.item_type == 'product':
-                    product = get_object_or_404(Product, id=item.item.id)
-                    product.opening_stock += item.quantity
-                    product.save()
-            
-            invoice_no = sale_to_delete.invoice_no
-            sale_to_delete.delete()
-            messages.success(request, f"Invoice {invoice_no} has been deleted successfully.")
-    
-    except Exception as e:
-        messages.error(request, f"An error occurred while deleting the sale: {e}")
-
-    # Redirect correctly based on the user's role
-    if account.role == 'superadmin':
-        # For superadmin, redirect back to the specific tenant's sales list
-        redirect_url = f"{reverse('sales_list')}?tenant_id={tenant_id}"
-        return redirect(redirect_url)
-    else:
-        # For regular users, redirect to their own sales list
-        return redirect('sales_list')
-
-# Sale Invoice Pdf
-@tenant_required
-def sale_invoice_pdf(request, sale_id):
-    account = get_object_or_404(Account, email=request.session['email'])
-    sale = get_object_or_404(Sale, id=sale_id)
-
-    # Security check
-    if account.role != 'superadmin' and sale.tenant != request.tenant:
-        messages.error(request, "You are not authorized to view this invoice.")
-        return redirect('sales_list')
-
-    context = {
-        'sale': sale,
-    }
-    return render(request, 'sale_invoice_pdf.html', context)
-
 # Edit Sale View
 @never_cache
 @tenant_required
@@ -1114,7 +1009,12 @@ def edit_sale_view(request, sale_id):
                 SaleItem.objects.bulk_create(new_sale_items)
                 
                 messages.success(request, f"Sale {sale.invoice_no} updated successfully!")
-                return redirect('sales_list')
+                
+                # FIX: Redirect with tenant_id for superadmin
+                if account.role == 'superadmin':
+                    return redirect(f"/sales_list/?tenant_id={sale.tenant.id}")
+                else:
+                    return redirect('sales_list')
         
         except (ValidationError, Exception) as e:
             messages.error(request, f"Error updating sale: {e}")
@@ -1128,6 +1028,143 @@ def edit_sale_view(request, sale_id):
         'tenant': tenant,
     }
     return render(request, 'edit_sale.html', context)
+
+# Delete Sales View
+@tenant_required
+def delete_sale(request, sale_id):
+    account = get_object_or_404(Account, email=request.session['email'])
+    sale_to_delete = get_object_or_404(Sale, id=sale_id)
+    
+    # Store the tenant ID before deleting the sale
+    tenant_id = sale_to_delete.tenant.id
+
+    if account.role != 'superadmin' and sale_to_delete.tenant != request.tenant:
+        messages.error(request, "You are not authorized to delete this sale.")
+        return redirect('sales_list')
+
+    try:
+        with transaction.atomic():
+            for item in sale_to_delete.items.all():
+                if item.item and item.item.item_type == 'product':
+                    product = get_object_or_404(Product, id=item.item.id)
+                    product.opening_stock += item.quantity
+                    product.save()
+            
+            invoice_no = sale_to_delete.invoice_no
+            sale_to_delete.delete()
+            messages.success(request, f"Invoice {invoice_no} has been deleted successfully.")
+    
+    except Exception as e:
+        messages.error(request, f"An error occurred while deleting the sale: {e}")
+
+    # Redirect correctly based on the user's role
+    if account.role == 'superadmin':
+        # For superadmin, redirect back to the specific tenant's sales list
+        redirect_url = f"{reverse('sales_list')}?tenant_id={tenant_id}"
+        return redirect(redirect_url)
+    else:
+        # For regular users, redirect to their own sales list
+        return redirect('sales_list')
+
+# --- VIEW to Get tenant data for sale ---
+def get_tenant_data_for_sale_form(request, tenant_id):
+    # Ensure only authenticated superadmins can access this
+    account = Account.objects.filter(email=request.session.get('email')).first()
+    if not account or account.role != 'superadmin':
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    # Fetch parties and items for the requested tenant
+    parties = Create_party.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'party_name')
+    items = ItemBase.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'item_name', 'sale_price', 'gst_rate')
+
+    data = {
+        'parties': list(parties),
+        'items': list(items),
+    }
+    return JsonResponse(data)
+# Sale Detail View
+@tenant_required
+def sale_detail_view(request, sale_id):
+    account = get_object_or_404(Account, email=request.session['email'])
+    sale = get_object_or_404(Sale.objects.prefetch_related('items', 'items__item', 'payments'), id=sale_id)
+
+    # Security check: Ensure the user has permission to view this sale
+    if account.role != 'superadmin' and sale.tenant != request.tenant:
+        messages.error(request, "You are not authorized to view this sale.")
+        return redirect('sales_list')
+
+    context = {
+        'add': account,
+        'sale': sale,
+        'tenant': sale.tenant,
+    }
+    return render(request, 'sale_detail.html', context)
+
+# Reacord Payment
+@tenant_required
+def record_payment(request, sale_id):
+    sale = get_object_or_404(Sale, id=sale_id)
+    account = get_object_or_404(Account, email=request.session['email'])
+
+    # Security check
+    if account.role != 'superadmin' and sale.tenant != request.tenant:
+        messages.error(request, "You are not authorized to modify this sale.")
+        return redirect('sales_list')
+
+    if request.method == 'POST':
+        try:
+            amount_str = request.POST.get('amount')
+            if not amount_str:
+                raise ValueError("Amount is required.")
+                
+            amount = Decimal(amount_str)
+            
+            if amount <= 0:
+                raise ValueError("Payment amount must be positive.")
+            if amount > sale.balance_amount:
+                raise ValueError("Payment cannot be greater than the balance due.")
+
+            # Use a database transaction to ensure data integrity
+            with transaction.atomic():
+                # 1. Update the Sale object
+                sale.amount_received += amount
+                sale.balance_amount -= amount
+                sale.save()
+
+                # 2. Create the Payment record
+                Payment.objects.create(
+                    sale=sale,
+                    payment_date=request.POST.get('payment_date'),
+                    amount=amount,
+                    payment_mode=request.POST.get('payment_mode'),
+                    notes=request.POST.get('notes', ''),
+                    user=account
+                )
+            
+            messages.success(request, f"Payment of ₹{amount} recorded successfully.")
+
+        except (ValueError, Exception) as e:
+            messages.error(request, f"Error recording payment: {e}")
+
+    return redirect('sale_detail', sale_id=sale.id)
+
+
+# Sale Invoice Pdf
+@tenant_required
+def sale_invoice_pdf(request, sale_id):
+    account = get_object_or_404(Account, email=request.session['email'])
+    sale = get_object_or_404(Sale, id=sale_id)
+
+    # Security check
+    if account.role != 'superadmin' and sale.tenant != request.tenant:
+        messages.error(request, "You are not authorized to view this invoice.")
+        return redirect('sales_list')
+
+    context = {
+        'sale': sale,
+    }
+    return render(request, 'sale_invoice_pdf.html', context)
+
 
 # Superadmin Dashboard
 @superadmin_required
