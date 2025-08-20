@@ -39,17 +39,15 @@ urlpatterns=[
     path('print',views.printVw,name='print'),
 
 
-    #.....Party_list......#
+    #.....Party_Views......#
     path('Party_list',views.Party_listVw,name="Party_list"),
-
     #.....update_party......#
     path('update_party/<id>',views.Updt_Party_List,name="update_party"),
-
     #.....delete_party......#
     path('delete_party/<id>',views.Dlt_Party_ListVw,name="delete_party"),
-
     #.....create_party......#
     path('Create_party',views.Create_partyVw,name="Create_party"),
+    path('party/view/<int:party_id>/', views.party_detail_view, name='party_detail'),
 
     #.....Item_Url......#
         #.....create_item......#

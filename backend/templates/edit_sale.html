@@ -153,7 +153,7 @@
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
                             <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{% url 'sales_list' %}">Sales</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'sales_list' %}{% if add.role == 'superadmin' and sale.tenant %}?tenant_id={{ sale.tenant.id }}{% endif %}">Sales</a></li>
                             <li class="breadcrumb-item active">{{ sale.invoice_no }}</li>
                         </ol>
                     </div>
@@ -163,11 +163,18 @@
 
         <section class="content">
             <div class="container-fluid">
+                <!-- Add this at the top of your form section for better UX -->
+                {% if add.role != 'superadmin' and sale.tenant != request.tenant %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    You are not authorized to edit this sale.
+                </div>
+                {% endif %}
                 <!-- Change the form action to include tenant_id for superadmin -->
                 <form method="POST" action="{% url 'edit_sale' sale.id %}{% if add.role == 'superadmin' and sale.tenant %}?tenant_id={{ sale.tenant.id }}{% endif %}">
                     {% csrf_token %}
                     <div class="d-flex justify-content-end mb-3">
-                        <a href="{% url 'sales_list' %}" class="btn btn-secondary mr-2">Cancel</a>
+                        <a href="{% url 'sales_list' %}{% if add.role == 'superadmin' and sale.tenant %}?tenant_id={{ sale.tenant.id }}{% endif %}" class="btn btn-secondary mr-2">Cancel</a>
                         <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Update Sale</button>
                     </div>
 

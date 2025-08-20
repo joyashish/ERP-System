@@ -1,0 +1,96 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">{{ party.party_name }}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'Party_list' %}">Party List</a></li>
+                        <li class="breadcrumb-item active">Details</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="card card-primary card-outline">
+                        <div class="card-body">
+                            <strong><i class="fas fa-book mr-1"></i> Contact Information</strong>
+                            <p class="text-muted">
+                                Email: {{ party.email }}<br>
+                                Phone: {{ party.mobile_num }}
+                            </p>
+                            <hr>
+                            <strong><i class="fas fa-map-marker-alt mr-1"></i> Billing Address</strong>
+                            <p class="text-muted">{{ party.billing_address|linebreaksbr }}</p>
+                            <hr>
+                            <strong><i class="fas fa-file-alt mr-1"></i> Tax Details</strong>
+                            <p class="text-muted">
+                                GSTIN: {{ party.gst_no|default:"N/A" }}<br>
+                                PAN: {{ party.pan_no|default:"N/A" }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Financial Summary</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4"><div class="info-box"><span class="info-box-icon bg-info"><i class="fas fa-chart-bar"></i></span><div class="info-box-content"><span class="info-box-text">Total Sales</span><span class="info-box-number">₹{{ total_sales|floatformat:2 }}</span></div></div></div>
+                                <div class="col-md-4"><div class="info-box"><span class="info-box-icon bg-success"><i class="fas fa-check-circle"></i></span><div class="info-box-content"><span class="info-box-text">Total Paid</span><span class="info-box-number">₹{{ total_paid|floatformat:2 }}</span></div></div></div>
+                                <div class="col-md-4"><div class="info-box"><span class="info-box-icon bg-danger"><i class="fas fa-exclamation-circle"></i></span><div class="info-box-content"><span class="info-box-text">Balance Due</span><span class="info-box-number">₹{{ balance_due|floatformat:2 }}</span></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Transaction History</h3></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead><tr><th>Date</th><th>Invoice No.</th><th>Total Amount</th><th>Balance</th><th>Status</th></tr></thead>
+                            <tbody>
+                                {% for sale in sales %}
+                                <tr>
+                                    <td>{{ sale.invoice_date|date:"d M, Y" }}</td>
+                                    <td><a href="{% url 'sale_detail' sale.id %}">{{ sale.invoice_no }}</a></td>
+                                    <td>₹{{ sale.total_amount|floatformat:2 }}</td>
+                                    <td>₹{{ sale.balance_amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if sale.status == "PAID" %}<span class="badge badge-success">Paid</span>
+                                        {% elif sale.status == "OVERDUE" %}<span class="badge badge-danger">Overdue</span>
+                                        {% else %}<span class="badge badge-warning">Unpaid</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center">No transactions found for this party.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

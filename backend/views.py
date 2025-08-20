@@ -205,7 +205,7 @@ def Create_partyVw(request):
                 gst_no=request.POST.get('gst_in'),
                 pan_no=request.POST.get('pan_no'),
                 party_type=request.POST.get('p_type'),
-                party_category=request.POST.get('p_category'), # Corrected from p_type
+                party_category=request.POST.get('p_category'),
                 billing_address=request.POST.get('billing_address'),
                 shipping_address=request.POST.get('shipping_address'),
                 credit_period=request.POST.get('credit_period', 0),
@@ -268,13 +268,13 @@ def Party_listVw(request):
 @tenant_required
 def Dlt_Party_ListVw(request, id):
     account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    # tenant = get_tenant(request) if not account.role == 'superadmin' else None
     
     # Get the party first to preserve tenant info
     if account.role == 'superadmin':
-        party = Create_party.objects.filter(id=id).first()
+        party = get_object_or_404(Create_party, id=id)
     else:
-        party = Create_party.objects.filter(id=id, tenant=tenant).first()
+        party = get_object_or_404(Create_party, id=id, tenant=request.tenant)
     
     if party:
         party.is_active = False
@@ -294,59 +294,74 @@ def Dlt_Party_ListVw(request, id):
 @tenant_required
 def Updt_Party_List(request, id):
     account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    # tenant = get_tenant(request) if not account.role == 'superadmin' else None
     
-    if account.role == 'superadmin':
-        party_list = Create_party.objects.filter(id=id)
-    else:
-        party_list = Create_party.objects.filter(id=id, tenant=tenant)
+    # Use get_object_or_404 to fetch the single party object we want to update
+    party_to_update = get_object_or_404(Create_party, id=id)
+    
+    # Security check: Ensure user has permission to edit this party
+    if account.role != 'superadmin' and party_to_update.tenant != request.tenant:
+        messages.error(request, "You are not authorized to edit this party.")
+        return redirect('Party_list')
     
     if request.method == "POST":
-        party_name = request.POST['pname']
-        mobile_num = request.POST['pnum']
-        email = request.POST['pemail']
-        opening_balance = request.POST['op_bal']
-        gst_no = request.POST['gst_in']
-        pan_no = request.POST['pan_no']
-        party_type = request.POST['p_type']
-        party_category = request.POST['p_category']
-        billing_address = request.POST['billing_address']
-        shipping_address = request.POST['shipping_address']
-        credit_period = request.POST['credit_period']
-        credit_limit = request.POST['credit_limit']
-        
-        party_list.update(
-            party_name=party_name,
-            mobile_num=mobile_num,
-            email=email,
-            opening_balance=opening_balance,
-            gst_no=gst_no,
-            pan_no=pan_no,
-            party_type=party_type,
-            party_category=party_category,
-            billing_address=billing_address,
-            shipping_address=shipping_address,
-            credit_period=credit_period,
-            credit_limit=credit_limit
-        )
+        # Update the object with data from the form
+        party_to_update.party_name = request.POST.get('pname')
+        party_to_update.mobile_num = request.POST.get('pnum')
+        party_to_update.email = request.POST.get('pemail')
+        party_to_update.opening_balance = request.POST.get('op_bal', 0)
+        party_to_update.gst_no = request.POST.get('gst_in')
+        party_to_update.pan_no = request.POST.get('pan_no')
+        party_to_update.party_type = request.POST.get('p_type')
+        party_to_update.party_category = request.POST.get('p_category')
+        party_to_update.billing_address = request.POST.get('billing_address')
+        party_to_update.shipping_address = request.POST.get('shipping_address')
+        party_to_update.credit_period = request.POST.get('credit_period', 0)
+        party_to_update.credit_limit = request.POST.get('credit_limit', 0)
+
+        party_to_update.save()
         messages.info(request, 'Party Update Successfully.')
         
         # Redirect based on who is logged in
         if account.role == 'superadmin':
             # Get the tenant_id from the party being updated
-            party = party_list.first()
-            return redirect(f"/Party_list?tenant_id={party.tenant.id}")
+            return redirect(f"{reverse('Party_list')}?tenant_id={party_to_update.tenant.id}")
         else:
-            return redirect('/Party_list')
+            return redirect('Party_list')
     
     # For GET request, pass tenant_id to template for potential use
-    context = {'add': account, 'party_list': party_list, 'tenant': tenant}
-    if account.role == 'superadmin':
-        # Get the tenant_id from the party being updated
-        party = party_list.first()
-        context['tenant_id'] = party.tenant.id if party else None
-    
+    context = {'add': account, 'party': party_to_update, 'tenant': party_to_update.tenant}
     return render(request, 'Update_party.html', context)
+# Party Details View
+@tenant_required
+def party_detail_view(request, party_id):
+    account = request.user
+    party = get_object_or_404(Create_party, id=party_id)
+
+    # Security check: Ensure user has permission
+    if account.role != 'superadmin' and party.tenant != request.tenant:
+        messages.error(request, "You are not authorized to view this party.")
+        return redirect('Party_list')
+
+    # Fetch related sales and calculate financial totals
+    sales = Sale.objects.filter(party=party).order_by('-invoice_date')
+    financials = sales.aggregate(
+        total_sales=Sum('total_amount'),
+        total_paid=Sum('amount_received')
+    )
+    total_sales = financials.get('total_sales') or 0
+    total_paid = financials.get('total_paid') or 0
+    balance_due = total_sales - total_paid
+
+    context = {
+        'add': account,
+        'party': party,
+        'sales': sales,
+        'total_sales': total_sales,
+        'total_paid': total_paid,
+        'balance_due': balance_due,
+    }
+    return render(request, 'party_detail.html', context)
 
 # Item List View
 @tenant_required
@@ -921,23 +936,34 @@ def sales_list(request):
 @never_cache
 @tenant_required
 def edit_sale_view(request, sale_id):
-    account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
-    sale = get_object_or_404(Sale, id=sale_id, tenant=tenant) if tenant else get_object_or_404(Sale, id=sale_id)
+    account = get_object_or_404(Account, email=request.session['email'])
+    
+    # Get the sale object with proper security check
+    if account.role == 'superadmin':
+        sale = get_object_or_404(Sale, id=sale_id)
+    else:
+        sale = get_object_or_404(Sale, id=sale_id, tenant=request.tenant)
+    
+    # Security check: Ensure user has permission to edit this sale
+    if account.role != 'superadmin' and sale.tenant != request.tenant:
+        messages.error(request, "You are not authorized to edit this sale.")
+        return redirect('sales_list')
     
     if request.method == 'POST':
         try:
             with transaction.atomic():
                 for item in sale.items.all():
                     if item.item and item.item.item_type == 'product':
-                        product = Product.objects.select_for_update().get(id=item.item.id, tenant=tenant) if tenant else Product.objects.select_for_update().get(id=item.item.id)
+                        product = get_object_or_404(Product, id=item.item.id, tenant=sale.tenant)
                         product.opening_stock += item.quantity
                         product.save()
                 
+                # Delete existing sale items
                 sale.items.all().delete()
                 
+                # Process new items
                 post_data = request.POST
-                party = get_object_or_404(Create_party, id=post_data.get('party_id'), tenant=tenant) if tenant else get_object_or_404(Create_party, id=post_data.get('party_id'))
+                party = get_object_or_404(Create_party, id=post_data.get('party_id'), tenant=sale.tenant)
                 invoice_date_obj = datetime.strptime(post_data.get('invoice_date'), '%Y-%m-%d').date()
                 due_date_str = post_data.get('due_date')
                 due_date_obj = datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else None
@@ -955,7 +981,7 @@ def edit_sale_view(request, sale_id):
                     if not item_id or quantity <= 0:
                         continue
                     
-                    item_obj = get_object_or_404(ItemBase, id=item_id, tenant=tenant) if tenant else get_object_or_404(ItemBase, id=item_id)
+                    item_obj = get_object_or_404(ItemBase, id=item_id, tenant=sale.tenant)
                     unit_price = float(item_obj.sale_price)
                     item_subtotal = quantity * unit_price
                     taxable_item_amount = item_subtotal - item_discount
@@ -965,8 +991,9 @@ def edit_sale_view(request, sale_id):
                     total_item_subtotal += item_subtotal
                     total_tax += tax_for_item
                     
+                    # Stock deduction for products
                     if item_obj.item_type == 'product':
-                        product = Product.objects.select_for_update().get(id=item_obj.id, tenant=tenant) if tenant else Product.objects.select_for_update().get(id=item_obj.id)
+                        product = get_object_or_404(Product, id=item_obj.id, tenant=sale.tenant)
                         if product.opening_stock < quantity:
                             raise ValidationError(f"Not enough stock for {item_obj.item_name}. Only {product.opening_stock} available.")
                         product.opening_stock -= quantity
@@ -1006,13 +1033,14 @@ def edit_sale_view(request, sale_id):
                 sale.balance_amount = total_amount - amount_received
                 sale.save()
                 
+                # Create new sale items
                 SaleItem.objects.bulk_create(new_sale_items)
                 
                 messages.success(request, f"Sale {sale.invoice_no} updated successfully!")
                 
-                # FIX: Redirect with tenant_id for superadmin
+                # Redirect with tenant_id for superadmin
                 if account.role == 'superadmin':
-                    return redirect(f"/sales_list/?tenant_id={sale.tenant.id}")
+                    return redirect(f"{reverse('sales_list')}?tenant_id={sale.tenant.id}")
                 else:
                     return redirect('sales_list')
         
@@ -1022,10 +1050,10 @@ def edit_sale_view(request, sale_id):
     
     context = {
         'sale': sale,
-        'all_items': ItemBase.objects.filter(tenant=tenant, is_active=True).order_by('item_name') if tenant else ItemBase.objects.filter(is_active=True).order_by('item_name'),
-        'all_parties': Create_party.objects.filter(tenant=tenant, is_active=True).order_by('party_name') if tenant else Create_party.objects.filter(is_active=True).order_by('party_name'),
+        'all_items': ItemBase.objects.filter(tenant=sale.tenant, is_active=True).order_by('item_name'),
+        'all_parties': Create_party.objects.filter(tenant=sale.tenant, is_active=True).order_by('party_name'),
         'add': account,
-        'tenant': tenant,
+        'tenant': sale.tenant,
     }
     return render(request, 'edit_sale.html', context)
 
@@ -1033,20 +1061,27 @@ def edit_sale_view(request, sale_id):
 @tenant_required
 def delete_sale(request, sale_id):
     account = get_object_or_404(Account, email=request.session['email'])
-    sale_to_delete = get_object_or_404(Sale, id=sale_id)
     
-    # Store the tenant ID before deleting the sale
-    tenant_id = sale_to_delete.tenant.id
-
+    # Get the sale with proper security check
+    if account.role == 'superadmin':
+        sale_to_delete = get_object_or_404(Sale, id=sale_id)
+    else:
+        sale_to_delete = get_object_or_404(Sale, id=sale_id, tenant=request.tenant)
+    
+    # Security check: Ensure user has permission to delete this sale
     if account.role != 'superadmin' and sale_to_delete.tenant != request.tenant:
         messages.error(request, "You are not authorized to delete this sale.")
         return redirect('sales_list')
 
+    # Store the tenant ID before deleting the sale
+    tenant_id = sale_to_delete.tenant.id
+
     try:
         with transaction.atomic():
+            # Restore stock for all items
             for item in sale_to_delete.items.all():
                 if item.item and item.item.item_type == 'product':
-                    product = get_object_or_404(Product, id=item.item.id)
+                    product = get_object_or_404(Product, id=item.item.id, tenant=sale_to_delete.tenant)
                     product.opening_stock += item.quantity
                     product.save()
             
@@ -1059,11 +1094,8 @@ def delete_sale(request, sale_id):
 
     # Redirect correctly based on the user's role
     if account.role == 'superadmin':
-        # For superadmin, redirect back to the specific tenant's sales list
-        redirect_url = f"{reverse('sales_list')}?tenant_id={tenant_id}"
-        return redirect(redirect_url)
+        return redirect(f"{reverse('sales_list')}?tenant_id={tenant_id}")
     else:
-        # For regular users, redirect to their own sales list
         return redirect('sales_list')
 
 # --- VIEW to Get tenant data for sale ---

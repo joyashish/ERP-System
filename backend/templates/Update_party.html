@@ -3,304 +3,125 @@
 {% include 'sidebar.html' %}
 {% load static %}
 
-<!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
-  <!-- Content Header (Page header) -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Dashboard</h1>
-        </div><!-- /.col -->
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
-            <li class="breadcrumb-item active">Update Party</li>
-          </ol>
-        </div><!-- /.col -->
-      </div><!-- /.row -->
-    </div><!-- /.container-fluid -->
-  </div>
-  <!-- /.content-header -->
-
-  <!-- Update Party Form -->
-  <section class="content">
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card col-12" style="box-shadow:5px 5px 10px #7d7878">
-            <div class="card-header bg-info">
-              <h3 class="card-title">Update Party Details</h3>
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Update Party</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'Party_list' %}">Party List</a></li>
+                        <li class="breadcrumb-item active">{{ party.party_name }}</li>
+                    </ol>
+                </div>
             </div>
-
-            <div class="card-body">
-              {% if messages %}
-              <div class="alert alert-warning alert-dismissible fade show msg_sec" role="alert">
-                {% for message in messages %}
-                <i class="fas fa-check-circle"></i>&nbsp;&nbsp;{{message}}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-                </button>
-                {% endfor %}
-              </div>
-              {% endif %}
-
-              <!-- Change the form action to include tenant_id for superadmin -->
-              <form action="{% if add.role == 'superadmin' and tenant_id %}?tenant_id={{ tenant_id }}{% endif %}" method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                
-                {% for i in party_list %}
-                <h5>General Details</h5>
-                <div class="form-row">
-                  <div class="form-group col-md-4">
-                    <label for="addcat">Party Name</label>
-                    <input type="text" id="addcat" value="{{i.party_name}}" class="form-control" name="pname"
-                      placeholder="Enter Party Name" required>
-                  </div>
-
-                  <div class="form-group col-md-4">
-                    <label for="addcat">Mobile Number</label>
-                    <input type="number" id="addcat" value="{{i.mobile_num}}" class="form-control" name="pnum"
-                      placeholder="Enter Mobile No" required>
-                  </div>
-
-                  <div class="form-group col-md-4">
-                    <label for="addcat">Email</label>
-                    <input type="text" id="addcat" class="form-control" value="{{i.email}}" name="pemail" placeholder="Enter Email..."
-                      required>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group col-md-4">
-                    <label for="addcat">Opening Balance</label>
-                    <input type="number" id="addcat" class="form-control" value="{{i.opening_balance}}" name="op_bal" placeholder="Balance..."
-                      required>
-                  </div>
-
-                  <div class="form-group col-md-4">
-                    <label for="addcat">GSTIN</label>
-                    <input type="text" id="addcat" value="{{i.gst_no}}" class="form-control" name="gst_in" placeholder="Enter GST_No..."
-                      required>
-                  </div>
-
-                  <div class="form-group col-md-4">
-                    <label for="addcat">PAN Number</label>
-                    <input type="text" id="addcat" class="form-control" value="{{i.pan_no}}" name="pan_no"
-                      placeholder="Enter Company GST_NO..." required>
-                  </div>
-                </div>
-                
-                <div class="form-row">
-                  <div class="form-group col-md-4">
-                    <label for="addcat">Party Type</label>
-                    <input type="text" id="addcat" class="form-control" value="{{i.party_type}}" name="p_type"
-                      placeholder="Enter Company Name..." required>
-                  </div>
-
-                  <div class="form-group col-md-4">
-                    <label for="addcat">Party Category</label>
-                    <input type="text" id="addcat" class="form-control" value="{{i.party_category}}"  name="p_category"
-                      placeholder="Enter Company PAN_No..." required>
-                  </div>
-                </div>
-                
-                <h5>Address</h5>
-                <!-- Billing Address Field (Click to Open Modal) -->
-                <div class="form-row">
-                  <div class="form-group col-md-6">
-                    <label for="billingAddress">Billing Address</label>
-                    <textarea id="billingAddress" data-toggle="modal" data-target="#billingModal"
-                      class="form-control"  name="billing_address" placeholder="Enter Billing Address..." required
-                      readonly>{{i.billing_address}}</textarea>
-                  </div>
-
-                  <div class="form-group col-md-6">
-                    <label for="shippingAddress">Shipping Address</label>
-                    <textarea id="shippingAddress" class="form-control" name="shipping_address"
-                      placeholder="Enter Shipping Address..." required>{{i.shipping_address}}</textarea>
-                    <div class="form-check mt-2">
-                      <input type="checkbox" id="sameAsBilling" class="form-check-input">
-                      <label for="sameAsBilling"  class="form-check-label">Same as Billing Address</label>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="form-row">
-                  <div class="form-group col-md-4">
-                    <label for="addcat">Credit Period</label>
-                    <input type="number" value="{{i.credit_period}}" id="addcat" class="form-control" name="credit_period"
-                      placeholder="Balance..." required>
-                  </div>
-                  <div class="form-group col-md-4">
-                    <label for="addcat">Credit limit</label>
-                    <input type="number" value="{{i.credit_limit}}" id="addcat" class="form-control" name="credit_limit"
-                      placeholder="Balance..." required>
-                  </div>
-                </div>
-
-                <div class="btn-mb-3">
-                  <button type="submit" class="btn btn-info" style="width: 130px; height:35px;">
-                    Save <i class="bi bi-file-earmark-arrow-up"></i>
-                  </button>
-                </div>
-                {% endfor %}
-              </form>
-            </div>
-          </div>
         </div>
-      </div>
     </div>
-  </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Editing: {{ party.party_name }}</h3>
+                        </div>
+                        <div class="card-body">
+                            {% if messages %}
+                                {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+
+                            <form method="POST" action="{% url 'update_party' party.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}">
+                                {% csrf_token %}
+                                
+                                <h5>General Details</h5>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label>Party Name</label>
+                                        <input type="text" value="{{ party.party_name }}" class="form-control" name="pname" required>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Mobile Number</label>
+                                        <input type="text" value="{{ party.mobile_num }}" class="form-control" name="pnum" required>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Email</label>
+                                        <input type="email" class="form-control" value="{{ party.email }}" name="pemail" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label>Opening Balance</label>
+                                        <input type="number" class="form-control" value="{{ party.opening_balance }}" name="op_bal" step="0.01" required>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>GSTIN</label>
+                                        <input type="text" value="{{ party.gst_no|default:'' }}" class="form-control" name="gst_in">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>PAN Number</label>
+                                        <input type="text" class="form-control" value="{{ party.pan_no|default:'' }}" name="pan_no">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label>Party Type</label>
+                                        <input type="text" class="form-control" value="{{ party.party_type }}" name="p_type" required>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Party Category</label>
+                                        <input type="text" class="form-control" value="{{ party.party_category }}" name="p_category" required>
+                                    </div>
+                                </div>
+                                
+                                <h5 class="mt-3">Address Details</h5>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label>Billing Address</label>
+                                        <textarea class="form-control" name="billing_address" rows="3">{{ party.billing_address }}</textarea>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label>Shipping Address</label>
+                                        <textarea class="form-control" name="shipping_address" rows="3">{{ party.shipping_address }}</textarea>
+                                    </div>
+                                </div>
+                                
+                                <h5 class="mt-3">Credit Information</h5>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label>Credit Period (days)</label>
+                                        <input type="number" value="{{ party.credit_period }}" class="form-control" name="credit_period" required>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>Credit Limit (₹)</label>
+                                        <input type="number" value="{{ party.credit_limit }}" class="form-control" name="credit_limit" step="0.01" required>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4">
+                                    <button type="submit" class="btn btn-primary">Update Party</button>
+                                    <a href="{% url 'Party_list' %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary">Cancel</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
-
-<!-- Bootstrap Modal for Billing Address -->
-<div class="modal fade" id="billingModal" aria-labelledby="billingModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="billingModalLabel">Enter Billing Address</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <label>Street Address *</label>
-        <input type="text" id="street1" class="form-control" placeholder="Enter Street Address" required>
-        <input type="text" id="street2" class="form-control mt-2" placeholder="Enter Street Address">
-
-        <label class="mt-3">State *</label>
-        <select id="state" class="form-control">
-          <option value="">Select State</option>
-          <option value="Jharkhand">Jharkhand</option>
-          <option value="Bihar">Bihar</option>
-          <option value="Uttar Pradesh">Uttar Pradesh</option>
-          <!-- Add all states -->
-        </select>
-
-        <label class="mt-3">District *</label>
-        <select id="district" class="form-control">
-          <option value="">Select District</option>
-        </select>
-
-        <label class="mt-3">Village *</label>
-        <select id="village" class="form-control">
-          <option value="">Select Village</option>
-        </select>
-
-        <label class="mt-3">Pincode *</label>
-        <input type="text" id="pincode" class="form-control" placeholder="Enter Pincode">
-
-        <label class="mt-3">City *</label>
-        <input type="text" id="city" class="form-control" placeholder="Enter City">
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" data-dismiss="modal"
-          id="saveBillingAddress">Save</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- jQuery Script -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script>
-  $(document).ready(function () {
-    $("#sameAsBilling").change(function () {
-      if ($(this).is(":checked")) {
-        $("#shippingAddress").val($("#billingAddress").val());
-      } else {
-        $("#shippingAddress").val(""); // Clears if unchecked
-      }
-    });
-
-    // Update shipping address in real-time when typing in billing address (if checked)
-    $("#billingAddress").on("input", function () {
-      if ($("#sameAsBilling").is(":checked")) {
-        $("#shippingAddress").val($(this).val());
-      }
-    });
-  });
-  
-  //add custom filed
-  $(document).ready(function () {
-    $("#add-field").click(function () {
-      $("#custom-fields").append('<div class="form-group col-md-4" ><input type="text" class="form-control  name="customField[]" placeholder="Enter value">  <button class="remove-field btn btn-danger" >Remove</button></div>');
-    });
-
-    $(document).on("click", ".remove-field", function () {
-      $(this).parent().remove();
-    });
-  });
-</script>
-<script>
-  $(document).ready(function () {
-    var stateDistricts = {
-      "Jharkhand": ["Ranchi", "Dhanbad", "Jamshedpur"],
-      "Bihar": ["Patna", "Gaya", "Bhagalpur"],
-      "Uttar Pradesh": ["Lucknow", "Kanpur", "Varanasi"]
-    };
-
-    var districtVillages = {
-      "Ranchi": ["Kanke", "Ormanjhi", "Tatisilwai"],
-      "Dhanbad": ["Sindri", "Katras", "Jharia"],
-      "Jamshedpur": ["Sonari", "Bistupur", "Sakchi"],
-      "Patna": ["Danapur", "Fatuha", "Bihta"],
-      "Gaya": ["Bodh Gaya", "Manpur", "Sherghati"],
-      "Bhagalpur": ["Nathnagar", "Sabour", "Kahalgaon"],
-      "Lucknow": ["Chinhat", "Gomti Nagar", "Hazratganj"],
-      "Kanpur": ["Kalyanpur", "Panki", "Swaroop Nagar"],
-      "Varanasi": ["Assi Ghat", "Lanka", "Bhelupur"]
-    };
-
-    // Populate Districts based on State Selection
-    $("#state").change(function () {
-      var state = $(this).val();
-      var districtDropdown = $("#district");
-      districtDropdown.empty().append('<option value="">Select District</option>');
-
-      if (stateDistricts[state]) {
-        $.each(stateDistricts[state], function (index, value) {
-          districtDropdown.append('<option value="' + value + '">' + value + '</option>');
-        });
-      }
-    });
-
-    // Populate Villages based on District Selection
-    $("#district").change(function () {
-      var district = $(this).val();
-      var villageDropdown = $("#village");
-      villageDropdown.empty().append('<option value="">Select Village</option>');
-
-      if (districtVillages[district]) {
-        $.each(districtVillages[district], function (index, value) {
-          villageDropdown.append('<option value="' + value + '">' + value + '</option>');
-        });
-      }
-    });
-
-    // When the "Save" button is clicked, update the billing address field
-    $("#saveBillingAddress").click(function () {
-      var address = $("#street1").val() + ", " + $("#street2").val() + ", " +
-        $("#village").val() + ", " + $("#district").val() + ", " +
-        $("#state").val() + ", " + $("#pincode").val() + ", " +
-        $("#city").val();
-      $("#billingAddress").val(address);
-      $("#billingModal").modal("hide"); // Close the modal  
-    });
-
-    // Copy billing address to shipping address if checkbox is checked
-    $("#sameAsBilling").change(function () {
-      if ($(this).is(":checked")) {
-        $("#shippingAddress").val($("#billingAddress").val());
-      } else {
-        $("#shippingAddress").val("");
-      }
-    });
-  });
-</script>
 
 {% include 'footer.html' %}
 {% include 'footer_link.html' %}
