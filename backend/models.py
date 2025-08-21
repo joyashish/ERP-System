@@ -323,6 +323,40 @@ class ActivityLog(models.Model):
         # ... (__str__ method remains the same)
         pass
 
+# Purchase Model
+class Purchase(models.Model):
+    class PurchaseStatus(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        ORDERED = 'ORDERED', 'Ordered'
+        RECEIVED = 'RECEIVED', 'Received'
+        CANCELLED = 'CANCELLED', 'Cancelled'
+    vendor = models.ForeignKey(Create_party, on_delete=models.CASCADE)
+    bill_number = models.CharField(max_length=50, blank=True, null=True)
+    purchase_date = models.DateField(default=timezone.now)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    notes = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=PurchaseStatus.choices, default=PurchaseStatus.ORDERED)
+    user = models.ForeignKey(Account, on_delete=models.CASCADE)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='purchases')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-purchase_date']
+
+    def __str__(self):
+        return f"Purchase from {self.vendor.party_name} on {self.purchase_date}"
+
+# PurchaseItem Model
+class PurchaseItem(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='items')
+    item = models.ForeignKey(ItemBase, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2) # Calculated as quantity * purchase_price
+
+    def __str__(self):
+        return f"{self.quantity} of {self.item.item_name} for Purchase {self.purchase.id}"
+
 # class Plan(models.Model):
 #     name = models.CharField(max_length=100) # e.g., "Trial", "Pro", "Enterprise"
 #     price = models.DecimalField(max_digits=10, decimal_places=2)

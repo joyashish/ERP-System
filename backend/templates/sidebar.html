@@ -114,13 +114,13 @@
                 <!-- Transactions -->
                 <li class="nav-header text-uppercase text-muted">Transactions</li>
                 <li class="nav-item">
-                    <a href="{% url 'sales_list' %}" class="nav-link">
+                    <a href="{% url 'sales_list' %}" class="nav-link {% if 'sales' in request.path %}active{% endif %} ">
                         <i class="nav-icon fas fa-cash-register"></i>
                         <p>Sales</p>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{% url 'purchase_list' %}" class="nav-link {% if 'purchase' in request.path %}active{% endif %}" class="nav-link">
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <p>Purchases</p>
                     </a>

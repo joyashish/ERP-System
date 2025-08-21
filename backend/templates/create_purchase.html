@@ -1,0 +1,255 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <h1 class="m-0">Record Purchase</h1>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            {% if messages %}{% for message in messages %}
+            <div class="alert alert-{{ message.tags }} msg_sec">{{ message }}</div>
+            {% endfor %}{% endif %}
+
+            <form method="POST" id="purchaseForm">
+                {% csrf_token %}
+                {% if add.role == 'superadmin' %}
+                <!-- Use a div with a form-group class for proper spacing and styling -->
+                <div class="form-group">
+                  <label for="tenantSelect">Select Tenant</label>
+                  <select name="tenant_id" id="tenantSelect" class="form-control" required>
+                    <option value="">Select Tenant</option>
+                    {% for t in tenants %}
+                    <!-- The logic to check the ID and add 'selected' is correct -->
+                    <option value="{{ t.id }}" {% if t.id == tenant_id_from_url|add:0 %}selected{% endif %}>
+                      {{ t.name }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                {% endif %}
+                <div class="card card-primary card-outline">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- {% if add.role == 'superadmin' %}
+                            <div class="form-group col-md-4">
+                                <label>Select Tenant</label>
+                                <select name="tenant_id" class="form-control" required>
+                                    <option value="">-- Select --</option>
+                                    {% for t in tenants %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            {% endif %} -->
+                            <div class="form-group col-md-4">
+                                <label>Select Vendor (Supplier)</label>
+                                <select name="vendor_id" class="form-control" required>
+                                    <option value="">-- Select --</option>
+                                    {% for vendor in vendors %}<option value="{{ vendor.id }}">{{ vendor.party_name }}</option>{% endfor %}
+                                </select>
+                            </div>
+                             <div class="form-group col-md-4">
+                                <label>Purchase Date</label>
+                                <input type="date" name="purchase_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Status</label>
+                                <select name="status" class="form-control" required>
+                                    {% for value, label in purchase_statuses %}
+                                    <option value="{{ value }}" {% if value == 'ORDERED' %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Bill/Reference No.</label>
+                                <input type="text" name="bill_number" class="form-control" value="{{ bill_number }}" readonly>
+                            </div>
+                        </div>
+                        <hr>
+                        <h5>Items Purchased</h5>
+                        <div class="table-responsive">
+                            <table class="table" id="items-table">
+                                <thead><tr><th>Item (Product)</th><th>Quantity</th><th>Purchase Price</th><th>Amount</th><th></th></tr></thead>
+                                <tbody>
+                                    <tr class="item-row">
+                                        <td>
+                                            <select class="form-control item-select" name="items[0][item_id]">
+                                                <option value="">-- Select Item --</option>
+                                                {% for item in items %}<option value="{{ item.id }}">{{ item.item_name }}</option>{% endfor %}
+                                            </select>
+                                        </td>
+                                        <td><input type="number" class="form-control quantity" name="items[0][quantity]" value="1" min="1"></td>
+                                        <td><input type="number" class="form-control price" name="items[0][price]" step="0.01" min="0"></td>
+                                        <td><input type="text" class="form-control amount" readonly></td>
+                                        <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" id="add-item" class="btn btn-primary btn-sm">+ Add Item</button>
+                        <hr>
+                        <div class="row d-flex justify-content-end">
+                            <div class="col-md-4">
+                                <div class="d-flex justify-content-between">
+                                    <h5 class="font-weight-bold">Grand Total:</h5>
+                                    <h5 class="font-weight-bold" id="grand-total">₹ 0.00</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- <hr> -->
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea name="notes" class="form-control" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">Save Purchase</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    let rowIndex = 1;
+    let currentTenantItems = []; // To store items for the selected tenant
+
+    /**
+     * NEW: Calculates and displays the grand total of all items.
+     */
+    function updateGrandTotal() {
+        let total = 0;
+        $('.item-row .amount').each(function() {
+            const amount = parseFloat($(this).val()) || 0;
+            total += amount;
+        });
+        $('#grand-total').text('₹ ' + total.toFixed(2));
+    }
+
+    /**
+     * Updates Vendor and Item dropdowns with new data after an AJAX call.
+     */
+    function updateDropdowns(vendors, items) {
+        const vendorSelect = $('select[name="vendor_id"]');
+        const itemSelects = $('.item-select');
+        
+        currentTenantItems = items || [];
+
+        // Update Vendor Dropdown
+        vendorSelect.empty().append('<option value="">-- Select --</option>');
+        if (vendors && vendors.length > 0) {
+            vendors.forEach(vendor => {
+                vendorSelect.append(`<option value="${vendor.id}">${vendor.party_name}</option>`);
+            });
+        }
+
+        // Update Item Dropdowns
+        itemSelects.each(function() {
+            const currentItem = $(this);
+            currentItem.empty().append('<option value="">-- Select Item --</option>');
+            if (currentTenantItems.length > 0) {
+                currentTenantItems.forEach(item => {
+                    currentItem.append(`<option value="${item.id}" data-price="${item.purchase_price}">${item.item_name}</option>`);
+                });
+            }
+        });
+    }
+
+    /**
+     * Handles the change event for the superadmin's tenant selection dropdown.
+     */
+    $('select[name="tenant_id"]').on('change', function() {
+        const tenantId = $(this).val();
+        if (!tenantId) {
+            updateDropdowns([], []);
+            return;
+        }
+        $('select[name="vendor_id"], .item-select').prop('disabled', true).html('<option>Loading...</option>');
+        fetch(`/api/get_purchase_data/${tenantId}/`)
+            .then(response => response.json())
+            .then(data => {
+                $('select[name="vendor_id"], .item-select').prop('disabled', false);
+                if (data.error) { alert(data.error); return; }
+                updateDropdowns(data.vendors, data.items);
+            })
+            .catch(error => console.error("Failed to fetch tenant data:", error));
+    });
+
+    /**
+     * Calculates the total amount for a single item row.
+     */
+    function updateRowAmount(row) {
+        const quantity = parseFloat(row.find('.quantity').val()) || 0;
+        const price = parseFloat(row.find('.price').val()) || 0;
+        row.find('.amount').val((quantity * price).toFixed(2));
+        updateGrandTotal();
+    }
+    
+    /**
+     * Binds calculation events to inputs in the item rows.
+     */
+    function bindEvents(row) {
+        // Event for selecting an item from the dropdown
+        row.find('.item-select').on('change', function() {
+            const selectedOption = $(this).find('option:selected');
+            const price = selectedOption.data('price') || 0;
+            $(this).closest('.item-row').find('.price').val(price);
+            updateRowAmount($(this).closest('.item-row'));
+        });
+        
+        // Event for changing quantity or manually editing price
+        row.find('.quantity, .price').on('input', function() {
+            updateRowAmount($(this).closest('.item-row'));
+        });
+    }
+
+    /**
+     * Handles the click event for the "Add Another Item" button.
+     */
+    $('#add-item').on('click', function() {
+        let itemOptions = '<option value="">-- Select Item --</option>';
+        currentTenantItems.forEach(item => {
+            itemOptions += `<option value="${item.id}" data-price="${item.purchase_price}">${item.item_name}</option>`;
+        });
+
+        const newRowHTML = `
+            <tr class="item-row">
+                <td><select class="form-control item-select" name="items[${rowIndex}][item_id]">${itemOptions}</select></td>
+                <td><input type="number" class="form-control quantity" name="items[${rowIndex}][quantity]" value="1" min="1"></td>
+                <td><input type="number" class="form-control price" name="items[${rowIndex}][price]" step="0.01" min="0"></td>
+                <td><input type="text" class="form-control amount" readonly></td>
+                <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+            </tr>`;
+        
+        const newRow = $(newRowHTML);
+        $('#items-table tbody').append(newRow);
+        rowIndex++;
+        bindEvents(newRow);
+    });
+
+    /**
+     * Handles click events for the "Remove" button on item rows.
+     */
+    $(document).on('click', '.remove-row', function() {
+        if ($('.item-row').length > 1) {
+            $(this).closest('.item-row').remove();
+            updateGrandTotal(); // Update total when a row is removed
+        }
+    });
+
+    // Initial event binding for the first row
+    bindEvents($('.item-row'));
+
+    // Trigger change event if a tenant is pre-selected on page load
+    if ($('select[name="tenant_id"]').val()) {
+        $('select[name="tenant_id"]').trigger('change');
+    }
+});
+</script>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

@@ -332,6 +332,7 @@ def Updt_Party_List(request, id):
     # For GET request, pass tenant_id to template for potential use
     context = {'add': account, 'party': party_to_update, 'tenant': party_to_update.tenant}
     return render(request, 'Update_party.html', context)
+    
 # Party Details View
 @tenant_required
 def party_detail_view(request, party_id):
@@ -1665,3 +1666,153 @@ def edit_profile_view(request):
         'profile_user': account_to_edit,
     }
     return render(request, 'edit_profile.html', context)
+
+# Create Purchase
+@tenant_required
+def create_purchase_view(request):
+    account = request.user
+    context = {'add': account}
+
+    # --- Logic for displaying the form (GET request) ---
+    if account.role == 'superadmin':
+        # For superadmin, let's start with a clear slate. We'll load vendors with JavaScript.
+        context['tenants'] = Tenant.objects.all().order_by('name')
+        context['tenant_id_from_url'] = request.GET.get('tenant_id')
+    else:
+        # For regular users, filter parties that are 'Supplier' or 'Both'
+        tenant = request.tenant
+        context['tenant'] = tenant
+        context['vendors'] = Create_party.objects.filter(
+            tenant=tenant, 
+            is_active=True,
+            party_type__in=['Supplier', 'Both']
+        ).order_by('party_name')
+        context['items'] = Product.objects.filter(tenant=tenant, is_active=True).order_by('item_name')
+    
+    # Add the available purchase statuses to the context for the dropdown
+    context['purchase_statuses'] = Purchase.PurchaseStatus.choices
+    # --- Auto-generate a bill number ---
+    context['bill_number'] = f"PUR-{uuid.uuid4().hex[:8].upper()}"
+
+    # --- Logic for saving the form (POST request) ---
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                target_tenant = None
+                if account.role == 'superadmin':
+                    tenant_id = request.POST.get('tenant_id')
+                    if not tenant_id:
+                        raise ValidationError("Superadmin must select a tenant.")
+                    target_tenant = get_object_or_404(Tenant, id=tenant_id)
+                else:
+                    target_tenant = request.tenant
+
+                post_data = request.POST
+                vendor = get_object_or_404(Create_party, id=post_data.get('vendor_id'), tenant=target_tenant)
+                
+                # Get the selected status from the form
+                purchase_status = post_data.get('status', Purchase.PurchaseStatus.ORDERED)
+
+                # Create the main Purchase object
+                purchase = Purchase.objects.create(
+                    tenant=target_tenant,
+                    user=account,
+                    vendor=vendor,
+                    bill_number=post_data.get('bill_number'),
+                    purchase_date=post_data.get('purchase_date'),
+                    notes=post_data.get('notes'),
+                    status=purchase_status # Save the selected status
+                )
+
+                total_amount = 0
+                item_indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(post_data.keys())))))
+
+                for index in item_indices:
+                    item_id = post_data.get(f'items[{index}][item_id]')
+                    quantity = int(post_data.get(f'items[{index}][quantity]', 0))
+                    price = Decimal(post_data.get(f'items[{index}][price]', 0))
+                    
+                    if not all([item_id, quantity > 0, price > 0]):
+                        continue
+                    
+                    product = get_object_or_404(Product, id=item_id, tenant=target_tenant)
+                    
+                    # Create the individual PurchaseItem
+                    PurchaseItem.objects.create(
+                        purchase=purchase,
+                        item=product,
+                        quantity=quantity,
+                        purchase_price=price,
+                        amount=quantity * price
+                    )
+
+                    # --- CRITICAL LOGIC: Only update stock if purchase is 'Received' ---
+                    if purchase_status == Purchase.PurchaseStatus.RECEIVED:
+                        product.opening_stock += quantity
+                        product.save()
+
+                    total_amount += (quantity * price)
+                
+                if total_amount == 0:
+                    raise ValidationError("Cannot create a purchase with no valid items.")
+                
+                # Update the total amount on the main Purchase object
+                purchase.total_amount = total_amount
+                purchase.save()
+
+                messages.success(request, "Purchase recorded successfully!")
+                return redirect('purchase_list') # We will create this page next
+
+        except (ValidationError, Exception) as e:
+            messages.error(request, f"Error: {e}")
+            return redirect('create_purchase')
+
+    return render(request, 'create_purchase.html', context)
+    
+# API View - return a JSON list of vendors and products for the selected tenant
+def get_purchase_data_for_form(request, tenant_id):
+    # Security check to ensure only a superadmin can access this
+    if not (request.user.is_authenticated and request.user.role == 'superadmin'):
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    # Fetch vendors (parties marked as 'Supplier' or 'Both') for the tenant
+    vendors = Create_party.objects.filter(
+        tenant_id=tenant_id, 
+        is_active=True,
+        party_type__in=['Supplier', 'Both']
+    ).values('id', 'party_name')
+
+    # Fetch only Products (since you can't "purchase" a service)
+    items = Product.objects.filter(
+        tenant_id=tenant_id, 
+        is_active=True
+    ).values('id', 'item_name', 'purchase_price')
+
+    data = {
+        'vendors': list(vendors),
+        'items': list(items),
+    }
+    return JsonResponse(data)
+
+# Purchase List View 
+@tenant_required
+def purchase_list_view(request):
+    account = request.user
+    purchases = Purchase.objects.none()
+    tenant = None
+
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+            purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor')
+    else:
+        tenant = request.tenant
+        purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor')
+    
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'purchases': purchases,
+    }
+    return render(request, 'purchase_list.html', context)

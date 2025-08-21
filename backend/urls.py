@@ -96,5 +96,11 @@ urlpatterns=[
     # Profile URL
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.edit_profile_view, name='edit_profile'),
+
+
+    # Purchase url
+    path('purchase/create/', views.create_purchase_view, name='create_purchase'),
+    path('purchases/', views.purchase_list_view, name='purchase_list'),
+    path('api/get_purchase_data/<int:tenant_id>/', views.get_purchase_data_for_form, name='get_purchase_data'),
     
 ]
