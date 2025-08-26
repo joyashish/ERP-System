@@ -118,6 +118,16 @@ $(document).ready(function() {
     let rowIndex = 1;
     let currentTenantItems = []; // To store items for the selected tenant
 
+    // FIX: Initialize items for regular admin (non-superadmin)
+    {% if add.role != 'superadmin' %}
+    // Convert Django template data to JavaScript array
+    currentTenantItems = [
+        {% for item in items %}
+        {id: {{ item.id }}, item_name: "{{ item.item_name }}", purchase_price: "{{ item.purchase_price|default:0 }}"}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    {% endif %}
+
     /**
      * NEW: Calculates and displays the grand total of all items.
      */
@@ -137,15 +147,19 @@ $(document).ready(function() {
         const vendorSelect = $('select[name="vendor_id"]');
         const itemSelects = $('.item-select');
         
-        currentTenantItems = items || [];
+        if (items) {
+            currentTenantItems = items;
+        }
 
-        // Update Vendor Dropdown
+        // Update Vendor Dropdown (only for superadmin)
+        {% if add.role == 'superadmin' %}
         vendorSelect.empty().append('<option value="">-- Select --</option>');
         if (vendors && vendors.length > 0) {
             vendors.forEach(vendor => {
                 vendorSelect.append(`<option value="${vendor.id}">${vendor.party_name}</option>`);
             });
         }
+        {% endif %}
 
         // Update Item Dropdowns
         itemSelects.each(function() {
@@ -162,6 +176,7 @@ $(document).ready(function() {
     /**
      * Handles the change event for the superadmin's tenant selection dropdown.
      */
+    {% if add.role == 'superadmin' %}
     $('select[name="tenant_id"]').on('change', function() {
         const tenantId = $(this).val();
         if (!tenantId) {
@@ -178,6 +193,10 @@ $(document).ready(function() {
             })
             .catch(error => console.error("Failed to fetch tenant data:", error));
     });
+    {% else %}
+    // For regular admin, initialize dropdowns immediately
+    updateDropdowns(null, currentTenantItems);
+    {% endif %}
 
     /**
      * Calculates the total amount for a single item row.
@@ -245,9 +264,12 @@ $(document).ready(function() {
     bindEvents($('.item-row'));
 
     // Trigger change event if a tenant is pre-selected on page load
+    // FIX: Only trigger change for superadmin
+    {% if add.role == 'superadmin' %}
     if ($('select[name="tenant_id"]').val()) {
         $('select[name="tenant_id"]').trigger('change');
     }
+    {% endif %}
 });
 </script>
 

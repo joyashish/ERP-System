@@ -1678,6 +1678,9 @@ def create_purchase_view(request):
         # For superadmin, let's start with a clear slate. We'll load vendors with JavaScript.
         context['tenants'] = Tenant.objects.all().order_by('name')
         context['tenant_id_from_url'] = request.GET.get('tenant_id')
+        # Initialize empty for superadmin (will be loaded via AJAX)
+        context['vendors'] = []
+        context['items'] = []
     else:
         # For regular users, filter parties that are 'Supplier' or 'Both'
         tenant = request.tenant
@@ -1687,7 +1690,7 @@ def create_purchase_view(request):
             is_active=True,
             party_type__in=['Supplier', 'Both']
         ).order_by('party_name')
-        context['items'] = Product.objects.filter(tenant=tenant, is_active=True).order_by('item_name')
+        context['items'] = Product.objects.filter(tenant=tenant, is_active=True).values('id', 'item_name', 'purchase_price').order_by('item_name')
     
     # Add the available purchase statuses to the context for the dropdown
     context['purchase_statuses'] = Purchase.PurchaseStatus.choices
@@ -1820,3 +1823,92 @@ def purchase_list_view(request):
         'purchases': purchases,
     }
     return render(request, 'purchase_list.html', context)
+# View Purchase details individually 
+@tenant_required
+def view_purchase(request, purchase_id):
+    account = request.user
+    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    
+    if account.role == 'superadmin':
+        purchase = get_object_or_404(Purchase, id=purchase_id)
+    else:
+        purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
+    
+    context = {
+        'purchase': purchase,
+        'add': account,
+        'tenant': tenant,
+    }
+    return render(request, 'view_purchase.html', context)
+
+# Edit Purchase 
+@tenant_required
+def edit_purchase_view(request, purchase_id):
+    account = request.user
+    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    
+    if account.role == 'superadmin':
+        purchase = get_object_or_404(Purchase, id=purchase_id)
+    else:
+        purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
+    
+    if request.method == 'POST':
+        # Handle purchase editing logic here
+        pass
+    
+    context = {
+        'purchase': purchase,
+        'add': account,
+        'tenant': tenant,
+        'vendors': Create_party.objects.filter(tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']),
+        'items': Product.objects.filter(tenant=tenant, is_active=True),
+        'purchase_statuses': Purchase.PurchaseStatus.choices,
+    }
+    return render(request, 'edit_purchase.html', context)
+# Delete Purchse 
+@tenant_required
+def delete_purchase(request, purchase_id):
+    account = request.user
+    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    
+    if account.role == 'superadmin':
+        purchase = get_object_or_404(Purchase, id=purchase_id)
+    else:
+        purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
+    
+    # Store tenant ID before deletion for redirect
+    tenant_id = purchase.tenant.id
+    
+    try:
+        # Handle stock reversal if purchase was received
+        if purchase.status == Purchase.PurchaseStatus.RECEIVED:
+            for item in purchase.items.all():
+                if hasattr(item.item, 'opening_stock'):
+                    item.item.opening_stock -= item.quantity
+                    item.item.save()
+        
+        purchase.delete()
+        messages.success(request, f"Purchase {purchase.bill_number} deleted successfully!")
+    
+    except Exception as e:
+        messages.error(request, f"Error deleting purchase: {e}")
+    
+    # Redirect with tenant context for superadmin
+    if account.role == 'superadmin':
+        return redirect(f"{reverse('purchase_list')}?tenant_id={tenant_id}")
+    else:
+        return redirect('purchase_list')
+
+@tenant_required
+def purchase_pdf(request, purchase_id):
+    account = request.user
+    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    
+    if account.role == 'superadmin':
+        purchase = get_object_or_404(Purchase, id=purchase_id)
+    else:
+        purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
+    
+    # Generate PDF logic here
+    # You can use libraries like reportlab or weasyprint
+    return HttpResponse("PDF generation logic here")

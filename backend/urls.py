@@ -102,5 +102,9 @@ urlpatterns=[
     path('purchase/create/', views.create_purchase_view, name='create_purchase'),
     path('purchases/', views.purchase_list_view, name='purchase_list'),
     path('api/get_purchase_data/<int:tenant_id>/', views.get_purchase_data_for_form, name='get_purchase_data'),
+    path('purchase/<int:purchase_id>/', views.view_purchase, name='view_purchase'),
+    path('purchase/<int:purchase_id>/edit/', views.edit_purchase_view, name='edit_purchase'),
+    path('purchase/<int:purchase_id>/delete/', views.delete_purchase, name='delete_purchase'),
+    path('purchase/<int:purchase_id>/pdf/', views.purchase_pdf, name='purchase_pdf'),
     
 ]
