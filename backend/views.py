@@ -1761,7 +1761,11 @@ def create_purchase_view(request):
                 purchase.save()
 
                 messages.success(request, "Purchase recorded successfully!")
-                return redirect('purchase_list') # We will create this page next
+                # --- THIS IS THE CORRECTED REDIRECT LOGIC ---
+                if account.role == 'superadmin':
+                    return redirect(f"{reverse('purchase_list')}?tenant_id={target_tenant.id}")
+                else:
+                    return redirect('purchase_list')
 
         except (ValidationError, Exception) as e:
             messages.error(request, f"Error: {e}")
