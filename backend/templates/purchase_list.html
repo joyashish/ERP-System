@@ -43,7 +43,10 @@
                             {% for purchase in purchases %}
                             <tr>
                                 <td>{{ purchase.purchase_date|date:"d M, Y" }}</td>
-                                <td>{{ purchase.bill_number|default:"N/A" }}</td>
+                                <td><!-- Make bill number clickable to view details -->
+                                    <a href="{% url 'view_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="text-primary">
+                                        {{ purchase.bill_number|default:"N/A" }}
+                                    </a></td>
                                 <td>{{ purchase.vendor.party_name }}</td>
                                 <td>₹{{ purchase.total_amount|floatformat:2 }}</td>
 
@@ -64,11 +67,7 @@
                                             <i class="fas fa-ellipsis-v"></i>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-right">
-                                            <!-- View Purchase Details -->
-                                            <a class="dropdown-item" href="{% url 'view_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}">
-                                                <i class="fas fa-eye mr-2"></i>View Details
-                                            </a>
-                                            
+
                                             <!-- Edit Purchase -->
                                             <a class="dropdown-item" href="{% url 'edit_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}">
                                                 <i class="fas fa-edit mr-2"></i>Edit Purchase

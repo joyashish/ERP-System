@@ -1,8 +1,8 @@
 from django.shortcuts import render,redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
 from backend.models import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
-from django.http import JsonResponse
 from django.db.models import Sum, F
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth
@@ -1909,6 +1909,5 @@ def purchase_pdf(request, purchase_id):
     else:
         purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
     
-    # Generate PDF logic here
-    # You can use libraries like reportlab or weasyprint
-    return HttpResponse("PDF generation logic here")
+    # For now, return a simple response - you can implement PDF generation later
+    return HttpResponse(f"PDF generation for purchase {purchase.bill_number} would go here")

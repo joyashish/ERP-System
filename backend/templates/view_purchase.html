@@ -1,0 +1,120 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Purchase Details</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'purchase_list' %}">Purchases</a></li>
+                        <li class="breadcrumb-item active">{{ purchase.bill_number }}</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Purchase Information</h3>
+                            <div class="card-tools">
+                                <a href="{% url 'edit_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-primary btn-sm mr-2">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="{% url 'purchase_pdf' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-info btn-sm" target="_blank">
+                                    <i class="fas fa-print"></i> Print
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-box">
+                                        <h5>Vendor Details</h5>
+                                        <p><strong>Name:</strong> {{ purchase.vendor.party_name }}</p>
+                                        <p><strong>Contact:</strong> {{ purchase.vendor.mobile_num }}</p>
+                                        <p><strong>Address:</strong> {{ purchase.vendor.billing_address }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-box">
+                                        <h5>Purchase Details</h5>
+                                        <p><strong>Bill Number:</strong> {{ purchase.bill_number }}</p>
+                                        <p><strong>Date:</strong> {{ purchase.purchase_date|date:"d M, Y" }}</p>
+                                        <p><strong>Status:</strong> 
+                                            {% if purchase.status == 'RECEIVED' %}
+                                            <span class="badge badge-success">{{ purchase.get_status_display }}</span>
+                                            {% elif purchase.status == 'ORDERED' %}
+                                            <span class="badge badge-info">{{ purchase.get_status_display }}</span>
+                                            {% elif purchase.status == 'CANCELLED' %}
+                                            <span class="badge badge-danger">{{ purchase.get_status_display }}</span>
+                                            {% else %}
+                                            <span class="badge badge-secondary">{{ purchase.get_status_display }}</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <h5>Items Purchased</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Quantity</th>
+                                            <th>Unit Price</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in purchase.items.all %}
+                                        <tr>
+                                            <td>{{ item.item.item_name }}</td>
+                                            <td>{{ item.quantity }}</td>
+                                            <td>₹{{ item.purchase_price|floatformat:2 }}</td>
+                                            <td>₹{{ item.amount|floatformat:2 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="3" class="text-right">Grand Total:</th>
+                                            <th>₹{{ purchase.total_amount|floatformat:2 }}</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            {% if purchase.notes %}
+                            <div class="mt-3">
+                                <h5>Notes</h5>
+                                <p>{{ purchase.notes }}</p>
+                            </div>
+                            {% endif %}
+
+                            <div class="mt-3">
+                                <p><strong>Created by:</strong> {{ purchase.user.get_full_name|default:purchase.user.email }} on {{ purchase.created_at|date:"d M, Y H:i" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}
