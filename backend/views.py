@@ -24,6 +24,8 @@ from decimal import Decimal
 from django.db.models.functions import TruncMonth
 from dateutil.relativedelta import relativedelta
 from django.urls import reverse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 
 
 
@@ -1853,15 +1855,37 @@ def edit_purchase_view(request, purchase_id):
         purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
     
     if request.method == 'POST':
-        # Handle purchase editing logic here
-        pass
+        try:
+            with transaction.atomic():
+                # Handle purchase editing logic here
+                post_data = request.POST
+                vendor = get_object_or_404(Create_party, id=post_data.get('vendor_id'), tenant=purchase.tenant)
+                purchase_status = post_data.get('status', Purchase.PurchaseStatus.ORDERED)
+                
+                # Update purchase details
+                purchase.vendor = vendor
+                purchase.bill_number = post_data.get('bill_number')
+                purchase.purchase_date = post_data.get('purchase_date')
+                purchase.notes = post_data.get('notes')
+                purchase.status = purchase_status
+                purchase.save()
+                
+                messages.success(request, f"Purchase {purchase.bill_number} updated successfully!")
+                
+                # Redirect with tenant context for superadmin
+                if account.role == 'superadmin':
+                    return redirect(f"{reverse('purchase_list')}?tenant_id={purchase.tenant.id}")
+                else:
+                    return redirect('purchase_list')
+                    
+        except Exception as e:
+            messages.error(request, f"Error updating purchase: {e}")
     
     context = {
         'purchase': purchase,
         'add': account,
         'tenant': tenant,
-        'vendors': Create_party.objects.filter(tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']),
-        'items': Product.objects.filter(tenant=tenant, is_active=True),
+        'vendors': Create_party.objects.filter(tenant=purchase.tenant, is_active=True, party_type__in=['Supplier', 'Both']),
         'purchase_statuses': Purchase.PurchaseStatus.choices,
     }
     return render(request, 'edit_purchase.html', context)
@@ -1899,6 +1923,7 @@ def delete_purchase(request, purchase_id):
     else:
         return redirect('purchase_list')
 
+# Purchase pdf view
 @tenant_required
 def purchase_pdf(request, purchase_id):
     account = request.user
@@ -1909,5 +1934,22 @@ def purchase_pdf(request, purchase_id):
     else:
         purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
     
-    # For now, return a simple response - you can implement PDF generation later
-    return HttpResponse(f"PDF generation for purchase {purchase.bill_number} would go here")
+    template_path = 'purchase_pdf.html'
+    context = {'purchase': purchase}
+    
+    # Create a Django response object, and specify content_type as pdf
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="purchase_{purchase.bill_number}.pdf"'
+    
+    # Find the template and render it
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    # Create PDF
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    
+    # If error then show some view
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    
+    return response

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Purchase Invoice - {{ purchase.bill_number }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 1cm;
+            @frame footer {
+                -pdf-frame-content: footerContent;
+                bottom: 0cm;
+                margin-left: 1cm;
+                margin-right: 1cm;
+                height: 1cm;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .company-info {
+            margin-bottom: 20px;
+        }
+        .details {
+            margin-bottom: 20px;
+        }
+        .details-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .details-table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .items-table th, .items-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .items-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        .notes {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PURCHASE INVOICE</h1>
+        <h2>{{ purchase.bill_number }}</h2>
+    </div>
+    
+    <table class="details-table">
+        <tr>
+            <td width="50%">
+                <strong>Vendor Information:</strong><br>
+                {{ purchase.vendor.party_name }}<br>
+                {% if purchase.vendor.mobile_num %}
+                Phone: {{ purchase.vendor.mobile_num }}<br>
+                {% endif %}
+                {% if purchase.vendor.email %}
+                Email: {{ purchase.vendor.email }}<br>
+                {% endif %}
+                {% if purchase.vendor.billing_address %}
+                Address: {{ purchase.vendor.billing_address }}
+                {% endif %}
+            </td>
+            <td width="50%">
+                <strong>Purchase Details:</strong><br>
+                Date: {{ purchase.purchase_date|date:"F d, Y" }}<br>
+                Status: {{ purchase.get_status_display }}<br>
+                {% if purchase.vendor.gst_no %}
+                GSTIN: {{ purchase.vendor.gst_no }}<br>
+                {% endif %}
+                {% if tenant %}
+                Business: {{ tenant.name }}<br>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Item Description</th>
+                <th width="15%">Quantity</th>
+                <th width="15%">Unit Price</th>
+                <th width="15%">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in purchase.items.all %}
+            <tr>
+                <td>{{ item.item.item_name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>Rs.{{ item.purchase_price|floatformat:2 }}</td>
+                <td>Rs.{{ item.amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="3" style="text-align: right;"><strong>Grand Total:</strong></td>
+                <td><strong>Rs.{{ purchase.total_amount|floatformat:2 }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    {% if purchase.notes %}
+    <div class="notes">
+        <strong>Notes:</strong><br>
+        {{ purchase.notes }}
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generated on {% now "F d, Y H:i" %} | Prepared by: {{ purchase.user.get_full_name|default:purchase.user.email }}</p>
+        <p>This is a computer generated document and does not require a signature.</p>
+    </div>
+
+    <div id="footerContent">
+        <p style="text-align: center; font-size: 10px; color: #666;">
+            Page <pdf:pagenumber> of <pdf:pagecount>
+        </p>
+    </div>
+</body>
+</html>
