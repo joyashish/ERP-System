@@ -1953,3 +1953,117 @@ def purchase_pdf(request, purchase_id):
         return HttpResponse('We had some errors <pre>' + html + '</pre>')
     
     return response
+
+# Purchase Status Updated View 
+@tenant_required
+def update_purchase_status(request, purchase_id):
+    account = request.user
+    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    
+    if account.role == 'superadmin':
+        purchase = get_object_or_404(Purchase, id=purchase_id)
+    else:
+        purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        old_status = purchase.status
+        
+        if not purchase.can_change_status(new_status):
+            messages.error(request, f"Cannot change status from {purchase.get_status_display()} to {dict(Purchase.PurchaseStatus.choices).get(new_status, new_status)}")
+        else:
+            try:
+                with transaction.atomic():
+                    # Handle stock changes
+                    purchase.update_stock_on_status_change(old_status, new_status)
+                    
+                    # Update status
+                    purchase.status = new_status
+                    purchase.save()
+                    
+                    # Create status history record
+                    PurchaseStatusHistory.objects.create(
+                        purchase=purchase,
+                        old_status=old_status,
+                        new_status=new_status,
+                        changed_by=account,
+                        notes=request.POST.get('notes', '')
+                    )
+                    
+                    messages.success(request, f"Purchase status updated to {purchase.get_status_display()}")
+                    
+            except Exception as e:
+                messages.error(request, f"Error updating status: {e}")
+        
+        # Redirect back to view page
+        if account.role == 'superadmin':
+            return redirect(f"{reverse('view_purchase', args=[purchase.id])}?tenant_id={purchase.tenant.id}")
+        else:
+            return redirect('view_purchase', purchase_id=purchase.id)
+    
+    return redirect('view_purchase', purchase_id=purchase.id)
+
+@tenant_required
+def add_purchase_payment(request, purchase_id):
+    account = request.user
+    tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    
+    if account.role == 'superadmin':
+        purchase = get_object_or_404(Purchase, id=purchase_id)
+    else:
+        purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
+    
+    if request.method == 'POST':
+        try:
+            amount = Decimal(request.POST.get('amount'))
+            payment_date = request.POST.get('payment_date')
+            payment_method = request.POST.get('payment_method')
+            reference_number = request.POST.get('reference_number')
+            notes = request.POST.get('notes')
+            
+            if amount <= 0:
+                messages.error(request, "Payment amount must be greater than zero")
+            elif amount > purchase.balance_due:
+                messages.error(request, f"Payment amount cannot exceed balance due of ₹{purchase.balance_due}")
+            else:
+                PurchasePayment.objects.create(
+                    purchase=purchase,
+                    amount=amount,
+                    payment_date=payment_date,
+                    payment_method=payment_method,
+                    reference_number=reference_number,
+                    notes=notes,
+                    created_by=account
+                )
+                messages.success(request, f"Payment of ₹{amount} recorded successfully")
+                
+        except Exception as e:
+            messages.error(request, f"Error recording payment: {e}")
+    
+    if account.role == 'superadmin':
+        return redirect(f"{reverse('view_purchase', args=[purchase.id])}?tenant_id={purchase.tenant.id}")
+    else:
+        return redirect('view_purchase', purchase_id=purchase.id)
+
+@tenant_required
+def delete_purchase_payment(request, payment_id):
+    account = request.user
+    
+    if account.role == 'superadmin':
+        payment = get_object_or_404(PurchasePayment, id=payment_id)
+    else:
+        payment = get_object_or_404(PurchasePayment, id=payment_id, purchase__tenant=request.tenant)
+    
+    purchase_id = payment.purchase.id
+    tenant_id = payment.purchase.tenant.id
+    
+    try:
+        payment.delete()
+        messages.success(request, "Payment record deleted successfully")
+    except Exception as e:
+        messages.error(request, f"Error deleting payment: {e}")
+    
+    if account.role == 'superadmin':
+        return redirect(f"{reverse('view_purchase', args=[purchase_id])}?tenant_id={tenant_id}")
+    else:
+        return redirect('view_purchase', purchase_id=purchase_id)

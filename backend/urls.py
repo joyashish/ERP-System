@@ -106,5 +106,8 @@ urlpatterns=[
     path('purchase/<int:purchase_id>/edit/', views.edit_purchase_view, name='edit_purchase'),
     path('purchase/<int:purchase_id>/delete/', views.delete_purchase, name='delete_purchase'),
     path('purchase/<int:purchase_id>/pdf/', views.purchase_pdf, name='purchase_pdf'),
+    path('purchase/<int:purchase_id>/update-status/', views.update_purchase_status, name='update_purchase_status'),
+    path('purchase/<int:purchase_id>/add-payment/', views.add_purchase_payment, name='add_purchase_payment'),
+    path('payment/<int:payment_id>/delete/', views.delete_purchase_payment, name='delete_purchase_payment'),
     
 ]

@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from django.db.models import Sum
 from datetime import timedelta
 from django.contrib.auth.hashers import make_password
 
@@ -323,13 +324,16 @@ class ActivityLog(models.Model):
         # ... (__str__ method remains the same)
         pass
 
+
 # Purchase Model
 class Purchase(models.Model):
     class PurchaseStatus(models.TextChoices):
         DRAFT = 'DRAFT', 'Draft'
         ORDERED = 'ORDERED', 'Ordered'
+        PARTIALLY_RECEIVED = 'PARTIALLY_RECEIVED', 'Partially Received'  # ADDED THIS
         RECEIVED = 'RECEIVED', 'Received'
         CANCELLED = 'CANCELLED', 'Cancelled'
+    
     vendor = models.ForeignKey(Create_party, on_delete=models.CASCADE)
     bill_number = models.CharField(max_length=50, blank=True, null=True)
     purchase_date = models.DateField(default=timezone.now)
@@ -345,17 +349,110 @@ class Purchase(models.Model):
 
     def __str__(self):
         return f"Purchase from {self.vendor.party_name} on {self.purchase_date}"
+    
+    def can_change_status(self, new_status):
+        """Check if status change is allowed"""
+        status_flow = {
+            'DRAFT': ['ORDERED', 'CANCELLED'],
+            'ORDERED': ['RECEIVED', 'PARTIALLY_RECEIVED', 'CANCELLED'],
+            'PARTIALLY_RECEIVED': ['RECEIVED', 'CANCELLED'],
+            'RECEIVED': ['CANCELLED'],
+            'CANCELLED': []
+        }
+        return new_status in status_flow.get(self.status, [])
+    
+    def update_stock_on_status_change(self, old_status, new_status):
+        """Handle stock changes when status changes"""
+        if old_status == 'RECEIVED' and new_status != 'RECEIVED':
+            # Reverse stock if moving out of received status
+            for item in self.items.all():
+                if hasattr(item.item, 'opening_stock'):
+                    item.item.opening_stock -= item.quantity
+                    item.item.save()
+        
+        elif new_status == 'RECEIVED' and old_status != 'RECEIVED':
+            # Add stock when receiving
+            for item in self.items.all():
+                if hasattr(item.item, 'opening_stock'):
+                    item.item.opening_stock += item.quantity
+                    item.item.save()
+    
+    # FIXED: These properties should be in Purchase model
+    @property
+    def total_paid(self):
+        return self.payments.aggregate(total=Sum('amount'))['total'] or 0
 
-# PurchaseItem Model
+    @property
+    def balance_due(self):
+        return self.total_amount - self.total_paid
+
+    @property
+    def payment_status(self):
+        if self.balance_due <= 0:
+            return 'PAID'
+        elif self.balance_due < self.total_amount:
+            return 'PARTIALLY_PAID'
+        else:
+            return 'UNPAID'
+
+# PurchaseItem Model (unchanged)
 class PurchaseItem(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='items')
     item = models.ForeignKey(ItemBase, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
-    amount = models.DecimalField(max_digits=12, decimal_places=2) # Calculated as quantity * purchase_price
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
 
     def __str__(self):
         return f"{self.quantity} of {self.item.item_name} for Purchase {self.purchase.id}"
+
+# Purchase Status History Model
+class PurchaseStatusHistory(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='status_history')
+    old_status = models.CharField(max_length=20)
+    new_status = models.CharField(max_length=20)
+    changed_by = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-changed_at']
+    
+    def __str__(self):
+        return f"{self.purchase.bill_number} - {self.old_status} → {self.new_status}"
+    
+    # FIXED: These methods should be in PurchaseStatusHistory model, not Purchase
+    def get_old_status_display(self):
+        return dict(Purchase.PurchaseStatus.choices).get(self.old_status, self.old_status)
+
+    def get_new_status_display(self):
+        return dict(Purchase.PurchaseStatus.choices).get(self.new_status, self.new_status)
+
+# Purchase Payment Model (unchanged)
+class PurchasePayment(models.Model):
+    PAYMENT_METHODS = (
+        ('CASH', 'Cash'),
+        ('BANK_TRANSFER', 'Bank Transfer'),
+        ('CHEQUE', 'Cheque'),
+        ('UPI', 'UPI'),
+        ('CREDIT_CARD', 'Credit Card'),
+        ('OTHER', 'Other'),
+    )
+    
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_date = models.DateField(default=timezone.now)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='CASH')
+    reference_number = models.CharField(max_length=100, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-payment_date']
+    
+    def __str__(self):
+        return f"Payment of ₹{self.amount} for {self.purchase.bill_number}"
 
 # class Plan(models.Model):
 #     name = models.CharField(max_length=100) # e.g., "Trial", "Pro", "Enterprise"
