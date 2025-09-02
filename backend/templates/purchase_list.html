@@ -13,86 +13,149 @@
             {% if messages %}{% for message in messages %}
             <div class="alert alert-{{ message.tags }} msg_sec">{{ message }}</div>
             {% endfor %}{% endif %}
+
+            <div class="card card-default">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-filter"></i> Filters
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="">
+                        {% if add.role == 'superadmin' and tenant %}
+                            <input type="hidden" name="tenant_id" value="{{ tenant.id }}">
+                        {% endif %}
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Start Date</label>
+                                    <input type="date" name="start_date" class="form-control" value="{{ current_filters.start_date|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>End Date</label>
+                                    <input type="date" name="end_date" class="form-control" value="{{ current_filters.end_date|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Vendor</label>
+                                    <select name="vendor" class="form-control">
+                                        <option value="">All Vendors</option>
+                                        {% for vendor in filter_vendors %}
+                                            <option value="{{ vendor.id }}" {% if current_filters.vendor == vendor.id|stringformat:"s" %}selected{% endif %}>
+                                                {{ vendor.party_name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select name="status" class="form-control">
+                                        <option value="">All Statuses</option>
+                                        {% for value, label in purchase_statuses %}
+                                            <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 text-right">
+                                <a href="{% url 'purchase_list' %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary">Clear</a>
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title">Purchase History</h3>
-                    <!-- If superadmin then add tenant_id in the url when redirected to the create purchase page -->
-                    {% if tenant %}
-                    <a href="{% url 'create_purchase' %}?tenant_id={{ tenant.id }}" class="btn btn-success">
-                        <i class="fas fa-plus"></i> Record Purchase
-                    </a>
-                    {% elif add.role != 'superadmin' %}
-                    <a href="{% url 'create_purchase' %}" class="btn btn-success">
-                        <i class="fas fa-plus"></i> Record Purchase
-                    </a>
-                    {% endif %}
+                     {% if tenant %}
+                        <a href="{% url 'create_purchase' %}?tenant_id={{ tenant.id }}" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Record Purchase
+                        </a>
+                     {% elif add.role != 'superadmin' %}
+                        <a href="{% url 'create_purchase' %}" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Record Purchase
+                        </a>
+                     {% endif %}
                 </div>
                 <div class="card-body">
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Bill No.</th>
-                                <th>Vendor</th>
-                                <th>Total Amount</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for purchase in purchases %}
-                            <tr>
-                                <td>{{ purchase.purchase_date|date:"d M, Y" }}</td>
-                                <td><!-- Make bill number clickable to view details -->
-                                    <a href="{% url 'view_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="text-primary">
-                                        {{ purchase.bill_number|default:"N/A" }}
-                                    </a></td>
-                                <td>{{ purchase.vendor.party_name }}</td>
-                                <td>₹{{ purchase.total_amount|floatformat:2 }}</td>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Bill No.</th>
+                                    <th>Vendor</th>
+                                    <th>Total Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for purchase in purchases %}
+                                <tr>
+                                    <td>{{ purchase.purchase_date|date:"d M, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'view_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="text-primary font-weight-bold">
+                                            {{ purchase.bill_number|default:"N/A" }}
+                                        </a>
+                                    </td>
+                                    <td>{{ purchase.vendor.party_name }}</td>
+                                    <td>₹{{ purchase.total_amount|floatformat:2 }}</td>
 
-                                <td class="text-center">
-                                    {% if purchase.status == 'RECEIVED' %}
-                                    <span class="badge badge-success">{{ purchase.get_status_display }}</span>
-                                    {% elif purchase.status == 'ORDERED' %}
-                                    <span class="badge badge-info">{{ purchase.get_status_display }}</span>
-                                    {% elif purchase.status == 'CANCELLED' %}
-                                    <span class="badge badge-danger">{{ purchase.get_status_display }}</span>
-                                    {% else %} <span class="badge badge-secondary">{{ purchase.get_status_display }}</span>
-                                    {% endif %}
-                                </td>
+                                    <td class="text-center">
+                                        {% if purchase.status == 'RECEIVED' %}
+                                            <span class="badge badge-success">{{ purchase.get_status_display }}</span>
+                                        {% elif purchase.status == 'ORDERED' %}
+                                            <span class="badge badge-info">{{ purchase.get_status_display }}</span>
+                                        {% elif purchase.status == 'PARTIALLY_RECEIVED' %}
+                                            <span class="badge badge-warning">{{ purchase.get_status_display }}</span>
+                                        {% elif purchase.status == 'CANCELLED' %}
+                                            <span class="badge badge-danger">{{ purchase.get_status_display }}</span>
+                                        {% else %} 
+                                            <span class="badge badge-secondary">{{ purchase.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
 
-                                <td data-label="Actions">
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
-                                        <div class="dropdown-menu dropdown-menu-right">
-
-                                            <!-- Edit Purchase -->
-                                            <a class="dropdown-item" href="{% url 'edit_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}">
-                                                <i class="fas fa-edit mr-2"></i>Edit Purchase
-                                            </a>
-                                            
-                                            <!-- Print Purchase -->
-                                            <a class="dropdown-item" href="{% url 'purchase_pdf' purchase.id %}" target="_blank">
-                                                <i class="fas fa-print mr-2"></i>Print Purchase
-                                            </a>
-                                            
-                                            <div class="dropdown-divider"></div>
-                                            
-                                            <!-- Delete Purchase -->
-                                            <a class="dropdown-item text-danger" href="{% url 'delete_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" onclick="return confirm('Are you sure you want to delete this purchase? This action cannot be undone.');">
-                                                <i class="fas fa-trash mr-2"></i>Delete Purchase
-                                            </a>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-right">
+                                                <a class="dropdown-item" href="{% url 'view_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}">
+                                                    <i class="fas fa-eye mr-2"></i>View Details
+                                                </a>
+                                                <a class="dropdown-item" href="{% url 'edit_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}">
+                                                    <i class="fas fa-edit mr-2"></i>Edit Purchase
+                                                </a>
+                                                <a class="dropdown-item" href="{% url 'purchase_pdf' purchase.id %}" target="_blank">
+                                                    <i class="fas fa-print mr-2"></i>Print Purchase
+                                                </a>
+                                                <div class="dropdown-divider"></div>
+                                                <a class="dropdown-item text-danger" href="{% url 'delete_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" onclick="return confirm('Are you sure you want to delete this purchase? This action cannot be undone.');">
+                                                    <i class="fas fa-trash mr-2"></i>Delete Purchase
+                                                </a>
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="6" class="text-center">No purchases recorded yet.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center">No purchases match your filters.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,4 +164,3 @@
 
 {% include 'footer.html' %}
 {% include 'footer_link.html' %}
-

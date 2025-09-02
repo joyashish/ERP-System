@@ -1809,20 +1809,54 @@ def purchase_list_view(request):
     account = request.user
     purchases = Purchase.objects.none()
     tenant = None
+    filter_vendors = Create_party.objects.none()
 
+    # 1. Determine the base queryset and available filters
     if account.role == 'superadmin':
         tenant_id = request.GET.get('tenant_id')
         if tenant_id:
             tenant = get_object_or_404(Tenant, id=tenant_id)
-            purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor')
+            purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-purchase_date')
+            # Get vendors only for the selected tenant
+            filter_vendors = Create_party.objects.filter(
+                tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']
+            ).order_by('party_name')
     else:
         tenant = request.tenant
-        purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor')
+        purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-purchase_date')
+        # Get vendors for the current user's tenant
+        filter_vendors = Create_party.objects.filter(
+            tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']
+        ).order_by('party_name')
+
+    # 2. Get filter parameters from the request
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    vendor_id = request.GET.get('vendor')
+    status = request.GET.get('status')
+
+    # 3. Apply filters to the queryset
+    if start_date:
+        purchases = purchases.filter(purchase_date__gte=start_date)
+    if end_date:
+        purchases = purchases.filter(purchase_date__lte=end_date)
+    if vendor_id:
+        purchases = purchases.filter(vendor__id=vendor_id)
+    if status:
+        purchases = purchases.filter(status=status)
     
     context = {
         'add': account,
         'tenant': tenant,
         'purchases': purchases,
+        'filter_vendors': filter_vendors, # For the vendor dropdown
+        'purchase_statuses': Purchase.PurchaseStatus.choices, # For the status dropdown
+        'current_filters': { # To keep filter values in the form
+            'start_date': start_date,
+            'end_date': end_date,
+            'vendor': vendor_id,
+            'status': status,
+        }
     }
     return render(request, 'purchase_list.html', context)
 # View Purchase details individually 
@@ -1833,13 +1867,24 @@ def view_purchase(request, purchase_id):
     
     if account.role == 'superadmin':
         purchase = get_object_or_404(Purchase, id=purchase_id)
+        # Re-assign tenant from the purchase object for consistency
+        tenant = purchase.tenant
     else:
         purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
     
+    # --- NEW LOGIC TO PRE-FILTER STATUSES ---
+    # Create a list of the next statuses that are manually allowed
+    allowed_next_statuses = []
+    for value, label in purchase.PurchaseStatus.choices:
+        if purchase.can_change_status(value):
+            allowed_next_statuses.append((value, label))
+    # --- END OF NEW LOGIC ---
+
     context = {
         'purchase': purchase,
         'add': account,
         'tenant': tenant,
+        'allowed_next_statuses': allowed_next_statuses, # Pass the filtered list to the template
     }
     return render(request, 'view_purchase.html', context)
 
@@ -2067,3 +2112,106 @@ def delete_purchase_payment(request, payment_id):
         return redirect(f"{reverse('view_purchase', args=[purchase_id])}?tenant_id={tenant_id}")
     else:
         return redirect('view_purchase', purchase_id=purchase_id)
+
+# Create Purchase Return View 
+@tenant_required
+def create_purchase_return(request, purchase_id):
+    account = request.user
+    # Use prefetch_related for efficiency
+    purchase_qs = Purchase.objects.prefetch_related('items__item')
+    
+    if account.role == 'superadmin':
+        # tenant is not needed here since purchase_id is unique
+        purchase = get_object_or_404(purchase_qs, id=purchase_id)
+        tenant = purchase.tenant
+    else:
+        tenant = request.tenant
+        purchase = get_object_or_404(purchase_qs, id=purchase_id, tenant=tenant)
+    
+    if purchase.status not in ['RECEIVED', 'PARTIALLY_RECEIVED']:
+        messages.error(request, 'Only items from fully or partially received purchases can be returned.')
+        return redirect('view_purchase', purchase_id=purchase.id)
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                return_reason = request.POST.get('return_reason')
+                notes = request.POST.get('notes', '')
+                
+                # Validation: Ensure a reason is selected
+                if not return_reason:
+                    raise ValidationError("You must select a reason for the return.")
+
+                # Temporary list to hold valid items before creating DB objects
+                items_to_process = []
+                total_return_value = Decimal('0.0') # Use Decimal for precision
+
+                for item_id_str in request.POST.keys():
+                    if item_id_str.startswith('return_quantity_'):
+                        item_id = item_id_str.split('_')[-1]
+                        quantity = int(request.POST.get(item_id_str, 0))
+
+                        if quantity > 0:
+                            purchase_item = get_object_or_404(PurchaseItem, id=item_id, purchase=purchase)
+                            
+                            # More robust validation against already returned items
+                            if quantity > purchase_item.returnable_quantity:
+                                raise ValidationError(f"Cannot return {quantity} of {purchase_item.item.item_name}. "
+                                                      f"Only {purchase_item.returnable_quantity} are available to return.")
+                            
+                            items_to_process.append({
+                                'purchase_item': purchase_item,
+                                'quantity': quantity,
+                            })
+                            total_return_value += purchase_item.purchase_price * Decimal(quantity)
+
+                # Validation: Ensure at least one item with quantity > 0 is being returned
+                if not items_to_process:
+                    raise ValidationError("You must specify a return quantity of at least 1 for one or more items.")
+
+                # --- CORRECTED LOGIC ---
+                # 1. Create the main PurchaseReturn object FIRST
+                purchase_return = PurchaseReturn.objects.create(
+                    purchase=purchase, # Corrected field name
+                    return_reason=return_reason,
+                    notes=notes,
+                    total_return_amount=total_return_value, # Set the total amount now
+                    created_by=account,
+                    tenant=tenant, # Explicitly set the tenant
+                )
+
+                # 2. Now that purchase_return has an ID, create the related items
+                for item_data in items_to_process:
+                    pi = item_data['purchase_item']
+                    PurchaseReturnItem.objects.create(
+                        purchase_return=purchase_return,
+                        purchase_item=pi,
+                        quantity=item_data['quantity'],
+                        return_price=pi.purchase_price,
+                        # The amount will be calculated by the model's save method
+                    )
+                    
+                    # 3. Update stock for each item
+                    product = get_object_or_404(Product, id=pi.item.id)
+                    product.opening_stock -= item_data['quantity']
+                    product.save()
+                    # After successfully saving the return, update the original purchase's status
+                    # Pass the 'account' object to the updated method
+                    purchase.update_status_after_return(changed_by_user=account)
+
+                messages.success(request, f'Return created successfully for purchase {purchase.bill_number}')
+                return redirect('view_purchase', purchase_id=purchase.id)
+                
+        except ValidationError as e:
+            # Use e.message to get a cleaner error string
+            messages.error(request, e.message)
+        except Exception as e:
+            messages.error(request, f'An unexpected error occurred: {str(e)}')
+            
+    context = {
+        'purchase': purchase,
+        'add': account,
+        'tenant': tenant,
+        'return_reasons': PurchaseReturn.RETURN_REASONS,
+    }
+    return render(request, 'create_purchase_return.html', context)

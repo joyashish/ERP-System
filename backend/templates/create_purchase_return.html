@@ -1,0 +1,157 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Create Purchase Return</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'purchase_list' %}">Purchases</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'view_purchase' purchase.id %}">{{ purchase.bill_number }}</a></li>
+                        <li class="breadcrumb-item active">Return</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            {% if messages %}
+            <div class="row">
+                <div class="col-12">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show msg_sec" role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="">
+                {% csrf_token %}
+                <div class="card card-primary card-outline">
+                    <div class="card-header">
+                        <h3 class="card-title">Return Details for Purchase: {{ purchase.bill_number }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label for="id_return_reason">Return Reason <span class="text-danger">*</span></label>
+                                <select name="return_reason" class="form-control" required>
+                                    <option value="" disabled selected>Select Reason</option>
+                                    {% for value, label in return_reasons %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="id_notes">Notes</label>
+                                <textarea name="notes" class="form-control" rows="1" id="id_notes" placeholder="Additional notes about the return"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Select Items to Return</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Item</th>
+                                        <th class="text-center">Purchased</th>
+                                        <th class="text-center">Returnable</th>
+                                        <th style="width: 150px;" class="text-center">Return Qty</th>
+                                        <th class="text-right">Return Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in purchase.items.all %}
+                                        {% if item.returnable_quantity > 0 %}
+                                        <tr>
+                                            <td>{{ item.item.item_name }}</td>
+                                            <td class="text-center">{{ item.quantity }}</td>
+                                            <td class="text-center font-weight-bold">{{ item.returnable_quantity }}</td>
+                                            <td>
+                                                <input type="number" name="return_quantity_{{ item.id }}" 
+                                                       class="form-control return-qty text-center" 
+                                                       min="0" max="{{ item.returnable_quantity }}" 
+                                                       value="0" data-price="{{ item.purchase_price }}">
+                                            </td>
+                                            <td class="return-amount text-right">₹0.00</td>
+                                        </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-light">
+                                        <th colspan="4" class="text-right">Total Return Amount:</th>
+                                        <th id="total-return-amount" class="text-right">₹0.00</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer text-right">
+                        <a href="{% url 'view_purchase' purchase.id %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" id="submit-btn" class="btn btn-primary" disabled>Create Return</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInputs = document.querySelectorAll('.return-qty');
+    const submitButton = document.getElementById('submit-btn');
+    
+    quantityInputs.forEach(input => {
+        input.addEventListener('input', updateTotals);
+    });
+    
+    function updateTotals() {
+        let totalReturnAmount = 0;
+        let totalReturnQuantity = 0;
+        
+        quantityInputs.forEach(input => {
+            const quantity = parseInt(input.value) || 0;
+            const price = parseFloat(input.dataset.price);
+            const amount = quantity * price;
+            
+            const amountCell = input.closest('tr').querySelector('.return-amount');
+            amountCell.textContent = '₹' + amount.toFixed(2);
+            
+            totalReturnAmount += amount;
+            totalReturnQuantity += quantity;
+        });
+        
+        document.getElementById('total-return-amount').textContent = '₹' + totalReturnAmount.toFixed(2);
+        
+        // Enable/disable the submit button based on total quantity
+        if (totalReturnQuantity > 0) {
+            submitButton.disabled = false;
+        } else {
+            submitButton.disabled = true;
+        }
+    }
+});
+</script>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

@@ -51,6 +51,11 @@
                                     <i class="fas fa-print"></i> Print
                                 </a>
                             </div>
+                            {% if purchase.status == 'RECEIVED' or purchase.status == 'PARTIALLY_RECEIVED' %}
+                            <a href="{% url 'create_purchase_return' purchase.id %}" class="btn btn-warning btn-sm ml-2">
+                                <i class="fas fa-undo"></i> Return
+                            </a>
+                            {% endif %}
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -127,6 +132,12 @@
                                         <i class="fas fa-money-bill-wave mr-1"></i> Payments ({{ purchase.payments.count }})
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="returns-tab" data-toggle="pill" href="#returns" role="tab" aria-controls="returns"
+                                        aria-selected="false">
+                                        <i class="fas fa-undo-alt mr-1"></i> Returns ({{ purchase.returns.count }})
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
@@ -170,6 +181,8 @@
                                                         <span class="badge badge-info">{{ purchase.get_status_display }}</span>
                                                         {% elif purchase.status == 'PARTIALLY_RECEIVED' %}
                                                         <span class="badge badge-warning">{{ purchase.get_status_display }}</span>
+                                                        {% elif purchase.status == 'FULLY_RETURNED' %}
+                                                        <span class="badge badge-danger">{{ purchase.get_status_display }}</span>
                                                         {% elif purchase.status == 'CANCELLED' %}
                                                         <span class="badge badge-danger">{{ purchase.get_status_display }}</span>
                                                         {% else %}
@@ -248,11 +261,9 @@
                                                         <div class="form-group">
                                                             <label>Change Status</label>
                                                             <select name="status" class="form-control" required>
-                                                                <option value="">Select Status</option>
-                                                                {% for value, label in purchase.PurchaseStatus.choices %}
-                                                                    {% if value != purchase.status %}
-                                                                    <option value="{{ value }}">{{ label }}</option>
-                                                                    {% endif %}
+                                                                <option value="" disabled selected>Select Status</option>
+                                                                {% for value, label in allowed_next_statuses %}
+                                                                <option value="{{ value }}">{{ label }}</option>
                                                                 {% endfor %}
                                                             </select>
                                                         </div>
@@ -414,6 +425,59 @@
                                                                 <i class="fas fa-money-bill-wave fa-2x text-muted mb-2"></i>
                                                                 <p class="text-muted">No payments recorded</p>
                                                             </td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Return Tab -->
+                                <div class="tab-pane fade" id="returns" role="tabpanel" aria-labelledby="returns-tab">
+                                    <div class="card card-info">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h3 class="card-title">Return History</h3>
+                                            {% if purchase.status == 'RECEIVED' or purchase.status == 'PARTIALLY_RECEIVED' %}
+                                            <a href="{% url 'create_purchase_return' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}"
+                                                class="btn btn-warning btn-sm">
+                                                <i class="fas fa-undo"></i> Create Return
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead class="thead-light">
+                                                        <tr>
+                                                            <th>Return Date</th>
+                                                            <th>Reason</th>
+                                                            <th>Total Value</th>
+                                                            <th>Items</th>
+                                                            <th>Notes</th>
+                                                            <th>Created By</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for return in purchase.returns.all %}
+                                                        <tr>
+                                                            <td>{{ return.return_date|date:"d M, Y" }}</td>
+                                                            <td>{{ return.get_return_reason_display }}</td>
+                                                            <td>₹{{ return.total_return_amount|floatformat:2 }}</td>
+                                                            <td>
+                                                                <ul class="list-unstyled mb-0">
+                                                                    {% for item in return.items.all %}
+                                                                    <li>{{ item.quantity }} x {{ item.purchase_item.item.item_name }}</li>
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            </td>
+                                                            <td>{{ return.notes|default:"-" }}</td>
+                                                            <td>{{ return.created_by.get_full_name|default:return.created_by.email }}</td>
+                                                        </tr>
+                                                        {% empty %}
+                                                        <tr>
+                                                            <td colspan="6" class="text-center py-4">No returns recorded for this purchase.</td>
                                                         </tr>
                                                         {% endfor %}
                                                     </tbody>

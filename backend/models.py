@@ -104,6 +104,39 @@ class Create_party(models.Model):
     def __str__(self):
         return self.party_name
 
+    # NEW: Add these properties for vendor performance
+    @property
+    def total_purchase_volume(self):
+        """Calculates the total value of all purchases from this vendor."""
+        return self.purchase_set.aggregate(total=Sum('total_amount'))['total'] or 0
+
+    @property
+    def successful_deliveries(self):
+        """Counts how many purchases have been fully received."""
+        return self.purchase_set.filter(status='RECEIVED').count()
+
+    @property
+    def pending_orders(self):
+        """Counts purchases that are ordered but not yet received or cancelled."""
+        return self.purchase_set.filter(status__in=['ORDERED', 'PARTIALLY_RECEIVED']).count()
+
+    @property
+    def return_rate(self):
+        """Calculates the percentage of items returned against items received."""
+        # Get total purchased items
+        total_purchased_items = PurchaseItem.objects.filter(
+            purchase__vendor=self
+        ).aggregate(total=Sum('quantity'))['total'] or 0
+        
+        # Get total returned items
+        total_returned_items = PurchaseReturnItem.objects.filter(
+            purchase_item__purchase__vendor=self
+        ).aggregate(total=Sum('quantity'))['total'] or 0
+        
+        if total_purchased_items == 0:
+            return 0
+        return (total_returned_items / total_purchased_items) * 100
+
 # ItemBase Model
 class ItemBase(models.Model):
     ITEM_TYPES = (
@@ -330,11 +363,13 @@ class Purchase(models.Model):
     class PurchaseStatus(models.TextChoices):
         DRAFT = 'DRAFT', 'Draft'
         ORDERED = 'ORDERED', 'Ordered'
-        PARTIALLY_RECEIVED = 'PARTIALLY_RECEIVED', 'Partially Received'  # ADDED THIS
+        PARTIALLY_RECEIVED = 'PARTIALLY_RECEIVED', 'Partially Received'
         RECEIVED = 'RECEIVED', 'Received'
         CANCELLED = 'CANCELLED', 'Cancelled'
+        PARTIALLY_RETURNED = 'PARTIALLY_RETURNED', 'Partially Returned'
+        FULLY_RETURNED = 'FULLY_RETURNED', 'Fully Returned'
     
-    vendor = models.ForeignKey(Create_party, on_delete=models.CASCADE)
+    vendor = models.ForeignKey(Create_party, on_delete=models.CASCADE, related_name='purchases')
     bill_number = models.CharField(max_length=50, blank=True, null=True)
     purchase_date = models.DateField(default=timezone.now)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -350,16 +385,71 @@ class Purchase(models.Model):
     def __str__(self):
         return f"Purchase from {self.vendor.party_name} on {self.purchase_date}"
     
+    # --- UPDATED can_change_status ---
     def can_change_status(self, new_status):
-        """Check if status change is allowed"""
+        """
+        Defines the allowed MANUAL status changes.
+        Return statuses are automatic and cannot be set manually.
+        """
+        # These are statuses that can be set manually by the user
+        MANUAL_STATUSES = [
+            self.PurchaseStatus.DRAFT,
+            self.PurchaseStatus.ORDERED,
+            self.PurchaseStatus.PARTIALLY_RECEIVED,
+            self.PurchaseStatus.RECEIVED,
+            self.PurchaseStatus.CANCELLED,
+        ]
+
+        # Prevent setting automatic statuses manually
+        if new_status in [self.PurchaseStatus.FULLY_RETURNED, self.PurchaseStatus.PARTIALLY_RETURNED]:
+            return False
+
+        # Define the allowed flow between manual statuses
         status_flow = {
             'DRAFT': ['ORDERED', 'CANCELLED'],
-            'ORDERED': ['RECEIVED', 'PARTIALLY_RECEIVED', 'CANCELLED'],
+            'ORDERED': ['PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'],
             'PARTIALLY_RECEIVED': ['RECEIVED', 'CANCELLED'],
             'RECEIVED': ['CANCELLED'],
+            # Once returned, the status is managed automatically by returns, not manually
+            'PARTIALLY_RETURNED': ['CANCELLED'], 
+            'FULLY_RETURNED': [], # Cannot manually change from Fully Returned
             'CANCELLED': []
         }
         return new_status in status_flow.get(self.status, [])
+
+    # --- UPDATED update_status_after_return ---
+    def update_status_after_return(self, changed_by_user):
+        """
+        Automatically updates the purchase status after a return and
+        records this change in the status history.
+        """
+        total_purchased_qty = self.items.aggregate(total=Sum('quantity'))['total'] or 0
+        total_returned_qty = self.returns.aggregate(total=Sum('items__quantity'))['total'] or 0
+
+        if total_returned_qty == 0:
+            return # No returns, no status change needed
+
+        old_status = self.status
+        new_status = None
+
+        if total_returned_qty >= total_purchased_qty:
+            new_status = self.PurchaseStatus.FULLY_RETURNED
+        elif total_returned_qty > 0:
+            new_status = self.PurchaseStatus.PARTIALLY_RETURNED
+        
+        # Only save and create history if the status has actually changed
+        if new_status and new_status != old_status:
+            self.status = new_status
+            self.save()
+            
+            # Create a history record for this automatic change
+            PurchaseStatusHistory.objects.create(
+                purchase=self,
+                old_status=old_status,
+                new_status=new_status,
+                changed_by=changed_by_user,
+                notes="Status automatically updated after processing a return."
+            )
     
     def update_stock_on_status_change(self, old_status, new_status):
         """Handle stock changes when status changes"""
@@ -376,8 +466,15 @@ class Purchase(models.Model):
                 if hasattr(item.item, 'opening_stock'):
                     item.item.opening_stock += item.quantity
                     item.item.save()
+
+    # Add this method to your Purchase model
+    def update_stock_on_return(self, return_items):
+        """Handle stock changes when items are returned"""
+        for return_item in return_items:
+            if hasattr(return_item.purchase_item.item, 'opening_stock'):
+                return_item.purchase_item.item.opening_stock -= return_item.quantity
+                return_item.purchase_item.item.save()
     
-    # FIXED: These properties should be in Purchase model
     @property
     def total_paid(self):
         return self.payments.aggregate(total=Sum('amount'))['total'] or 0
@@ -405,6 +502,25 @@ class PurchaseItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} of {self.item.item_name} for Purchase {self.purchase.id}"
+    
+    def clean(self):
+        """Validate that quantity and prices are positive"""
+        if self.quantity <= 0:
+            raise ValidationError("Quantity must be positive.")
+        if self.purchase_price <= 0:
+            raise ValidationError("Purchase price must be positive.")
+        if self.amount <= 0:
+            raise ValidationError("Amount must be positive.")
+    # these two properties for better return validation
+    @property
+    def returned_quantity(self):
+        """Calculates total quantity of this item returned across all returns for its purchase."""
+        return self.purchasereturnitem_set.aggregate(total=Sum('quantity'))['total'] or 0
+
+    @property
+    def returnable_quantity(self):
+        """Calculates the remaining quantity eligible for return."""
+        return self.quantity - self.returned_quantity
 
 # Purchase Status History Model
 class PurchaseStatusHistory(models.Model):
@@ -453,6 +569,70 @@ class PurchasePayment(models.Model):
     
     def __str__(self):
         return f"Payment of ₹{self.amount} for {self.purchase.bill_number}"
+
+    def clean(self):
+        """Validate that amount is positive"""
+        if self.amount <= 0:
+            raise ValidationError("Payment amount must be positive.")
+
+# Purchase Return Model
+class PurchaseReturn(models.Model):
+    RETURN_REASONS = (
+        ('DAMAGED', 'Damaged Goods'),
+        ('WRONG_ITEM', 'Wrong Item Received'),
+        ('QUALITY_ISSUE', 'Quality Issue'),
+        ('OVERSTOCKED', 'Overstocked'),
+        ('OTHER', 'Other'),
+    )
+    
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='returns')
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='purchase_returns', null=True)
+    return_date = models.DateField(default=timezone.now)
+    return_reason = models.CharField(max_length=20, choices=RETURN_REASONS)
+    total_return_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    notes = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-return_date']
+    
+    def __str__(self):
+        return f"Return for {self.purchase.bill_number} - {self.return_date}"
+    
+    def save(self, *args, **kwargs):
+        if not self.tenant_id and self.purchase:
+            self.tenant = self.purchase.tenant
+        super().save(*args, **kwargs)
+
+# Purchase Return Item model
+class PurchaseReturnItem(models.Model):
+    purchase_return = models.ForeignKey(PurchaseReturn, on_delete=models.CASCADE, related_name='items')
+    purchase_item = models.ForeignKey(PurchaseItem, on_delete=models.CASCADE,null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+    return_price = models.DecimalField(max_digits=10, decimal_places=2)
+    return_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    def __str__(self):
+        return f"{self.quantity} of {self.purchase_item.item.item_name} returned"
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate return amount on save
+        self.return_amount = self.quantity * self.return_price
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        # This clean method is now handled more effectively in the view,
+        # but it's good practice to keep it for data integrity (e.g., in Django admin).
+        if self.quantity <= 0:
+            raise ValidationError("Return quantity must be greater than zero.")
+        
+        # We access returnable_quantity from the related purchase_item
+        if self.quantity > self.purchase_item.returnable_quantity:
+            raise ValidationError(
+                f"Cannot return {self.quantity}. "
+                f"Only {self.purchase_item.returnable_quantity} are available to return."
+            )
 
 # class Plan(models.Model):
 #     name = models.CharField(max_length=100) # e.g., "Trial", "Pro", "Enterprise"
