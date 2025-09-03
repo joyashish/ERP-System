@@ -1,0 +1,154 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <h1 class="m-0">Vendor Performance Dashboard</h1>
+        </div>
+    </div>
+    <section class="content">
+        <div class="container-fluid">
+
+            <div class="card card-primary">
+                <div class="card-header">
+                    <h3 class="card-title">Top 10 Vendors by Purchase Volume</h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        <canvas id="vendorVolumeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">All Vendor Metrics</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Vendor Name</th>
+                                    <th class="text-right">Total Purchase Volume</th>
+                                    <th class="text-center">Successful Deliveries</th>
+                                    <th class="text-center">Pending Orders</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vendor in vendors %}
+                                <tr>
+                                    <td>{{ vendor.party_name }}</td>
+                                    <td class="text-right">₹{{ vendor.annotated_total_volume|floatformat:2 }}</td>
+                                    <td class="text-center">{{ vendor.annotated_successful_deliveries }}</td>
+                                    <td class="text-center">{{ vendor.annotated_pending_orders }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No vendor data available.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Bar Chart for Vendor Volume
+    const ctx = document.getElementById('vendorVolumeChart').getContext('2d');
+    
+    // Use the data passed from the view
+    const vendorLabels = {{ chart_labels|safe }};
+    const vendorData = {{ chart_values|safe }};
+
+    // --- NEW: Create a dynamic gradient for the bars ---
+    const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+    gradient.addColorStop(0, 'rgba(26, 140, 255, 1)');   // A vibrant blue
+    gradient.addColorStop(1, 'rgba(78, 182, 255, 0.6)'); // A lighter, softer blue
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: vendorLabels,
+            datasets: [{
+                label: 'Total Purchase Volume', // Tooltip label
+                data: vendorData,
+                backgroundColor: gradient, // Use the new gradient
+                borderColor: 'rgba(26, 140, 255, 1)',
+                borderWidth: 1,
+                borderRadius: 5, // Adds rounded corners to the bars
+                hoverBackgroundColor: 'rgba(26, 140, 255, 0.9)', // Color on hover
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: '#e9ecef', // Lighter grid lines
+                    },
+                    ticks: {
+                        // Format the y-axis labels (e.g., ₹1k, ₹5k)
+                        callback: function(value) {
+                            if (value >= 1000) {
+                                return '₹' + (value / 1000) + 'k';
+                            }
+                            return '₹' + value;
+                        },
+                        font: {
+                            family: 'Arial',
+                            size: 12
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false // Hide vertical grid lines for a cleaner look
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false // We don't need a legend for a single dataset
+                },
+                tooltip: {
+                    // --- NEW: Improved tooltips ---
+                    backgroundColor: '#343a40', // Darker tooltip background
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    displayColors: false, // Hide the little color box in the tooltip
+                    callbacks: {
+                        label: function(context) {
+                            // Custom format for the tooltip label
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += new Intl.NumberFormat('en-IN', {
+                                    style: 'currency',
+                                    currency: 'INR'
+                                }).format(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

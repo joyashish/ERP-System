@@ -84,86 +84,72 @@
                     </a>
                 </li>
 
-                <!-- Master Data -->
-                <li class="nav-header text-uppercase text-muted">Master Data</li>
+                <!-- Core Modules -->
+                <li class="nav-header text-uppercase text-muted">Core Modules</li>
+
+                <!-- Party Modules -->
                 <li class="nav-item">
                     <a href="{% url 'Party_list' %}" class="nav-link">
                         <i class="nav-icon fas fa-users"></i>
                         <p>Parties</p>
                     </a>
                 </li>
+
+                
+                
+                <!-- Item Modules -->
                 <li class="nav-item">
                     <a href="{% url 'Item_list' %}" class="nav-link">
                         <i class="nav-icon fas fa-boxes"></i>
                         <p>Inventory Items</p>
                     </a>
                 </li>
-                <li class="nav-item">
+
+                <!-- <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-balance-scale"></i>
                         <p>Units of Measure</p>
-                    </a>
-                </li>
-                <!-- <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-route"></i>
-                        <p>Transport Routes</p>
                     </a>
                 </li> -->
 
                 <!-- Transactions -->
                 <li class="nav-header text-uppercase text-muted">Transactions</li>
+
+                <!-- Sales Modules -->
                 <li class="nav-item">
                     <a href="{% url 'sales_list' %}" class="nav-link {% if 'sales' in request.path %}active{% endif %} ">
                         <i class="nav-icon fas fa-cash-register"></i>
                         <p>Sales</p>
                     </a>
                 </li>
+
+                <!-- Purchase Modules -->
                 <li class="nav-item">
                     <a href="{% url 'purchase_list' %}" class="nav-link {% if 'purchase' in request.path %}active{% endif %}" class="nav-link">
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <p>Purchases</p>
                     </a>
                 </li>
-                <!-- <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-exchange-alt"></i>
-                        <p>Stock Transfers</p>
-                    </a>
-                </li> -->
+                
 
                 <!-- Inventory Management -->
-                <li class="nav-header text-uppercase text-muted">Inventory</li>
-                <!-- <li class="nav-item">
+                <!-- <li class="nav-header text-uppercase text-muted">Inventory</li>
+                <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-warehouse"></i>
                         <p>Godown Stock</p>
                     </a>
-                </li> -->
+                </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-clipboard-check"></i>
                         <p>Stock Adjustments</p>
                     </a>
-                </li>
-
-                <!-- Logistics -->
-                <!-- <li class="nav-header text-uppercase text-muted">Logistics</li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-truck"></i>
-                        <p>Truck Management</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-hard-hat"></i>
-                        <p>Labor Management</p>
-                    </a>
                 </li> -->
 
+
                 <!-- Financial -->
-                <li class="nav-header text-uppercase text-muted">Financial</li>
+                <!-- <li class="nav-header text-uppercase text-muted">Financial</li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-money-bill-wave"></i>
@@ -175,28 +161,66 @@
                         <i class="nav-icon fas fa-file-invoice-dollar"></i>
                         <p>Invoicing</p>
                     </a>
-                </li>
+                </li> -->
 
                 <!-- Reports -->
-                <li class="nav-header text-uppercase text-muted">Reports</li>
+                <li class="nav-header text-uppercase text-muted">Analysis & Reports</li>
+
+                <!-- Vendors Performance Report -->
+                {% if add.role == 'superadmin' %}
+                <li class="nav-item has-treeview {% if request.path == '/vendors/performance/' %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if request.path == '/vendors/performance/' %}active{% endif %}">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>
+                            Vendor Performance
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        {% for t in all_tenants_for_superadmin %}
+                        <li class="nav-item">
+                            <a href="{% url 'vendor_performance' %}?tenant_id={{ t.id }}"
+                                class="nav-link {% if tenant.id == t.id and request.path == '/vendors/performance/' %}active{% endif %}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>{{ t.name }}</p>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a href="{% url 'vendor_performance' %}"
+                        class="nav-link {% if request.path == '/vendors/performance/' %}active{% endif %}">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>Vendor Performance</p>
+                    </a>
+                </li>
+                {% endif %}
+
+                <!-- Sales Reports -->
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-chart-line"></i>
                         <p>Sales Reports</p>
                     </a>
                 </li>
+
+                <!-- Inventory Reports -->
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-chart-pie"></i>
                         <p>Inventory Reports</p>
                     </a>
                 </li>
-                <li class="nav-item">
+
+                <!-- Financial Statements -->
+                <!-- <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-file-alt"></i>
                         <p>Financial Statements</p>
                     </a>
-                </li>
+                </li> -->
 
                 <!-- System -->
                 <li class="nav-header text-uppercase text-muted">System</li>

@@ -19,7 +19,8 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, login
 from django.db.models import OuterRef, Subquery
 from django.db import IntegrityError
-from django.db.models import Sum, Q
+from django.db.models import Sum, Count, Q
+import json
 from decimal import Decimal
 from django.db.models.functions import TruncMonth
 from dateutil.relativedelta import relativedelta
@@ -2215,3 +2216,50 @@ def create_purchase_return(request, purchase_id):
         'return_reasons': PurchaseReturn.RETURN_REASONS,
     }
     return render(request, 'create_purchase_return.html', context)
+
+# Vendor Performance View
+@tenant_required
+def vendor_performance_view(request):
+    account = request.user
+    tenant = None
+
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if not tenant_id:
+            messages.info(request, "From the sidebar, please expand 'Vendor Performance' and select a tenant to view their dashboard.")
+            return redirect('superadmin_dashboard')
+        tenant = get_object_or_404(Tenant, id=tenant_id)
+    else:
+        tenant = request.tenant
+
+    # --- OPTIMIZED QUERY WITH ANNOTATIONS (CORRECTED) ---
+    vendors = Create_party.objects.filter(
+        tenant=tenant,
+        party_type__in=['Supplier', 'Both']
+    ).annotate(
+        # Sum correctly uses a default
+        annotated_total_volume=Sum('purchases__total_amount', default=0),
+        # Count does not need a default, it will return 0 if none exist
+        annotated_successful_deliveries=Count('purchases', filter=Q(purchases__status='RECEIVED')),
+        annotated_pending_orders=Count('purchases', filter=Q(purchases__status__in=['ORDERED', 'PARTIALLY_RECEIVED']))
+    ).order_by('-annotated_total_volume')
+
+    # --- Prepare Data for the Chart (no changes needed here) ---
+    chart_data = []
+    for vendor in vendors[:10]:
+        chart_data.append({
+            'name': vendor.party_name,
+            'volume': float(vendor.annotated_total_volume)
+        })
+    
+    chart_labels = json.dumps([item['name'] for item in chart_data])
+    chart_values = json.dumps([item['volume'] for item in chart_data])
+
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'vendors': vendors,
+        'chart_labels': chart_labels,
+        'chart_values': chart_values,
+    }
+    return render(request, 'vendor_performance.html', context)
