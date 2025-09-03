@@ -38,7 +38,7 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4" style="background: #1a2a3a;">
     <!-- Brand Logo -->
     <a href="{% url 'dash' %}" class="brand-link text-center" style="background: rgba(255,255,255,0.1);">
-        <img src="https://camo.githubusercontent.com/6907519551f9e6948c61eafb1cead2f198f252162570317067efeb6f6f46b448/68747470733a2f2f69636f6e2d6c6962726172792e636f6d2f696d616765732f6572702d73797374656d2d69636f6e2f6572702d73797374656d2d69636f6e2d392e6a7067" alt="ERP Logo" class="brand-image" style="opacity: .9; width: 30px; height: 30px;">
+        <img src="{% static 'dist/img/erp1.png' %}" alt="ERP Logo" class="brand-image" style="opacity: .9; width: 30px; height: 30px;">
         <span class="brand-text font-weight-light" style="font-size: 1.1rem;">ERP System</span>
     </a>
 
@@ -57,11 +57,11 @@
         </div>
 
         <!-- Quick Action Button -->
-        <div class="px-3 mb-3">
+        <!-- <div class="px-3 mb-3">
             <a href="{% url 'Create_Sale' %}" class="btn btn-success btn-block btn-sm">
                 <i class="fas fa-plus-circle mr-1"></i> New Sale
             </a>
-        </div>
+        </div> -->
 
         <!-- Sidebar Menu -->
         <nav class="mt-2">
@@ -88,48 +88,71 @@
                 <li class="nav-header text-uppercase text-muted">Core Modules</li>
 
                 <!-- Party Modules -->
-                <li class="nav-item">
-                    <a href="{% url 'Party_list' %}" class="nav-link">
-                        <i class="nav-icon fas fa-users"></i>
-                        <p>Parties</p>
+                {% with menu_path='Party_list' %}
+                {% if add.role == 'superadmin' %}
+                <li class="nav-item has-treeview {% if request.resolver_match.url_name == menu_path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}">
+                        <i class="nav-icon fas fa-users"></i><p>Parties <i class="right fas fa-angle-left"></i></p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        {% for t in all_tenants_for_superadmin %}<li class="nav-item"><a href="{% url menu_path %}?tenant_id={{ t.id }}" class="nav-link {% if tenant.id == t.id and request.resolver_match.url_name == menu_path %}active{% endif %}"><i class="far fa-circle nav-icon"></i><p>{{ t.name }}</p></a></li>{% endfor %}
+                    </ul>
                 </li>
+                {% else %}
+                <li class="nav-item"><a href="{% url menu_path %}" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}"><i class="nav-icon fas fa-users"></i><p>Parties</p></a></li>
+                {% endif %}
+                {% endwith %}
 
-                
-                
                 <!-- Item Modules -->
-                <li class="nav-item">
-                    <a href="{% url 'Item_list' %}" class="nav-link">
-                        <i class="nav-icon fas fa-boxes"></i>
-                        <p>Inventory Items</p>
+                {% with menu_path='Item_list' %}
+                {% if add.role == 'superadmin' %}
+                <li class="nav-item has-treeview {% if request.resolver_match.url_name == menu_path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}">
+                        <i class="nav-icon fas fa-boxes"></i><p>Inventory Items <i class="right fas fa-angle-left"></i></p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        {% for t in all_tenants_for_superadmin %}<li class="nav-item"><a href="{% url menu_path %}?tenant_id={{ t.id }}" class="nav-link {% if tenant.id == t.id and request.resolver_match.url_name == menu_path %}active{% endif %}"><i class="far fa-circle nav-icon"></i><p>{{ t.name }}</p></a></li>{% endfor %}
+                    </ul>
                 </li>
-
-                <!-- <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-balance-scale"></i>
-                        <p>Units of Measure</p>
-                    </a>
-                </li> -->
+                {% else %}
+                <li class="nav-item"><a href="{% url menu_path %}" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}"><i class="nav-icon fas fa-boxes"></i><p>Inventory Items</p></a></li>
+                {% endif %}
+                {% endwith %}
 
                 <!-- Transactions -->
                 <li class="nav-header text-uppercase text-muted">Transactions</li>
 
                 <!-- Sales Modules -->
-                <li class="nav-item">
-                    <a href="{% url 'sales_list' %}" class="nav-link {% if 'sales' in request.path %}active{% endif %} ">
-                        <i class="nav-icon fas fa-cash-register"></i>
-                        <p>Sales</p>
+                {% with menu_path='sales_list' %}
+                {% if add.role == 'superadmin' %}
+                <li class="nav-item has-treeview {% if menu_path in request.path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if menu_path in request.path %}active{% endif %}">
+                        <i class="nav-icon fas fa-cash-register"></i><p>Sales <i class="right fas fa-angle-left"></i></p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        {% for t in all_tenants_for_superadmin %}<li class="nav-item"><a href="{% url menu_path %}?tenant_id={{ t.id }}" class="nav-link {% if tenant.id == t.id and menu_path in request.path %}active{% endif %}"><i class="far fa-circle nav-icon"></i><p>{{ t.name }}</p></a></li>{% endfor %}
+                    </ul>
                 </li>
+                {% else %}
+                <li class="nav-item"><a href="{% url menu_path %}" class="nav-link {% if menu_path in request.path %}active{% endif %}"><i class="nav-icon fas fa-cash-register"></i><p>Sales</p></a></li>
+                {% endif %}
+                {% endwith %}
 
                 <!-- Purchase Modules -->
-                <li class="nav-item">
-                    <a href="{% url 'purchase_list' %}" class="nav-link {% if 'purchase' in request.path %}active{% endif %}" class="nav-link">
-                        <i class="nav-icon fas fa-shopping-cart"></i>
-                        <p>Purchases</p>
+                {% with menu_path='purchase_list' %}
+                {% if add.role == 'superadmin' %}
+                <li class="nav-item has-treeview {% if 'purchase' in request.path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if 'purchase' in request.path %}active{% endif %}">
+                        <i class="nav-icon fas fa-shopping-cart"></i><p>Purchases <i class="right fas fa-angle-left"></i></p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        {% for t in all_tenants_for_superadmin %}<li class="nav-item"><a href="{% url menu_path %}?tenant_id={{ t.id }}" class="nav-link {% if tenant.id == t.id and 'purchase' in request.path %}active{% endif %}"><i class="far fa-circle nav-icon"></i><p>{{ t.name }}</p></a></li>{% endfor %}
+                    </ul>
                 </li>
+                {% else %}
+                <li class="nav-item"><a href="{% url menu_path %}" class="nav-link {% if 'purchase' in request.path %}active{% endif %}"><i class="nav-icon fas fa-shopping-cart"></i><p>Purchases</p></a></li>
+                {% endif %}
+                {% endwith %}
                 
 
                 <!-- Inventory Management -->
@@ -167,36 +190,20 @@
                 <li class="nav-header text-uppercase text-muted">Analysis & Reports</li>
 
                 <!-- Vendors Performance Report -->
+                {% with menu_path='vendor_performance' %}
                 {% if add.role == 'superadmin' %}
-                <li class="nav-item has-treeview {% if request.path == '/vendors/performance/' %}menu-open{% endif %}">
-                    <a href="#" class="nav-link {% if request.path == '/vendors/performance/' %}active{% endif %}">
-                        <i class="nav-icon fas fa-chart-line"></i>
-                        <p>
-                            Vendor Performance
-                            <i class="right fas fa-angle-left"></i>
-                        </p>
+                <li class="nav-item has-treeview {% if request.resolver_match.url_name == menu_path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}">
+                        <i class="nav-icon fas fa-chart-line"></i><p>Vendor Performance <i class="right fas fa-angle-left"></i></p>
                     </a>
                     <ul class="nav nav-treeview">
-                        {% for t in all_tenants_for_superadmin %}
-                        <li class="nav-item">
-                            <a href="{% url 'vendor_performance' %}?tenant_id={{ t.id }}"
-                                class="nav-link {% if tenant.id == t.id and request.path == '/vendors/performance/' %}active{% endif %}">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>{{ t.name }}</p>
-                            </a>
-                        </li>
-                        {% endfor %}
+                        {% for t in all_tenants_for_superadmin %}<li class="nav-item"><a href="{% url menu_path %}?tenant_id={{ t.id }}" class="nav-link {% if tenant.id == t.id and request.resolver_match.url_name == menu_path %}active{% endif %}"><i class="far fa-circle nav-icon"></i><p>{{ t.name }}</p></a></li>{% endfor %}
                     </ul>
                 </li>
                 {% else %}
-                <li class="nav-item">
-                    <a href="{% url 'vendor_performance' %}"
-                        class="nav-link {% if request.path == '/vendors/performance/' %}active{% endif %}">
-                        <i class="nav-icon fas fa-chart-line"></i>
-                        <p>Vendor Performance</p>
-                    </a>
-                </li>
+                <li class="nav-item"><a href="{% url menu_path %}" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}"><i class="nav-icon fas fa-chart-line"></i><p>Vendor Performance</p></a></li>
                 {% endif %}
+                {% endwith %}
 
                 <!-- Sales Reports -->
                 <li class="nav-item">

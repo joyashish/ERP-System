@@ -594,45 +594,103 @@ document.addEventListener('DOMContentLoaded', () => {
 {% include 'footer_link.html' %}
 
 
-
+sidebar
+{% load static %}
+<style>
+    /* Sidebar Enhancements */
+    .main-sidebar {
+        background: linear-gradient(135deg, #1a2a3a 0%, #0d1721 100%);
+    }
+    
+    .nav-header {
+        font-size: 0.75rem;
+        padding: 0.5rem 1rem;
+        letter-spacing: 1px;
+    }
+    
+    .nav-link {
+        border-left: 3px solid transparent;
+        margin-bottom: 2px;
+    }
+    
+    .nav-link.active, .nav-link:hover {
+        background: rgba(255,255,255,0.05);
+        border-left-color: #4e73df;
+    }
+    
+    .nav-item > .nav-link > i {
+        min-width: 25px;
+        text-align: center;
+    }
+    
+    .brand-link {
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .user-panel {
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+</style>
+<!-- Main Sidebar Container -->
 <aside class="main-sidebar sidebar-dark-primary elevation-4" style="background: #1a2a3a;">
-    <a href="{% if add.role == 'superadmin' %}{% url 'superadmin_dashboard' %}{% else %}{% url 'dash' %}{% endif %}" class="brand-link text-center" style="background: rgba(255,255,255,0.1);">
+    <!-- Brand Logo -->
+    <a href="{% url 'dash' %}" class="brand-link text-center" style="background: rgba(255,255,255,0.1);">
         <img src="https://camo.githubusercontent.com/6907519551f9e6948c61eafb1cead2f198f252162570317067efeb6f6f46b448/68747470733a2f2f69636f6e2d6c6962726172792e636f6d2f696d616765732f6572702d73797374656d2d69636f6e2f6572702d73797374656d2d69636f6e2d392e6a7067" alt="ERP Logo" class="brand-image" style="opacity: .9; width: 30px; height: 30px;">
         <span class="brand-text font-weight-light" style="font-size: 1.1rem;">ERP System</span>
     </a>
 
+    <!-- Sidebar -->
     <div class="sidebar">
+        <!-- Sidebar User Panel -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
                 <img src="{% static '../static/dist/img/user1.jpg' %}" class="img-circle elevation-2" alt="User Image">
             </div>
             <div class="info">
                 {% if 'email' in request.session %}
-                <a href="#" class="d-block text-white">{{ add.email }}</a>
+                <a href="#" class="d-block text-white">{{add.email}}</a>
                 {% endif %}
             </div>
         </div>
-        
+
+        <!-- Quick Action Button -->
+        <!-- <div class="px-3 mb-3">
+            <a href="{% url 'Create_Sale' %}" class="btn btn-success btn-block btn-sm">
+                <i class="fas fa-plus-circle mr-1"></i> New Sale
+            </a>
+        </div> -->
+
+        <!-- Sidebar Menu -->
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-
-                {% if add.role == "superadmin" %}
+                <!-- Superadmin Dashboard -->
+                {% if add.role ==  "superadmin"%}
                 <li class="nav-item">
-                    <a href="{% url 'superadmin_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'superadmin_dashboard' %}active{% endif %}">
+                    <a href="{% url 'superadmin_dashboard' %}"
+                        class="nav-link {% if request.resolver_match.url_name == 'superadmin_dashboard' %}active{% endif %}">
                         <i class="nav-icon fas fa-user-shield"></i>
                         <p>Superadmin</p>
                     </a>
                 </li>
                 {% endif %}
-                
+                <!-- Dashboard -->
                 <li class="nav-item">
-                    <a href="{% url 'dash' %}" class="nav-link {% if request.resolver_match.url_name == 'dash' %}active{% endif %}">
+                    <a href="{% url 'dash' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
 
+                <!-- Core Modules -->
                 <li class="nav-header text-uppercase text-muted">Core Modules</li>
+
+                <!-- Party Modules -->
+                <!-- <li class="nav-item">
+                    <a href="{% url 'Party_list' %}" class="nav-link">
+                        <i class="nav-icon fas fa-users"></i>
+                        <p>Parties</p>
+                    </a>
+                </li> -->
                 
                 {% with menu_path='Party_list' %}
                 {% if add.role == 'superadmin' %}
@@ -649,6 +707,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 {% endif %}
                 {% endwith %}
 
+                <!-- Item Modules -->
+                <!-- <li class="nav-item">
+                    <a href="{% url 'Item_list' %}" class="nav-link">
+                        <i class="nav-icon fas fa-boxes"></i>
+                        <p>Inventory Items</p>
+                    </a>
+                </li> -->
+
                 {% with menu_path='Item_list' %}
                 {% if add.role == 'superadmin' %}
                 <li class="nav-item has-treeview {% if request.resolver_match.url_name == menu_path %}menu-open{% endif %}">
@@ -664,6 +730,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 {% endif %}
                 {% endwith %}
 
+                <!-- <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-balance-scale"></i>
+                        <p>Units of Measure</p>
+                    </a>
+                </li> -->
+
+                <!-- Transactions -->
+                <li class="nav-header text-uppercase text-muted">Transactions</li>
+
+                <!-- Sales Modules -->
+                <!-- <li class="nav-item">
+                    <a href="{% url 'sales_list' %}" class="nav-link {% if 'sales' in request.path %}active{% endif %} ">
+                        <i class="nav-icon fas fa-cash-register"></i>
+                        <p>Sales</p>
+                    </a>
+                </li> -->
                 {% with menu_path='sales_list' %}
                 {% if add.role == 'superadmin' %}
                 <li class="nav-item has-treeview {% if menu_path in request.path %}menu-open{% endif %}">
@@ -679,23 +762,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 {% endif %}
                 {% endwith %}
 
+                <!-- Purchase Modules -->
+                <!-- <li class="nav-item">
+                    <a href="{% url 'purchase_list' %}" class="nav-link {% if 'purchase' in request.path %}active{% endif %}" class="nav-link">
+                        <i class="nav-icon fas fa-shopping-cart"></i>
+                        <p>Purchases</p>
+                    </a>
+                </li> -->
+
                 {% with menu_path='purchase_list' %}
                 {% if add.role == 'superadmin' %}
-                <li class="nav-item has-treeview {% if menu_path in request.path %}menu-open{% endif %}">
-                    <a href="#" class="nav-link {% if menu_path in request.path %}active{% endif %}">
+                <li class="nav-item has-treeview {% if 'purchase' in request.path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if 'purchase' in request.path %}active{% endif %}">
                         <i class="nav-icon fas fa-shopping-cart"></i><p>Purchases <i class="right fas fa-angle-left"></i></p>
                     </a>
                     <ul class="nav nav-treeview">
-                        {% for t in all_tenants_for_superadmin %}<li class="nav-item"><a href="{% url menu_path %}?tenant_id={{ t.id }}" class="nav-link {% if tenant.id == t.id and menu_path in request.path %}active{% endif %}"><i class="far fa-circle nav-icon"></i><p>{{ t.name }}</p></a></li>{% endfor %}
+                        {% for t in all_tenants_for_superadmin %}<li class="nav-item"><a href="{% url menu_path %}?tenant_id={{ t.id }}" class="nav-link {% if tenant.id == t.id and 'purchase' in request.path %}active{% endif %}"><i class="far fa-circle nav-icon"></i><p>{{ t.name }}</p></a></li>{% endfor %}
                     </ul>
                 </li>
                 {% else %}
-                <li class="nav-item"><a href="{% url menu_path %}" class="nav-link {% if menu_path in request.path %}active{% endif %}"><i class="nav-icon fas fa-shopping-cart"></i><p>Purchases</p></a></li>
+                <li class="nav-item"><a href="{% url menu_path %}" class="nav-link {% if 'purchase' in request.path %}active{% endif %}"><i class="nav-icon fas fa-shopping-cart"></i><p>Purchases</p></a></li>
                 {% endif %}
                 {% endwith %}
+                
 
+                <!-- Inventory Management -->
+                <!-- <li class="nav-header text-uppercase text-muted">Inventory</li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-warehouse"></i>
+                        <p>Godown Stock</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-clipboard-check"></i>
+                        <p>Stock Adjustments</p>
+                    </a>
+                </li> -->
+
+
+                <!-- Financial -->
+                <!-- <li class="nav-header text-uppercase text-muted">Financial</li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-money-bill-wave"></i>
+                        <p>Expenses</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                        <p>Invoicing</p>
+                    </a>
+                </li> -->
+
+                <!-- Reports -->
                 <li class="nav-header text-uppercase text-muted">Analysis & Reports</li>
 
+                <!-- Vendors Performance Report -->
                 {% with menu_path='vendor_performance' %}
                 {% if add.role == 'superadmin' %}
                 <li class="nav-item has-treeview {% if request.resolver_match.url_name == menu_path %}menu-open{% endif %}">
@@ -710,7 +835,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 <li class="nav-item"><a href="{% url menu_path %}" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}"><i class="nav-icon fas fa-chart-line"></i><p>Vendor Performance</p></a></li>
                 {% endif %}
                 {% endwith %}
-                
+
+                <!-- Sales Reports -->
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <p>Sales Reports</p>
+                    </a>
+                </li>
+
+                <!-- Inventory Reports -->
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-chart-pie"></i>
+                        <p>Inventory Reports</p>
+                    </a>
+                </li>
+
+                <!-- Financial Statements -->
+                <!-- <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-file-alt"></i>
+                        <p>Financial Statements</p>
+                    </a>
+                </li> -->
+
+                <!-- System -->
+                <li class="nav-header text-uppercase text-muted">System</li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-user-tie"></i>
+                        <p>Employee Management</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <p>Settings</p>
+                    </a>
+                </li>
             </ul>
             <br><br>
         </nav>
