@@ -2263,3 +2263,119 @@ def vendor_performance_view(request):
         'chart_values': chart_values,
     }
     return render(request, 'vendor_performance.html', context)
+
+# Stock Adjustments list
+@tenant_required
+def stock_adjustment_list(request):
+    account = request.user
+    adjustments = StockAdjustment.objects.none()
+    tenant = None
+
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+            adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-created_at')
+    else:
+        tenant = request.tenant
+        adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-created_at')
+
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'adjustments': adjustments,
+    }
+    return render(request, 'stock_adjustment_list.html', context)
+
+# Create Stock Adjustments 
+@tenant_required
+def create_stock_adjustment(request):
+    account = request.user
+    # --- MODIFIED LOGIC FOR SUPERADMIN GET REQUEST ---
+    tenant = None
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+    else:
+        tenant = request.tenant
+    # --- END OF MODIFICATION ---
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                target_tenant = None
+                if account.role == 'superadmin':
+                    tenant_id = request.POST.get('tenant_id')
+                    if not tenant_id:
+                        raise ValidationError("Superadmin must select a tenant.")
+                    target_tenant = get_object_or_404(Tenant, id=tenant_id)
+                else:
+                    target_tenant = request.tenant
+
+                product_id = request.POST.get('product')
+                adjustment_type = request.POST.get('adjustment_type')
+                quantity = int(request.POST.get('quantity'))
+                reason = request.POST.get('reason')
+                notes = request.POST.get('notes')
+
+                if quantity <= 0:
+                    raise ValidationError("Quantity must be a positive number.")
+
+                product = get_object_or_404(Product, id=product_id, tenant=target_tenant)
+
+                # Create the record first for an audit trail
+                StockAdjustment.objects.create(
+                    product=product,
+                    adjustment_type=adjustment_type,
+                    quantity=quantity,
+                    reason=reason,
+                    notes=notes,
+                    adjusted_by=account,
+                    tenant=target_tenant
+                )
+
+                # Now, update the actual stock
+                if adjustment_type == 'ADD':
+                    product.opening_stock += quantity
+                elif adjustment_type == 'REMOVE':
+                    if quantity > product.opening_stock:
+                        raise ValidationError(f"Cannot remove {quantity} items. Only {product.opening_stock} in stock.")
+                    product.opening_stock -= quantity
+                
+                product.save()
+
+                messages.success(request, f"Stock for '{product.item_name}' adjusted successfully.")
+                redirect_url = reverse('stock_adjustment_list')
+                if account.role == 'superadmin':
+                    return redirect(f"{redirect_url}?tenant_id={target_tenant.id}")
+                return redirect(redirect_url)
+
+        except (ValidationError, Exception) as e:
+            messages.error(request, str(e))
+    
+    # For GET request
+    products = Product.objects.none()
+    if tenant:
+        products = Product.objects.filter(tenant=tenant, is_active=True).order_by('item_name')
+
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'products': products,
+        'adjustment_types': StockAdjustment.ADJUSTMENT_TYPES,
+        'reasons': StockAdjustment.REASONS,
+    }
+    # For superadmin, they will need to select a tenant on the form first via JS
+    if account.role == 'superadmin':
+        context['tenants'] = Tenant.objects.filter(is_active=True)
+
+    return render(request, 'create_stock_adjustment.html', context)
+
+@superadmin_required # Use your existing decorator for security
+def get_products_for_tenant_api(request, tenant_id):
+    """
+    An API endpoint that returns a list of products for a given tenant.
+    """
+    products = Product.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'item_name', 'opening_stock')
+    return JsonResponse(list(products), safe=False)

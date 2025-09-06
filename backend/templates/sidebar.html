@@ -156,19 +156,37 @@
                 
 
                 <!-- Inventory Management -->
-                <!-- <li class="nav-header text-uppercase text-muted">Inventory</li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-warehouse"></i>
-                        <p>Godown Stock</p>
+                <li class="nav-header text-uppercase text-muted">Inventory</li>
+
+                <!-- # Stock Adjustments url -->
+                {% with menu_path='stock_adjustment_list' %}
+                {% if add.role == 'superadmin' %}
+                <li class="nav-item has-treeview {% if 'stock-adjustments' in request.path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if 'stock-adjustments' in request.path %}active{% endif %}">
+                        <i class="nav-icon fas fa-clipboard-check"></i>
+                        <p>Stock Adjustments <i class="right fas fa-angle-left"></i></p>
                     </a>
+                    <ul class="nav nav-treeview">
+                        {% for t in all_tenants_for_superadmin %}
+                        <li class="nav-item">
+                            <a href="{% url menu_path %}?tenant_id={{ t.id }}"
+                                class="nav-link {% if tenant.id == t.id and 'stock-adjustments' in request.path %}active{% endif %}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>{{ t.name }}</p>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
                 </li>
+                {% else %}
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{% url menu_path %}" class="nav-link {% if 'stock-adjustments' in request.path %}active{% endif %}">
                         <i class="nav-icon fas fa-clipboard-check"></i>
                         <p>Stock Adjustments</p>
                     </a>
-                </li> -->
+                </li>
+                {% endif %}
+                {% endwith %}
 
 
                 <!-- Financial -->

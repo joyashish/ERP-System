@@ -1,0 +1,125 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <h1 class="m-0">New Stock Adjustment</h1>
+        </div>
+    </div>
+    <section class="content">
+        <div class="container-fluid">
+             {% if messages %}{% for message in messages %}
+            <div class="alert alert-{{ message.tags }} msg_sec">{{ message }}</div>
+            {% endfor %}{% endif %}
+            <div class="card card-primary">
+                <div class="card-header"><h3 class="card-title">Adjustment Details</h3></div>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        <div class="row">
+                            {% if add.role == 'superadmin' %}
+                            <div class="col-md-12 form-group">
+                                <label>Tenant *</label>
+                                <select name="tenant_id" id="tenant-select" class="form-control" required>
+                                    <option value=""disabled selected>Select Tenant</option>
+                                    {% for t in tenants %}
+                                    <option value="{{ t.id }}" {% if tenant.id == t.id %}selected{% endif %}>{{ t.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% endif %}
+
+                            <div class="col-md-4 form-group">
+                                <label>Product *</label>
+                                <select name="product" id="product-select" class="form-control" required>
+                                    <option value=""disabled selected >{% if add.role == 'superadmin' and not tenant %}Select a tenant first{% else %}Select a product{% endif %}</option>
+                                    {% for p in products %}
+                                    <option value="{{ p.id }}">{{ p.item_name }} (In Stock: {{ p.opening_stock }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4 form-group">
+                                <label>Adjustment Type *</label>
+                                <select name="adjustment_type" class="form-control" required>
+                                    {% for value, label in adjustment_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4 form-group">
+                                <label>Quantity *</label>
+                                <input type="number" name="quantity" class="form-control" min="1" required>
+                            </div>
+
+                            <div class="col-md-4 form-group">
+                                <label>Reason *</label>
+                                <select name="reason" class="form-control" required>
+                                    {% for value, label in reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-12 form-group">
+                                <label>Notes</label>
+                                <textarea name="notes" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-right">
+                        <a href="{% url 'stock_adjustment_list' %}{% if tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Adjustment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% if add.role == 'superadmin' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tenantSelect = document.getElementById('tenant-select');
+    const productSelect = document.getElementById('product-select');
+
+    tenantSelect.addEventListener('change', fetchProducts);
+
+    function fetchProducts() {
+        const tenantId = tenantSelect.value;
+        // Clear existing product options
+        productSelect.innerHTML = '<option value="">Loading...</option>';
+
+        if (!tenantId) {
+            productSelect.innerHTML = '<option value="">Select a tenant first</option>';
+            return;
+        }
+
+        // Generate the API URL dynamically
+        const url = `{% url 'api_get_products_for_tenant' 0 %}`.replace('0', tenantId);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                productSelect.innerHTML = '<option value="">Select a product</option>'; // Reset
+                if (data.length > 0) {
+                    data.forEach(product => {
+                        const option = document.createElement('option');
+                        option.value = product.id;
+                        option.textContent = `${product.name} (In Stock: ${product.stock})`;
+                        productSelect.appendChild(option);
+                    });
+                } else {
+                    productSelect.innerHTML = '<option value="">No products found for this tenant</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching products:', error);
+                productSelect.innerHTML = '<option value="">Failed to load products</option>';
+            });
+    }
+});
+</script>
+{% endif %}
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

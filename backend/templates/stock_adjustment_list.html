@@ -1,0 +1,65 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <h1 class="m-0">Stock Adjustments</h1>
+        </div>
+    </div>
+    <section class="content">
+        <div class="container-fluid">
+            {% if messages %}{% for message in messages %}
+            <div class="alert alert-{{ message.tags }} msg_sec">{{ message }}</div>
+            {% endfor %}{% endif %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Adjustment History</h3>
+                    <a href="{% url 'create_stock_adjustment' %}{% if tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> New Adjustment
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Product</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>Reason</th>
+                                    <th>Adjusted By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for adj in adjustments %}
+                                <tr>
+                                    <td>{{ adj.created_at|date:"d M, Y H:i" }}</td>
+                                    <td>{{ adj.product.item_name }}</td>
+                                    <td>
+                                        {% if adj.adjustment_type == 'ADD' %}
+                                            <span class="badge badge-success">{{ adj.get_adjustment_type_display }}</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">{{ adj.get_adjustment_type_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ adj.quantity }}</td>
+                                    <td>{{ adj.get_reason_display }}</td>
+                                    <td>{{ adj.adjusted_by.email }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center">No stock adjustments recorded yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

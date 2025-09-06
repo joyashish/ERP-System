@@ -113,5 +113,10 @@ urlpatterns=[
 
     # Vendor Performance url
     path('vendors/performance/', views.vendor_performance_view, name='vendor_performance'),
+
+    # Stock Adjustments url
+    path('stock-adjustments/', views.stock_adjustment_list, name='stock_adjustment_list'),
+    path('stock-adjustments/new/', views.create_stock_adjustment, name='create_stock_adjustment'),
+    path('api/get-products/<int:tenant_id>/', views.get_products_for_tenant_api, name='api_get_products_for_tenant'),
     
 ]

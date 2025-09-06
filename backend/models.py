@@ -634,6 +634,33 @@ class PurchaseReturnItem(models.Model):
                 f"Only {self.purchase_item.returnable_quantity} are available to return."
             )
 
+# Stock Adjustemment model
+class StockAdjustment(models.Model):
+    ADJUSTMENT_TYPES = (
+        ('ADD', 'Add Stock'),
+        ('REMOVE', 'Remove Stock'),
+    )
+
+    REASONS = (
+        ('DAMAGED', 'Damaged Goods'),
+        ('STOLEN', 'Stolen Goods'),
+        ('STOCKTAKE', 'Stocktake Correction'),
+        ('INTERNAL_USE', 'Internal Use'),
+        ('OTHER', 'Other'),
+    )
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='adjustments')
+    adjustment_type = models.CharField(max_length=10, choices=ADJUSTMENT_TYPES)
+    quantity = models.PositiveIntegerField()
+    reason = models.CharField(max_length=20, choices=REASONS)
+    notes = models.TextField(blank=True, null=True)
+    adjusted_by = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='stock_adjustments')
+
+    def __str__(self):
+        return f"{self.get_adjustment_type_display()} of {self.quantity} for {self.product.item_name}"
+
 # class Plan(models.Model):
 #     name = models.CharField(max_length=100) # e.g., "Trial", "Pro", "Enterprise"
 #     price = models.DecimalField(max_digits=10, decimal_places=2)
