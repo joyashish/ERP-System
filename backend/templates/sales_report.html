@@ -1,0 +1,180 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <h1 class="m-0">Sales Report</h1>
+        </div>
+    </div>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="card card-default">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-filter"></i> Filters</h3>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="">
+                        {% if add.role == 'superadmin' and tenant %}<input type="hidden" name="tenant_id" value="{{ tenant.id }}">{% endif %}
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group"><label>Start Date</label><input type="date" name="start_date" class="form-control" value="{{ current_filters.start_date|default:'' }}"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group"><label>End Date</label><input type="date" name="end_date" class="form-control" value="{{ current_filters.end_date|default:'' }}"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group"><label>Customer</label><select name="party" class="form-control"><option value="">All Customers</option>{% for p in filter_parties %}<option value="{{ p.id }}" {% if current_filters.party == p.id|stringformat:"s" %}selected{% endif %}>{{ p.party_name }}</option>{% endfor %}</select></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group"><label>Product</label><select name="product" class="form-control"><option value="">All Products</option>{% for p in filter_products %}<option value="{{ p.id }}" {% if current_filters.product == p.id|stringformat:"s" %}selected{% endif %}>{{ p.item_name }}</option>{% endfor %}</select></div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <a href="{% url 'sales_report' %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary">Clear</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Generate Report</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="info-box"><span class="info-box-icon bg-success"><i class="fas fa-dollar-sign"></i></span>
+                        <div class="info-box-content"><span class="info-box-text">Total Revenue</span><span class="info-box-number">₹{{ total_revenue|floatformat:2 }}</span></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-box"><span class="info-box-icon bg-info"><i class="fas fa-boxes"></i></span>
+                        <div class="info-box-content"><span class="info-box-text">Items Sold</span><span class="info-box-number">{{ total_items_sold }}</span></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-box"><span class="info-box-icon bg-primary"><i class="fas fa-chart-line"></i></span>
+                        <div class="info-box-content"><span class="info-box-text">Estimated Profit</span><span class="info-box-number">₹{{ total_profit|floatformat:2 }}</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-primary">
+                <div class="card-header">
+                    <h3 class="card-title">Revenue Trend</h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        <canvas id="salesTrendChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Detailed Sales Data</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th class="text-right">Sale Price</th>
+                                    <th class="text-right">Cost Price</th>
+                                    <th class="text-right">Total Revenue</th>
+                                    <th class="text-right">Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in sales_items %}
+                                <tr>
+                                    <td><a href="{% url 'sale_detail' item.sale.id %}">{{ item.sale.invoice_no }}</a></td>
+                                    <td>{{ item.sale.invoice_date|date:"d M, Y" }}</td>
+                                    <td>{{ item.sale.party.party_name }}</td>
+                                    <td>{{ item.item.item_name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td class="text-right">₹{{ item.item.sale_price|floatformat:2 }}</td>
+                                    <td class="text-right">₹{{ item.purchase_price|floatformat:2 }}</td>
+                                    <td class="text-right">₹{{ item.amount|floatformat:2 }}</td>
+                                    <td class="text-right">₹{{ item.profit|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center">No sales data found for the selected filters.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ensure there is data to draw the chart
+        if (typeof Chart !== 'undefined' && document.getElementById('salesTrendChart')) {
+            const ctx = document.getElementById('salesTrendChart').getContext('2d');
+            const chartLabels = {{ chart_labels|safe }};
+            const chartData = {{ chart_values|safe }};
+
+            // Only draw the chart if there is data
+            if (chartData.length > 0) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: 'Revenue',
+                            data: chartData,
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            fill: true,
+                            tension: 0.3 // Makes the line smooth
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₹' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `Revenue: ₹${context.parsed.y.toLocaleString()}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                 // Optional: Display a message if there is no data for the chart
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "#888";
+                ctx.textAlign = "center";
+                ctx.fillText("No chart data available for the selected filters.", ctx.canvas.width / 2, ctx.canvas.height / 2);
+            }
+        }
+    });
+</script>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

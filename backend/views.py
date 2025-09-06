@@ -27,6 +27,7 @@ from dateutil.relativedelta import relativedelta
 from django.urls import reverse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
+from collections import defaultdict
 
 
 
@@ -734,6 +735,8 @@ def create_sale_view(request):
                     
                     item = get_object_or_404(ItemBase, id=item_id, tenant=target_tenant)
                     
+                    # Get the purchase price from the Product model
+                    item_purchase_price = item.product.purchase_price if hasattr(item, 'product') else 0
                     unit_price = float(item.sale_price)
                     item_discount = float(post_data.get(f'items[{index}][discount]', 0))
                     item_subtotal = quantity * unit_price
@@ -753,7 +756,8 @@ def create_sale_view(request):
                     
                     items_data.append({
                         'item_instance': item, 'quantity': quantity, 'discount': item_discount,
-                        'tax_amount': tax_amount_item, 'amount': taxable_amount_item + tax_amount_item
+                        'tax_amount': tax_amount_item, 'amount': taxable_amount_item + tax_amount_item,
+                        'purchase_price': item_purchase_price,
                     })
                 
                 if not items_data:
@@ -1135,6 +1139,89 @@ def sale_detail_view(request, sale_id):
         'tenant': sale.tenant,
     }
     return render(request, 'sale_detail.html', context)
+
+# Sales Report View 
+@tenant_required
+def sales_report_view(request):
+    account = request.user
+    tenant = None
+    sales_items = SaleItem.objects.none()
+    filter_parties = Create_party.objects.none()
+    filter_products = Product.objects.none()
+
+    # Determine Tenant
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+    else:
+        tenant = request.tenant
+
+    if tenant:
+        sales_items = SaleItem.objects.filter(sale__tenant=tenant).select_related('sale', 'item', 'sale__party')
+        filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True, party_type__in=['Customer', 'Both'])
+        filter_products = Product.objects.filter(tenant=tenant, is_active=True)
+    
+    # Get filters from URL
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    party_id = request.GET.get('party')
+    product_id = request.GET.get('product')
+
+    # Apply filters
+    if start_date:
+        sales_items = sales_items.filter(sale__invoice_date__gte=start_date)
+    if end_date:
+        sales_items = sales_items.filter(sale__invoice_date__lte=end_date)
+    if party_id:
+        sales_items = sales_items.filter(sale__party__id=party_id)
+    if product_id:
+        sales_items = sales_items.filter(item__id=product_id)
+
+    # Calculate totals from the filtered queryset
+    totals = sales_items.aggregate(
+        total_revenue=Sum('amount'),
+        total_items_sold=Sum('quantity'),
+        total_cost=Sum(F('purchase_price') * F('quantity')),
+    )
+    
+    # Calculate profit
+    total_revenue = totals.get('total_revenue') or 0
+    total_cost = totals.get('total_cost') or 0
+    total_profit = total_revenue - total_cost
+
+    # --- NEW CHART LOGIC (PYTHON-BASED GROUPING) ---
+    # This block replaces the TruncDate database query.
+    daily_revenues = defaultdict(Decimal)
+    for item in sales_items:
+        daily_revenues[item.sale.invoice_date] += item.amount
+
+    # Sort the dictionary by date
+    sorted_daily_revenues = sorted(daily_revenues.items())
+
+    # Format the data for Chart.js
+    chart_labels = json.dumps([date.strftime('%d %b') for date, revenue in sorted_daily_revenues])
+    chart_values = json.dumps([float(revenue) for date, revenue in sorted_daily_revenues])
+
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'sales_items': sales_items,
+        'filter_parties': filter_parties,
+        'filter_products': filter_products,
+        'total_revenue': total_revenue,
+        'total_items_sold': totals.get('total_items_sold') or 0,
+        'total_profit': total_profit,
+        'current_filters': { # For keeping filter values in the form
+            'start_date': start_date,
+            'end_date': end_date,
+            'party': party_id,
+            'product': product_id,
+        },
+        'chart_labels': chart_labels,
+        'chart_values': chart_values,
+    }
+    return render(request, 'sales_report.html', context)
 
 # Reacord Payment
 @tenant_required

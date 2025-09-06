@@ -76,6 +76,7 @@ urlpatterns=[
     path('sales/print/<int:sale_id>/', views.sale_invoice_pdf, name='sale_invoice_pdf'),
     path('sales/view/<int:sale_id>/', views.sale_detail_view, name='sale_detail'),
     path('sales/record_payment/<int:sale_id>/', views.record_payment, name='record_payment'),
+    path('reports/sales/', views.sales_report_view, name='sales_report'),
 
     #--------add_unit---------#
     path('add-unit', views.add_unit, name='add_unit'),
@@ -118,5 +119,6 @@ urlpatterns=[
     path('stock-adjustments/', views.stock_adjustment_list, name='stock_adjustment_list'),
     path('stock-adjustments/new/', views.create_stock_adjustment, name='create_stock_adjustment'),
     path('api/get-products/<int:tenant_id>/', views.get_products_for_tenant_api, name='api_get_products_for_tenant'),
+
     
 ]

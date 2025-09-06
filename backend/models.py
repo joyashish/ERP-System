@@ -280,6 +280,8 @@ class SaleItem(models.Model):
     item = models.ForeignKey(ItemBase, on_delete=models.SET_NULL, null=True)
     quantity = models.PositiveIntegerField(default=1)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    # Store the cost of the item at the time of sale for accurate profit calculation
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
@@ -288,6 +290,17 @@ class SaleItem(models.Model):
             raise ValidationError("Quantity must be greater than zero")
         if self.discount < 0:
             raise ValidationError("Discount cannot be negative")
+    
+    # --- NEW PROPERTY for easy profit calculation ---
+    @property
+    def total_cost(self):
+        return self.purchase_price * self.quantity
+
+    @property
+    def profit(self):
+        # Profit is the final amount (after tax and discount) minus the total cost
+        taxable_amount = (self.item.sale_price * self.quantity) - self.discount
+        return taxable_amount - self.total_cost
 
 # Payment Represents payment made on sale
 class Payment(models.Model):
