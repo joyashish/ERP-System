@@ -3,8 +3,6 @@ from django.http import HttpResponse, JsonResponse
 from backend.models import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
-from django.db.models import Sum, F
-from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import datetime
@@ -19,7 +17,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, login
 from django.db.models import OuterRef, Subquery
 from django.db import IntegrityError
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, F, Value, CharField, DecimalField
 import json
 from decimal import Decimal
 from django.db.models.functions import TruncMonth
@@ -28,9 +26,33 @@ from django.urls import reverse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 from collections import defaultdict
+from django import forms
+from django.db.models.functions import Coalesce
+from itertools import chain
 
+# Expense Form 
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ['category', 'amount', 'expense_date', 'description', 'receipt']
+        widgets = {
+            'expense_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'receipt': forms.FileInput(attrs={'class': 'form-control-file'}),
+        }
 
-
+    def __init__(self, *args, **kwargs):
+        tenant = kwargs.pop('tenant', None)
+        super().__init__(*args, **kwargs)
+        if tenant:
+            self.fields['category'].queryset = ExpenseCategory.objects.filter(tenant=tenant)
+        
+        # --- NEW: Set a user-friendly empty label ---
+        self.fields['category'].empty_label = "Select a category"
+        
+        # Add Bootstrap class to the category field
+        self.fields['category'].widget.attrs.update({'class': 'form-control'})
 
 # Permission Decorators
 def superadmin_required(view_func):
@@ -41,15 +63,38 @@ def superadmin_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
+# def tenant_required(view_func):
+#     def wrapper(request, *args, **kwargs):
+#         if not request.session.get('email'):
+#             return redirect('/')
+#         account = Account.objects.filter(email=request.session['email']).first()
+#         if account.role == 'superadmin':
+#             return view_func(request, *args, **kwargs)
+#         if not request.session.get('tenant_id'):
+#             return redirect('/')
+#         return view_func(request, *args, **kwargs)
+#     return wrapper
+
 def tenant_required(view_func):
+    """
+    Ensures that a user is logged in and has a tenant context.
+    - Regular users must have a tenant assigned.
+    - Superadmins can proceed, as their tenant context is handled within the view.
+    """
     def wrapper(request, *args, **kwargs):
-        if not request.session.get('email'):
+        if not request.user.is_authenticated:
             return redirect('/')
-        account = Account.objects.filter(email=request.session['email']).first()
-        if account.role == 'superadmin':
+        
+        # Superadmins can access any tenant-aware page.
+        # The view itself is responsible for getting the tenant_id from the URL.
+        if request.user.role == 'superadmin':
             return view_func(request, *args, **kwargs)
-        if not request.session.get('tenant_id'):
-            return redirect('/')
+        
+        # Regular users must have a tenant associated with them.
+        if not request.tenant:
+            messages.error(request, "Could not identify your tenant account. Please log in again.")
+            return redirect('/') # Or a logout URL
+            
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -148,12 +193,79 @@ def logout_view(request): # Renamed to avoid conflict with the imported logout
     return redirect('/')
 
 # Dashboard View
+# @tenant_required
+# def DashVw(request):
+#     account = Account.objects.filter(email=request.session['email']).first()
+#     tenant = get_tenant(request) if not account.role == 'superadmin' else None
+#     return render(request, 'Dash.html', {'add': account, 'tenant': tenant})
+
 @tenant_required
 def DashVw(request):
-    account = Account.objects.filter(email=request.session['email']).first()
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
-    return render(request, 'Dash.html', {'add': account, 'tenant': tenant})
+    account = request.user
+    tenant = None
 
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+    else:
+        tenant = request.tenant
+
+    if not tenant:
+        context = {'add': account, 'tenant': None}
+        return render(request, 'Dash.html', context)
+        
+    today = timezone.now().date()
+    this_month_start = today.replace(day=1)
+    last_month_end = this_month_start - timedelta(days=1)
+    last_month_start = last_month_end.replace(day=1)
+
+    revenue_this_month = Sale.objects.filter(tenant=tenant, invoice_date__gte=this_month_start).aggregate(total=Sum('total_amount'))['total'] or 0
+    revenue_last_month = Sale.objects.filter(tenant=tenant, invoice_date__range=[last_month_start, last_month_end]).aggregate(total=Sum('total_amount'))['total'] or 0
+
+    sales_percentage_change = 0
+    if revenue_last_month > 0:
+        sales_percentage_change = ((revenue_this_month - revenue_last_month) / revenue_last_month) * 100
+
+    total_receivables_overdue = Sale.objects.filter(tenant=tenant, balance_amount__gt=0, due_date__lt=today).aggregate(total=Sum('balance_amount'))['total'] or 0
+    
+    total_purchase_amount = Purchase.objects.filter(tenant=tenant).exclude(status='CANCELLED').aggregate(total=Sum('total_amount'))['total'] or 0
+    total_paid_on_purchases = PurchasePayment.objects.filter(purchase__tenant=tenant).aggregate(total=Sum('amount'))['total'] or 0
+    total_payables = total_purchase_amount - total_paid_on_purchases
+
+    # --- Inventory Snapshot ---
+    low_stock_items_count = Product.objects.filter(tenant=tenant, is_active=True, opening_stock__lte=F('min_stock_level'), min_stock_level__gt=0).count()
+    
+    # --- GUARANTEED FIX for Total Stock Value ---
+    # Fetch all products and calculate the total value in Python.
+    all_products = Product.objects.filter(tenant=tenant, is_active=True)
+    total_stock_value = 0
+    for product in all_products:
+        total_stock_value += (product.opening_stock * product.purchase_price)
+
+    # --- Calculate Expiring Items ---
+    thirty_days_from_now = today + timedelta(days=30)
+    expiring_items_count = Product.objects.filter(
+        tenant=tenant,
+        expiry_date__gte=today,
+        expiry_date__lte=thirty_days_from_now
+    ).count()
+    
+    recent_sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-created_at')[:5]
+
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'revenue_this_month': revenue_this_month,
+        'sales_percentage_change': sales_percentage_change,
+        'total_receivables_overdue': total_receivables_overdue,
+        'total_payables': total_payables,
+        'low_stock_items_count': low_stock_items_count,
+        'total_stock_value': total_stock_value,
+        'recent_sales': recent_sales,
+        'expiring_items_count': expiring_items_count,
+    }
+    return render(request, 'Dash.html', context)
 # Logout View
 # def logout(request):
 #     request.session.flush()
@@ -2466,3 +2578,146 @@ def get_products_for_tenant_api(request, tenant_id):
     """
     products = Product.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'item_name', 'opening_stock')
     return JsonResponse(list(products), safe=False)
+
+# Expense list 
+@tenant_required
+def expense_list(request):
+    account = request.user
+    expenses = Expense.objects.none()
+    tenant = None
+
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+            expenses = Expense.objects.filter(tenant=tenant)
+    else:
+        tenant = request.tenant
+        expenses = Expense.objects.filter(tenant=tenant)
+
+    # Filtering logic
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        expenses = expenses.filter(expense_date__gte=start_date)
+    if end_date:
+        expenses = expenses.filter(expense_date__lte=end_date)
+        
+    total_expenses = expenses.aggregate(total=Sum('amount'))['total'] or 0
+
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'expenses': expenses,
+        'total_expenses': total_expenses,
+        'current_filters': {'start_date': start_date, 'end_date': end_date}
+    }
+    return render(request, 'expense_list.html', context)
+
+# Create Expense 
+@tenant_required
+def create_expense(request):
+    account = request.user
+    tenant = request.tenant if account.role != 'superadmin' else None
+
+    if request.method == 'POST':
+        # Superadmin must select a tenant from the form
+        if account.role == 'superadmin':
+            tenant_id = request.POST.get('tenant_id')
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+
+        form = ExpenseForm(request.POST, request.FILES, tenant=tenant)
+        if form.is_valid():
+            expense = form.save(commit=False)
+            expense.tenant = tenant
+            expense.created_by = account
+            expense.save()
+            messages.success(request, "Expense recorded successfully.")
+            
+            redirect_url = reverse('expense_list')
+            if account.role == 'superadmin':
+                return redirect(f"{redirect_url}?tenant_id={tenant.id}")
+            return redirect(redirect_url)
+    else:
+        form = ExpenseForm(tenant=tenant)
+
+    context = {'add': account, 'tenant': tenant, 'form': form}
+    if account.role == 'superadmin':
+        context['tenants'] = Tenant.objects.filter(is_active=True)
+
+    return render(request, 'expense_form.html', context)
+
+# Edit Expanse
+@tenant_required
+def edit_expense(request, pk):
+    account = request.user
+    # Ensure the user can only edit expenses from their own tenant
+    if account.role == 'superadmin':
+        expense = get_object_or_404(Expense, pk=pk)
+        tenant = expense.tenant
+    else:
+        tenant = request.tenant
+        expense = get_object_or_404(Expense, pk=pk, tenant=tenant)
+
+    if request.method == 'POST':
+        form = ExpenseForm(request.POST, request.FILES, instance=expense, tenant=tenant)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Expense updated successfully.")
+            redirect_url = reverse('expense_list')
+            if account.role == 'superadmin':
+                return redirect(f"{redirect_url}?tenant_id={tenant.id}")
+            return redirect(redirect_url)
+    else:
+        form = ExpenseForm(instance=expense, tenant=tenant)
+
+    context = {'add': account, 'tenant': tenant, 'form': form}
+    return render(request, 'expense_form.html', context)
+
+# Delete Expanse 
+@tenant_required
+def delete_expense(request, pk):
+    account = request.user
+    if account.role == 'superadmin':
+        expense = get_object_or_404(Expense, pk=pk)
+        tenant_id = expense.tenant.id
+    else:
+        expense = get_object_or_404(Expense, pk=pk, tenant=request.tenant)
+
+    expense.delete()
+    messages.info(request, "Expense has been deleted.")
+    
+    redirect_url = reverse('expense_list')
+    if account.role == 'superadmin':
+        return redirect(f"{redirect_url}?tenant_id={tenant_id}")
+    return redirect(redirect_url)
+
+@tenant_required
+def add_expense_category(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        tenant_id = request.POST.get('tenant_id')
+        
+        if not name or not tenant_id:
+            messages.error(request, "Category name and tenant are required.")
+            return redirect(request.META.get('HTTP_REFERER', 'expense_list'))
+
+        tenant = get_object_or_404(Tenant, id=tenant_id)
+        
+        # Check for duplicates
+        if ExpenseCategory.objects.filter(tenant=tenant, name__iexact=name).exists():
+            messages.warning(request, f"Category '{name}' already exists for this tenant.")
+        else:
+            ExpenseCategory.objects.create(name=name, tenant=tenant)
+            messages.success(request, f"Category '{name}' added successfully.")
+    
+    # Redirect back to the page the user came from
+    return redirect(request.META.get('HTTP_REFERER', 'create_expense'))
+
+@superadmin_required # Secure this for superadmins
+def get_expense_categories_api(request, tenant_id):
+    """
+    API endpoint that returns a list of expense categories for a given tenant.
+    """
+    categories = ExpenseCategory.objects.filter(tenant_id=tenant_id).values('id', 'name')
+    return JsonResponse(list(categories), safe=False)

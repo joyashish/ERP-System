@@ -120,5 +120,13 @@ urlpatterns=[
     path('stock-adjustments/new/', views.create_stock_adjustment, name='create_stock_adjustment'),
     path('api/get-products/<int:tenant_id>/', views.get_products_for_tenant_api, name='api_get_products_for_tenant'),
 
+    # Expenses Url
+    path('expenses/', views.expense_list, name='expense_list'),
+    path('expenses/new/', views.create_expense, name='create_expense'),
+    path('expenses/<int:pk>/edit/', views.edit_expense, name='edit_expense'),
+    path('expenses/<int:pk>/delete/', views.delete_expense, name='delete_expense'),
+    path('expenses/category/add/', views.add_expense_category, name='add_expense_category'),
+    path('api/get-expense-categories/<int:tenant_id>/', views.get_expense_categories_api, name='api_get_expense_categories'),
+
     
 ]

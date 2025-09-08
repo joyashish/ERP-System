@@ -83,212 +83,124 @@
   }
 </style>
 
-<!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
-  <!-- Content Header (Page header) -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Dashboard</h1>
-        </div><!-- /.col -->
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
-            <li class="breadcrumb-item active">Dashboard</li>
-          </ol>
-        </div><!-- /.col -->
-      </div><!-- /.row -->
-    </div><!-- /.container-fluid -->
-  </div>
-  <!-- /.content-header -->
-
-  {% if messages %}
-  <div class="row">
-    <div class="col-md-12">
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} alert-dismissible fade show msg_sec" role="alert">
-        {{ message }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-            aria-hidden="true">&times;</span></button>
-      </div>
-      {% endfor %}
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Dashboard {% if tenant %}<small class="text-muted font-weight-light">| {{ tenant.name }}</small>{% endif %}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                        <li class="breadcrumb-item active">Dashboard</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-  {% endif %}
 
-  <!-- Main content -->
-  <section class="content">
-    <div class="container-fluid">
-      <!-- Stat Cards -->
-      <div class="row">
-        <!-- Company Card -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-gradient-blue">
-            <div class="inner">
-              <h3>{{tot_cmp}} 4</h3>
-              <p>Companies</p>
-              <div class="progress mt-2" style="height: 4px;">
-                <div class="progress-bar bg-white" style="width: 70%"></div>
-              </div>
-            </div>
-            <div class="icon">
-              <i class="fas fa-building"></i>
-            </div>
-            <a href="#" class="small-box-footer">
-              Manage <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-          </div>
+    <section class="content">
+        <div class="container-fluid">
+            {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show msg_sec" role="alert">{{ message }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>{% endfor %}{% endif %}
+
+            {% if tenant %}
+                <div class="row">
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-primary">
+                            <div class="inner"><h3>₹{{ revenue_this_month|floatformat:2 }}</h3><p>Revenue (This Month)</p></div>
+                            <div class="icon"><i class="fas fa-dollar-sign"></i></div>
+                            <a href="{% url 'sales_report' %}?tenant_id={{ tenant.id }}" class="small-box-footer">View Report <i class="fas fa-arrow-circle-right"></i></a>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-primary">
+                            <div class="inner"><h3>₹{{ total_receivables_overdue|floatformat:2 }}</h3><p>Overdue Receivables</p></div>
+                            <div class="icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                            <a href="{% url 'sales_list' %}?tenant_id={{ tenant.id }}&status=OVERDUE" class="small-box-footer">View Overdue <i class="fas fa-arrow-circle-right"></i></a>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-primary">
+                            <div class="inner"><h3>₹{{ total_payables|floatformat:2 }}</h3><p>Total Payables</p></div>
+                            <div class="icon"><i class="fas fa-file-export"></i></div>
+                            <a href="{% url 'purchase_list' %}?tenant_id={{ tenant.id }}" class="small-box-footer">View Purchases <i class="fas fa-arrow-circle-right"></i></a>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-primary">
+                            <div class="inner"><h3>₹{{ total_expenses|floatformat:2|default:'0.00' }}</h3><p>Total Expenses</p></div>
+                            <div class="icon"><i class="fas fa-money-bill-wave"></i></div>
+                            <a href="{% url 'expense_list' %}?tenant_id={{ tenant.id }}" class="small-box-footer">View Expenses <i class="fas fa-arrow-circle-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header"><h5 class="card-title">Recent Sales Activity</h5></div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead><tr><th>Date</th><th>Invoice #</th><th>Customer</th><th class="text-right">Amount</th><th class="text-center">Status</th></tr></thead>
+                                        <tbody>
+                                            {% for sale in recent_sales %}
+                                            <tr>
+                                                <td>{{ sale.invoice_date|date:"d M, Y" }}</td>
+                                                <td><a href="{% url 'sale_detail' sale.id %}">{{ sale.invoice_no }}</a></td>
+                                                <td>{{ sale.party.party_name }}</td>
+                                                <td class="text-right">₹{{ sale.total_amount|floatformat:2 }}</td>
+                                                <td class="text-center">
+                                                    {% if sale.status == 'PAID' %}<span class="badge badge-success">Paid</span>{% elif sale.status == 'OVERDUE' %}<span class="badge badge-danger">Overdue</span>{% else %}<span class="badge badge-warning">Unpaid</span>{% endif %}
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr><td colspan="5" class="text-center">No sales recorded yet.</td></tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <a href="{% url 'sales_list' %}?tenant_id={{ tenant.id }}" class="btn btn-sm btn-outline-primary mt-3">View All Sales</a>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-box bg-light"><span class="info-box-icon bg-info"><i class="fas fa-boxes"></i></span><div class="info-box-content"><span class="info-box-text">Low Stock Items</span><span class="info-box-number">{{ low_stock_items_count }}</span></div></div>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="{% url 'Item_list' %}?{% if tenant %}tenant_id={{ tenant.id }}&{% endif %}filter=expiring_soon"
+                                  class="text-dark">
+                                  <div class="info-box bg-light">
+                                    <span class="info-box-icon bg-danger"><i class="fas fa-calendar-times"></i></span>
+                                    <div class="info-box-content">
+                                      <span class="info-box-text">Items Expiring (30 Days)</span>
+                                      <span class="info-box-number">{{ expiring_items_count }}</span>
+                                    </div>
+                                  </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header"><h5 class="card-title">Quick Actions</h5></div>
+                            <div class="card-body">
+                                <a href="{% url 'Create_Sale' %}?tenant_id={{ tenant.id }}" class="btn btn-primary btn-block mb-2"><i class="fas fa-plus-circle mr-2"></i> Create New Sale</a>
+                                <a href="{% url 'create_purchase' %}?tenant_id={{ tenant.id }}" class="btn btn-info btn-block mb-2"><i class="fas fa-shopping-cart mr-2"></i> Record Purchase</a>
+                                <a href="{% url 'create_expense' %}?tenant_id={{ tenant.id }}" class="btn btn-success btn-block mb-2"><i class="fas fa-money-bill-wave mr-2"></i> Add Expense</a>
+                                <a href="{% url 'create_stock_adjustment' %}?tenant_id={{ tenant.id }}" class="btn btn-secondary btn-block mb-2"><i class="fas fa-clipboard-check mr-2"></i> Adjust Stock</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card"><div class="card-body text-center py-5"><i class="fas fa-info-circle fa-3x text-primary mb-3"></i><h4>Welcome, Superadmin</h4><p class="text-muted">Please select a tenant from the 'Dashboard' menu in the sidebar to view their data.</p></div></div>
+            {% endif %}
         </div>
-
-        <!-- Product Card -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-gradient-blue">
-            <div class="inner">
-              <h3>{{tot_prod}} 7</h3>
-              <p>Products</p>
-              <div class="progress mt-2" style="height: 4px;">
-                <div class="progress-bar bg-white" style="width: 85%"></div>
-              </div>
-            </div>
-            <div class="icon">
-              <i class="fas fa-box-open"></i>
-            </div>
-            <a href="#" class="small-box-footer">
-              View <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Unit Card -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-gradient-blue">
-            <div class="inner">
-              <h3>44</h3>
-              <p>Units</p>
-              <div class="progress mt-2" style="height: 4px;">
-                <div class="progress-bar bg-white" style="width: 60%"></div>
-              </div>
-            </div>
-            <div class="icon">
-              <i class="fas fa-balance-scale"></i>
-            </div>
-            <a href="#" class="small-box-footer">
-              Manage <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Route Card -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-gradient-blue">
-            <div class="inner">
-              <h3>65</h3>
-              <p>Routes</p>
-              <div class="progress mt-2" style="height: 4px;">
-                <div class="progress-bar bg-white" style="width: 45%"></div>
-              </div>
-            </div>
-            <div class="icon">
-              <i class="fas fa-route"></i>
-            </div>
-            <a href="#" class="small-box-footer">
-              View <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Transactions -->
-      <div class="row mt-4">
-        <div class="col-md-8">
-          <div class="card">
-            <div class="card-header">
-              <h5>Latest Transactions</h5>
-            </div>
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>DATE</th>
-                      <th>TYPE</th>
-                      <th>INV NO</th>
-                      <th>PARTY NAME</th>
-                      <th>AMOUNT</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>17 Jun 2025</td>
-                      <td>Sales Invoice</td>
-                      <td>216</td>
-                      <td>Salendra Manjhison</td>
-                      <td>₹8,105</td>
-                    </tr>
-                    <tr>
-                      <td>23 May 2025</td>
-                      <td>Sales Invoice</td>
-                      <td>215</td>
-                      <td>Bidhayak Gaila Dukan</td>
-                      <td>₹141.6</td>
-                    </tr>
-                    <tr>
-                      <td>13 May 2025</td>
-                      <td>Sales Invoice</td>
-                      <td>214</td>
-                      <td>Vijay Jarda</td>
-                      <td>₹3,645</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <a href="#" class="btn btn-sm btn-outline-primary">See All Transactions</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-header">
-              <h5>Quick Actions</h5>
-            </div>
-            <div class="card-body">
-              <button class="btn btn-primary btn-block mb-2">
-                <i class="fas fa-plus-circle"></i> Create New Sale
-              </button>
-              <button class="btn btn-success btn-block mb-2">
-                <i class="fas fa-file-invoice"></i> Generate Invoice
-              </button>
-              <button class="btn btn-info btn-block mb-2">
-                <i class="fas fa-chart-pie"></i> View Reports
-              </button>
-              <button class="btn btn-warning btn-block mb-2">
-                <i class="fas fa-cog"></i> Settings
-              </button>
-            </div>
-          </div>
-
-          <!-- Total Payable -->
-          <div class="card mt-4">
-            <div class="card-header bg-success text-white">
-              <h5>Total To Collect</h5>
-            </div>
-            <div class="card-body text-center">
-              <h3>₹12,29,028.6</h3>
-              <p class="text-muted">Outstanding payments</p>
-              <button class="btn btn-outline-success btn-sm">View Details</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- /.row -->
-      <!-- Main row -->
-
-    </div><!-- /.container-fluid -->
-  </section>
-  <!-- /.content -->
+    </section>
 </div>
 
 {% include 'footer.html' %}

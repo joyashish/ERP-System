@@ -1,0 +1,141 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid"><h1 class="m-0">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Expense</h1></div>
+    </div>
+    <section class="content">
+        <div class="container-fluid">
+            {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} msg_sec">{{ message }}</div>{% endfor %}{% endif %}
+            <div class="card card-primary">
+                <div class="card-header"><h3 class="card-title">Expense Details</h3></div>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        <div class="row">
+                            {% if add.role == 'superadmin' %}
+                            <div class="col-md-12 form-group">
+                                <label for="tenant-select">Tenant *</label>
+                                <select name="tenant_id" id="tenant-select" class="form-control" required>
+                                    <option value="">Select Tenant</option>
+                                    {% for t in tenants %}<option value="{{ t.id }}" {% if tenant.id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="col-md-6 form-group">
+                                <label for="id_category">{{ form.category.label }} *</label>
+                                <div class="input-group">
+                                    {{ form.category }}
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-outline-secondary" data-toggle="modal" data-target="#addCategoryModal">
+                                            <i class="fas fa-plus"></i> Add New
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="id_amount">{{ form.amount.label }} *</label>
+                                {{ form.amount }}
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="id_expense_date">{{ form.expense_date.label }} *</label>
+                                {{ form.expense_date }}
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="id_receipt">{{ form.receipt.label }}</label>
+                                {{ form.receipt }}
+                            </div>
+                            <div class="col-12 form-group">
+                                <label for="id_description">{{ form.description.label }}</label>
+                                {{ form.description }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-right">
+                        <a href="{% url 'expense_list' %}{% if tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="modal fade" id="addCategoryModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="{% url 'add_expense_category' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Expense Category</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="category-name">Category Name *</label>
+                        <input type="text" name="name" class="form-control" id="category-name" required>
+                        <small class="form-text text-muted">e.g., Office Rent, Utilities, Marketing, Travel</small>
+                    </div>
+                    <input type="hidden" name="tenant_id" id="modal-tenant-id" value="{{ tenant.id }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if add.role == 'superadmin' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tenantSelect = document.getElementById('tenant-select');
+    const categorySelect = document.getElementById('id_category');
+    const modalTenantIdInput = document.getElementById('modal-tenant-id');
+
+    tenantSelect.addEventListener('change', function() {
+        const tenantId = this.value;
+        fetchCategories(tenantId);
+        // Also update the modal's hidden tenant_id
+        modalTenantIdInput.value = tenantId;
+    });
+
+    function fetchCategories(tenantId) {
+        categorySelect.innerHTML = '<option value="">Loading...</option>';
+
+        if (!tenantId) {
+            categorySelect.innerHTML = '<option value="">Select a tenant first</option>';
+            return;
+        }
+
+        const url = `{% url 'api_get_expense_categories' 0 %}`.replace('0', tenantId);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                categorySelect.innerHTML = '<option value="">Select a category</option>';
+                if (data.length > 0) {
+                    data.forEach(cat => {
+                        const option = new Option(cat.name, cat.id);
+                        categorySelect.add(option);
+                    });
+                } else {
+                    categorySelect.innerHTML = '<option value="">No categories found. Click "+" to add one.</option>';
+                }
+            })
+            .catch(error => console.error('Error fetching categories:', error));
+    }
+    
+    if (tenantSelect.value) {
+        fetchCategories(tenantSelect.value);
+    }
+});
+</script>
+{% endif %}
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

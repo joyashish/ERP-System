@@ -1,0 +1,101 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <h1 class="m-0">Expenses</h1>
+        </div>
+    </div>
+    <section class="content">
+        <div class="container-fluid">
+            {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} msg_sec">{{ message }}</div>{% endfor %}{% endif %}
+
+            <div class="card card-default">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-filter"></i> Filter Expenses</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <form method="GET" action="">
+                                {% if add.role == 'superadmin' and tenant %}<input type="hidden" name="tenant_id" value="{{ tenant.id }}">{% endif %}
+                                <div class="row align-items-end">
+                                    <div class="col-md-5 form-group mb-md-0"><label>Start Date</label><input type="date" name="start_date" class="form-control" value="{{ current_filters.start_date|default:'' }}"></div>
+                                    <div class="col-md-5 form-group mb-md-0"><label>End Date</label><input type="date" name="end_date" class="form-control" value="{{ current_filters.end_date|default:'' }}"></div>
+                                    <div class="col-md-2 form-group mb-md-0 d-flex">
+                                        <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
+                                        <a href="{% url 'expense_list' %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary ml-2" title="Clear Filters"><i class="fas fa-times"></i></a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-light p-3 rounded text-center h-100 d-flex flex-column justify-content-center">
+                                <h6 class="text-muted text-uppercase">Total Expenses in Period</h6>
+                                <h2 class="font-weight-bold">₹{{ total_expenses|floatformat:2 }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">Expense History</h3>
+                    <a href="{% url 'create_expense' %}{% if tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-success"><i class="fas fa-plus"></i> Add Expense</a>
+                </div>
+                <div class="card-body p-0"> <div class="table-responsive">
+                        <table class="table table-hover mb-0"> <thead class="thead-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th class="text-right">Amount</th>
+                                    <th class="text-center">Receipt</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in expenses %}
+                                <tr>
+                                    <td>{{ expense.expense_date|date:"d M, Y" }}</td>
+                                    <td><span class="badge badge-secondary">{{ expense.category.name }}</span></td>
+                                    <td>{{ expense.description|truncatewords:10 }}</td>
+                                    <td class="text-right font-weight-bold">₹{{ expense.amount|floatformat:2 }}</td>
+                                    <td class="text-center">
+                                        {% if expense.receipt %}
+                                            <a href="{{ expense.receipt.url }}" target="_blank" class="btn btn-sm btn-outline-info"><i class="fas fa-receipt"></i> View</a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-right">
+                                                <a class="dropdown-item" href="{% url 'edit_expense' expense.pk %}"><i class="fas fa-edit mr-2"></i>Edit</a>
+                                                <a class="dropdown-item text-danger" href="{% url 'delete_expense' expense.pk %}" onclick="return confirm('Are you sure?')"><i class="fas fa-trash mr-2"></i>Delete</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">No expenses recorded for this period.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}
