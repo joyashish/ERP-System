@@ -35,6 +35,36 @@
             margin-top: 0.5rem; /* Add space between text and button */
         }
     }
+    /* Add these styles for the navbar avatars */
+    .navbar-initials-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem; /* 32px */
+        height: 2rem;
+        border-radius: 50%;
+        background-color:#20c997;/* Teal color */
+        color: white;
+        font-weight: bold;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+
+    .user-header-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        background-color: #20c997; /* Teal color */
+        color: white;
+        font-weight: bold;
+        font-size: 2.5rem;
+        text-transform: uppercase;
+        margin: 0 auto; /* Center the avatar */
+        border: 3px solid rgba(255,255,255,0.2);
+    }
 </style>
 <!-- Navbar -->
 <nav class="main-header navbar navbar-expand navbar-dark" style="background: #1a222c; border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -82,19 +112,34 @@
 
         <!-- User Dropdown Menu -->
         <li class="nav-item dropdown user-menu">
-            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                <img src="{% static 'dist/img/user-logo.png' %}" class="user-image img-circle elevation-2" alt="User Image">
-                <span class="d-none d-md-inline ml-2">Admin</span>
+            <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-expanded="false" style="display: flex; align-items: center;">
+                <!-- Replaced static image with dynamic initials avatar -->
+                {% if request.user.full_name %}
+                <div class="navbar-initials-avatar">{{ request.user.full_name|first }}</div>
+                {% else %}
+                <div class="navbar-initials-avatar">{{ request.user.email|first }}</div>
+                {% endif %}
+                <!-- Replaced static "Admin" with dynamic user name -->
+                <span style="text-transform: capitalize;" class="d-none d-md-inline ml-2">{{ request.user.get_role_display }}</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-right dropdown-menu-dark" style="border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
                 <!-- User image -->
                 <li class="user-header" style="background: #2c3e50;">
-                    <img src="{% static 'dist/img/user-logo.png' %}" class="img-circle elevation-2" alt="User Image">
+                    <!-- Replaced static image with larger dynamic initials avatar -->
+                    {% if request.user.full_name %}
+                    <div class="user-header-avatar">{{ request.user.full_name|first }}</div>
+                    {% else %}
+                    <div class="user-header-avatar">{{ request.user.email|first }}</div>
+                    {% endif %}
+                
                     <div class="mt-2">
-                        {% if 'email' in request.session %}
-                        <p class="mb-1 text-light">{{add.email}}</p>
+                        <!-- Replaced static text with dynamic user info -->
+                        {% if request.user.is_authenticated %}
+                        <p class="mb-1 text-light">
+                            {{ request.user.full_name|default:"No Name Provided" }}
+                            <small style="text-transform: capitalize;" class="d-block text-muted">{{ request.user.get_role_display }} at {{ tenant.name|default:'System' }}</small>
+                        </p>
                         {% endif %}
-                        <small class="text-muted">ERP Admin</small>
                     </div>
                 </li>
                 <!-- Menu Footer -->

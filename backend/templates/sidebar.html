@@ -34,12 +34,30 @@
         border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 </style>
+<!-- User Avtar Style -->
+<style>
+    /* Add this new style for the avatar */
+    .initials-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px; /* Matches AdminLTE's img-circle size */
+        height: 34px;
+        border-radius: 50%;
+        /* background-color: #20c997; A nice teal color */
+        background-color: #b482eb; /* lavender color */
+        color: white;
+        font-weight: bold;
+        font-size: 1rem;
+        text-transform: uppercase;
+    }
+</style>
 <!-- Main Sidebar Container -->
 <aside class="main-sidebar sidebar-dark-primary elevation-4" style="background: #1a2a3a;">
     <!-- Brand Logo -->
-    <a href="{% url 'dash' %}" class="brand-link text-center" style="background: rgba(255,255,255,0.1);">
+    <a href="{% url 'dash' %}" class="brand-link text-center" style="background: rgba(204, 180, 180, 0.1);">
         <img src="{% static 'dist/img/erp1.png' %}" alt="ERP Logo" class="brand-image" style="opacity: .9; width: 30px; height: 30px;">
-        <span class="brand-text font-weight-light" style="font-size: 1.1rem;">ERP System</span>
+        <span class="brand-text font-weight-light" style="font-family:'Courier New', Courier, monospace; font-size: 1.1rem; color: white;">ERP System</span>
     </a>
 
     <!-- Sidebar -->
@@ -47,11 +65,18 @@
         <!-- Sidebar User Panel -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
-                <img src="{% static '../static/dist/img/user1.jpg' %}" class="img-circle elevation-2" alt="User Image">
+                {% if request.user.full_name %}
+                <div class="initials-avatar">{{ request.user.full_name|first }}</div>
+                {% else %}
+                <div class="initials-avatar">{{ request.user.email|first }}</div>
+                {% endif %}
             </div>
             <div class="info">
                 {% if request.user.is_authenticated %}
-                <a href="#" class="d-block text-white">{{ request.user.email }}</a>
+                <a href="#" class="d-block text-white">
+                    {{ request.user.full_name|default:request.user.email }}
+                    <span style="background-color: #b482eb;" class="badge badge-info ml-1">{{ request.user.get_role_display }}</span>
+                </a>
                 {% endif %}
             </div>
         </div>
