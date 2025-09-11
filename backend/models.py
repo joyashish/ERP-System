@@ -14,6 +14,12 @@ class Tenant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
+    # --- NEW FIELDS for Settings ---
+    address = models.TextField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    gst_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="GST Number")
+    logo = models.ImageField(upload_to='tenant_logos/', blank=True, null=True)
 
     def __str__(self):
         return self.name

@@ -1,6 +1,7 @@
 from django.shortcuts import render,redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from backend.models import *
+from .forms import TenantSettingsForm
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
 from django.db.models.functions import TruncMonth
@@ -1397,6 +1398,7 @@ def sale_invoice_pdf(request, sale_id):
 
     context = {
         'sale': sale,
+        'tenant': sale.tenant,
     }
     return render(request, 'sale_invoice_pdf.html', context)
 
@@ -2804,3 +2806,51 @@ def inventory_report_view(request):
         'category_chart_data': json.dumps(category_chart_data),
     }
     return render(request, 'inventory_report.html', context)
+
+# Settings View
+@tenant_required
+def settings_view(request):
+    account = request.user
+    tenant = None
+
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if not tenant_id:
+            messages.info(request, "From the sidebar, please expand 'Settings' and select a tenant.")
+            return redirect('superadmin_dashboard')
+        tenant = get_object_or_404(Tenant, id=tenant_id)
+    else:
+        if account.role != 'admin':
+            messages.error(request, "You do not have permission to view this page.")
+            return redirect('dash')
+        tenant = request.tenant
+
+    # --- NEW LOGIC: Pre-fill empty company details from the first admin ---
+    if request.method != 'POST': # Only do this on the initial page load (GET request)
+        if not tenant.email or not tenant.phone:
+            first_admin = tenant.accounts.filter(role='admin').first()
+            if first_admin:
+                # If tenant email is blank, use the admin's email
+                if not tenant.email:
+                    tenant.email = first_admin.email
+                # If tenant phone is blank, use the admin's phone
+                if not tenant.phone:
+                    tenant.phone = first_admin.phone
+    # --- END OF NEW LOGIC ---
+
+    if request.method == 'POST':
+        form = TenantSettingsForm(request.POST, request.FILES, instance=tenant)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Settings updated successfully.")
+            return redirect(request.get_full_path())
+    else:
+        # The form will now be initialized with the pre-filled tenant instance
+        form = TenantSettingsForm(instance=tenant)
+
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'form': form,
+    }
+    return render(request, 'settings.html', context)

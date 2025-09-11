@@ -1,0 +1,51 @@
+{% comment %}
+This snippet expects a 'tenant' object to be available in the context.
+It will display the tenant's logo and formatted address.
+{% endcomment %}
+
+<style>
+    .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+    .invoice-header .logo-container {
+        flex: 0 0 150px; /* Flex-grow, flex-shrink, flex-basis */
+    }
+    .invoice-header .logo-container img {
+        max-width: 100%;
+        max-height: 70px;
+    }
+    .invoice-header .company-details {
+        text-align: right;
+    }
+    .invoice-header .company-details h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+    .invoice-header .company-details p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #555;
+    }
+</style>
+
+<div class="invoice-header">
+    <div class="logo-container">
+        {% if tenant.logo %}
+            <img src="{{ tenant.logo.path }}" alt="{{ tenant.name }} Logo">
+        {% endif %}
+    </div>
+    <div class="company-details">
+        <h3>{{ tenant.name }}</h3>
+        <p>{{ tenant.address|linebreaksbr }}</p>
+        {% if tenant.phone %}<p>Phone: {{ tenant.phone }}</p>{% endif %}
+        {% if tenant.email %}<p>Email: {{ tenant.email }}</p>{% endif %}
+        {% if tenant.gst_number %}<p>GSTIN: {{ tenant.gst_number }}</p>{% endif %}
+    </div>
+</div>

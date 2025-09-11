@@ -130,5 +130,8 @@ urlpatterns=[
     path('expenses/category/add/', views.add_expense_category, name='add_expense_category'),
     path('api/get-expense-categories/<int:tenant_id>/', views.get_expense_categories_api, name='api_get_expense_categories'),
 
+    # Settings Url
+    path('settings/', views.settings_view, name='settings'),
+
     
 ]

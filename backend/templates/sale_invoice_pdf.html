@@ -7,9 +7,10 @@
         /* This CSS is specifically for printing a professional invoice */
         @page { size: A4; margin: 1cm; }
         body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
-        .print-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;}
-        .print-header h2 { margin: 0; font-size: 24px; font-weight: bold; }
-        .print-header p { margin: 2px 0; font-size: 12px; }
+        
+        /* --- NOTE: The header styles are now in the snippet, you can remove them from here if you wish --- */
+        /* .print-header { ... } */
+        
         .invoice-meta-container { display: flex; justify-content: space-between; }
         .bill-to { width: 50%; }
         .invoice-details-table { width: 45%; border-collapse: collapse; }
@@ -29,11 +30,9 @@
 </head>
 <body onload="window.print()">
     <div id="invoice-print">
-        <div class="print-header">
-            <h2>{{ sale.tenant.name|default:"Your Company Name" }}</h2>
-            <p>{{ sale.tenant.address|default:"Your Address, City, State, PIN" }}</p>
-            <p>GSTIN: {{ sale.tenant.gstin|default:"YOURGSTINHERE" }}</p>
-        </div>
+
+        {% include 'snippets/print_header.html' %}
+
         <div class="invoice-meta-container">
             <div class="bill-to">
                 <strong>BILL TO:</strong><br>
@@ -72,7 +71,7 @@
         </table>
         <div class="print-summary-container">
             <div class="print-summary-left">
-                <p style="font-weight: bold;">Total Amount (In Words): {{ amount_in_words }}</p>
+                <p style="font-weight: bold;">Total Amount (In Words): {{ amount_in_words|default:" " }}</p>
             </div>
             <div class="print-summary-right">
                 <div class="summary-line"><span>Subtotal</span><span>{{ sale.subtotal|floatformat:2 }}</span></div>

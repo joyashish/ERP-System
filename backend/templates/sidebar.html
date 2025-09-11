@@ -375,12 +375,32 @@
                         <p>Employee Management</p>
                     </a>
                 </li> -->
+                <li class="nav-header text-uppercase text-muted">System</li>
+                {% with menu_path='settings' %}
+                {% if add.role == 'superadmin' %}
+                <li class="nav-item has-treeview {% if request.resolver_match.url_name == menu_path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <p>Settings <i class="right fas fa-angle-left"></i></p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        {% for t in all_tenants_for_superadmin %}<li class="nav-item"><a href="{% url menu_path %}?tenant_id={{ t.id }}"
+                                class="nav-link {% if tenant.id == t.id and request.resolver_match.url_name == menu_path %}active{% endif %}"><i
+                                    class="far fa-circle nav-icon"></i>
+                                <p>{{ t.name }}</p>
+                            </a></li>{% endfor %}
+                    </ul>
+                </li>
+                {% elif add.role == 'admin' %}
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{% url menu_path %}"
+                        class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}">
                         <i class="nav-icon fas fa-cog"></i>
                         <p>Settings</p>
                     </a>
                 </li>
+                {% endif %}
+                {% endwith %}
             </ul>
             <br><br>
         </nav>
