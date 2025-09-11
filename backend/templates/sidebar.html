@@ -304,12 +304,35 @@
                 {% endwith %}
 
                 <!-- Inventory Reports -->
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
+                {% with menu_path='inventory_report' %}
+                {% if add.role == 'superadmin' %}
+                <li class="nav-item has-treeview {% if request.resolver_match.url_name == menu_path %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}">
                         <i class="nav-icon fas fa-chart-pie"></i>
-                        <p>Inventory Reports</p>
+                        <p>Inventory Report <i class="right fas fa-angle-left"></i></p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        {% for t in all_tenants_for_superadmin %}
+                        <li class="nav-item">
+                            <a href="{% url menu_path %}?tenant_id={{ t.id }}"
+                                class="nav-link {% if tenant.id == t.id and request.resolver_match.url_name == menu_path %}active{% endif %}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>{{ t.name }}</p>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a href="{% url menu_path %}"
+                        class="nav-link {% if request.resolver_match.url_name == menu_path %}active{% endif %}">
+                        <i class="nav-icon fas fa-chart-pie"></i>
+                        <p>Inventory Report</p>
                     </a>
                 </li>
+                {% endif %}
+                {% endwith %}
 
                 <!-- Financial Statements -->
                 <!-- <li class="nav-item">

@@ -2721,3 +2721,86 @@ def get_expense_categories_api(request, tenant_id):
     """
     categories = ExpenseCategory.objects.filter(tenant_id=tenant_id).values('id', 'name')
     return JsonResponse(list(categories), safe=False)
+
+# Inventory Report
+@tenant_required
+def inventory_report_view(request):
+    account = request.user
+    tenant = None
+    products_queryset = Product.objects.none() # Use a different name for the base queryset
+    categories = Category.objects.none()
+
+    if account.role == 'superadmin':
+        tenant_id = request.GET.get('tenant_id')
+        if tenant_id:
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+    else:
+        tenant = request.tenant
+
+    if tenant:
+        products_queryset = Product.objects.filter(tenant=tenant, is_active=True).select_related('category').order_by('item_name')
+        categories = Category.objects.filter(tenant=tenant, is_active=True).order_by('cname')
+    
+    category_id = request.GET.get('category')
+    if category_id:
+        products_queryset = products_queryset.filter(category__id=category_id)
+        
+    # --- Calculate KPIs and attach stock_value and expiry_status to each product ---
+    today = timezone.now().date()
+    thirty_days_from_now = today + timedelta(days=30)
+
+    total_stock_value = 0
+    total_stock_quantity = 0
+    products_for_table = [] # This will hold products with calculated stock_value
+    
+    for p in products_queryset:
+        p.stock_value = p.opening_stock * p.purchase_price
+        total_stock_value += p.stock_value
+        total_stock_quantity += p.opening_stock
+        # --- NEW: Calculate expiry status for each product ---
+        if not p.expiry_date:
+            p.expiry_status = 'N/A'
+        elif p.expiry_date < today:
+            p.expiry_status = 'Expired'
+        elif p.expiry_date <= thirty_days_from_now:
+            p.expiry_status = 'Soon'
+        else:
+            p.expiry_status = 'OK'
+
+        products_for_table.append(p) # Add to the list for the table
+
+    product_count = products_queryset.count()
+    service_count = Service.objects.filter(tenant=tenant, is_active=True).count() if tenant else 0
+
+    # --- Chart Data Preparation ---
+    # Top 5 Products by Stock Value (for Bar Chart)
+    top_products_by_value = sorted(products_for_table, key=lambda x: x.stock_value, reverse=True)[:5]
+    top_product_labels = [p.item_name for p in top_products_by_value]
+    top_product_values = [float(p.stock_value) for p in top_products_by_value] # Convert Decimal to float for JSON
+
+    # Stock Quantity by Category (for Doughnut Chart)
+    category_quantities = {}
+    for product in products_for_table:
+        category_name = product.category.cname if product.category else 'Uncategorized'
+        category_quantities[category_name] = category_quantities.get(category_name, 0) + product.opening_stock
+
+    category_chart_labels = list(category_quantities.keys())
+    category_chart_data = list(category_quantities.values())
+
+    context = {
+        'add': account,
+        'tenant': tenant,
+        'products': products_for_table, # Use the list with calculated stock_value
+        'categories': categories,
+        'total_stock_value': total_stock_value,
+        'total_stock_quantity': total_stock_quantity,
+        'product_count': product_count,
+        'service_count': service_count,
+        'current_filters': {'category': category_id},
+        # Chart Data
+        'top_product_labels': json.dumps(top_product_labels),
+        'top_product_values': json.dumps(top_product_values),
+        'category_chart_labels': json.dumps(category_chart_labels),
+        'category_chart_data': json.dumps(category_chart_data),
+    }
+    return render(request, 'inventory_report.html', context)

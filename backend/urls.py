@@ -119,6 +119,8 @@ urlpatterns=[
     path('stock-adjustments/', views.stock_adjustment_list, name='stock_adjustment_list'),
     path('stock-adjustments/new/', views.create_stock_adjustment, name='create_stock_adjustment'),
     path('api/get-products/<int:tenant_id>/', views.get_products_for_tenant_api, name='api_get_products_for_tenant'),
+    path('reports/inventory/', views.inventory_report_view, name='inventory_report'),
+    
 
     # Expenses Url
     path('expenses/', views.expense_list, name='expense_list'),

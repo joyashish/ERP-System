@@ -1,0 +1,321 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+<style>
+    /* Custom styles for dashboard cards */
+    .dashboard-card {
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background-color: #ffffff; /* White background */
+        height: 100%; /* Ensure cards in a row have equal height */
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    .dashboard-card .card-body {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .dashboard-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #343a40;
+        margin-bottom: 15px;
+    }
+    .dashboard-card .card-text {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #007bff; /* Primary blue for values */
+    }
+    .dashboard-card .card-icon {
+        font-size: 3rem;
+        color: rgba(0, 123, 255, 0.2); /* Light primary blue */
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 0;
+    }
+    /* Specific styles for report summary boxes */
+    .summary-box {
+        position: relative;
+        padding: 20px;
+        border-radius: 8px;
+        color: white; /* Default text color for boxes */
+        overflow: hidden;
+        height: 120px; /* Fixed height for consistency */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        margin-bottom: 20px; /* Space below each box */
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .summary-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .summary-box h3 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .summary-box p {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+    .summary-box .icon {
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        z-index: 0;
+        font-size: 60px; /* Slightly smaller for summary boxes */
+        color: rgba(255, 255, 255, 0.3); /* Lighter icon color for contrast */
+        transition: all 0.3s ease;
+    }
+    .summary-box:hover .icon {
+        transform: translateY(-50%) scale(1.1);
+    }
+    .bg-gradient-info { background: linear-gradient(45deg, #2096ff, #007bff); } /* Info gradient */
+    .bg-gradient-success { background: linear-gradient(45deg, #28a745, #218838); } /* Success gradient */
+    .bg-gradient-secondary { background: linear-gradient(45deg, #6c757d, #5a6268); } /* Secondary gradient */
+    .card-footer-buttons .btn { margin-right: 5px; }
+
+    /* Chart specific adjustments */
+    .chart-container {
+        position: relative;
+        height: 350px; /* Fixed height for charts */
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    .summary-box {
+        margin-bottom: 20px;
+    }
+    .chart-container {
+        height: 350px;
+    }
+
+    /* --- NEW: Print-Specific Styles --- */
+    @media print {
+        /* Hide elements that should NOT be printed */
+        .main-header, 
+        .main-sidebar, 
+        .content-header, 
+        .summary-box-row, 
+        .charts-row,
+        .card-footer-buttons,
+        .card-tools form {
+            display: none !important;
+        }
+
+        /* Ensure the main content area and the printable card take up the full page */
+        .content-wrapper {
+            margin-left: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #dee2e6 !important;
+        }
+
+        /* Ensure the printable card is visible and styled for print */
+        #detailedReportCard {
+            display: block !important;
+        }
+        
+        /* Ensure the body background is white for printing */
+        body {
+            background-color: #ffffff !important;
+        }
+    }
+</style>
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6"><h1 class="m-0">Inventory Report {% if tenant %}<small class="text-muted font-weight-light">| {{ tenant.name }}</small>{% endif %}</h1></div>
+                <div class="col-sm-6"><ol class="breadcrumb float-sm-right"><li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li><li class="breadcrumb-item active">Inventory Report</li></ol></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show msg_sec" role="alert">{{ message }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>{% endfor %}{% endif %}
+
+            {% if tenant %}
+                <div class="row summary-box-row">
+                    <div class="col-lg-3 col-md-6"><div class="summary-box bg-gradient-info"><h3>₹{{ total_stock_value|floatformat:2 }}</h3><p>Total Stock Value</p><div class="icon"><i class="fas fa-coins"></i></div></div></div>
+                    <div class="col-lg-3 col-md-6"><div class="summary-box bg-gradient-success"><h3>{{ total_stock_quantity }}</h3><p>Total Stock Quantity</p><div class="icon"><i class="fas fa-cubes"></i></div></div></div>
+                    <div class="col-lg-3 col-md-6"><div class="summary-box bg-gradient-info"><h3>{{ product_count }}</h3><p>Unique Products</p><div class="icon"><i class="fas fa-box"></i></div></div></div>
+                    <div class="col-lg-3 col-md-6"><div class="summary-box bg-gradient-success"><h3>{{ service_count }}</h3><p>Unique Services</p><div class="icon"><i class="fas fa-concierge-bell"></i></div></div></div>
+                </div>
+
+                <div class="row charts-row">
+                    <div class="col-lg-6"><div class="card dashboard-card"><div class="card-header"><h3 class="card-title">Top 5 Products by Stock Value</h3></div><div class="card-body"><div class="chart-container"><canvas id="topProductsChart"></canvas></div></div></div></div>
+                    <div class="col-lg-6"><div class="card dashboard-card"><div class="card-header"><h3 class="card-title">Stock Quantity by Category</h3></div><div class="card-body"><div class="chart-container"><canvas id="categoryStockChart"></canvas></div></div></div></div>
+                </div>
+
+                <div class="card dashboard-card mt-4" id="detailedReportCard"> 
+                    <div class="card-header">
+                        <h3 class="card-title">Detailed Stock Report</h3>
+                        <div class="card-tools">
+                            <form method="GET" class="form-inline">
+                                {% if add.role == 'superadmin' and tenant %}<input type="hidden" name="tenant_id" value="{{ tenant.id }}">{% endif %}
+                                <select name="category" class="form-control form-control-sm mr-2"><option value="">All Categories</option>{% for cat in categories %}<option value="{{ cat.id }}" {% if current_filters.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.cname }}</option>{% endfor %}</select>
+                                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                                {% if current_filters.category %}<a href="{% url 'inventory_report' %}{% if tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-sm btn-outline-secondary ml-2">Clear Filter</a>{% endif %}
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="example1" class="table table-bordered table-hover">
+                                <thead class="thead-light"><tr><th>Item Name</th><th>Category</th><th class="text-center">Stock Qty</th><th class="text-right">Purchase Price</th><th class="text-right">Selling Price</th><th class="text-right">Stock Value</th><th class="text-center">Min. Level</th><th class="text-center">Expiry Date</th></tr></thead>
+                                <tbody>
+                                    {% for product in products %}
+                                    <tr>
+                                        <td>{{ product.item_name }}</td><td>{{ product.category.cname|default:'N/A' }}</td><td class="text-center">{{ product.opening_stock }}</td><td class="text-right">₹{{ product.purchase_price|floatformat:2 }}</td><td class="text-right">₹{{ product.sale_price|floatformat:2 }}</td><td class="text-right font-weight-bold">₹{{ product.stock_value|floatformat:2 }}</td>
+                                        <td class="text-center">{% if product.opening_stock <= product.min_stock_level and product.min_stock_level > 0 %}<span class="badge badge-danger">{{ product.min_stock_level }} (Low!)</span>{% else %}{{ product.min_stock_level|default:'N/A' }}{% endif %}</td>
+                                        <td class="text-center">{% if product.expiry_status == 'Expired' %}<span class="badge badge-danger">{{ product.expiry_date|date:"d M, Y" }} (Expired!)</span>{% elif product.expiry_status == 'Soon' %}<span class="badge badge-warning">{{ product.expiry_date|date:"d M, Y" }} (Soon!)</span>{% elif product.expiry_status == 'OK' %}{{ product.expiry_date|date:"d M, Y" }}{% else %}N/A{% endif %}</td>
+                                    </tr>
+                                    {% empty %}<tr><td colspan="8" class="text-center py-4">No products found.</td></tr>{% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer card-footer-buttons">
+                        
+                        <button class="btn btn-success" onclick="window.print();"><i class="fas fa-print mr-1"></i> Print Report</button>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card"><div class="card-body text-center py-5"><i class="fas fa-info-circle fa-3x text-primary mb-3"></i><h4>Welcome, Superadmin</h4><p class="text-muted">Please select a tenant to view their data.</p></div></div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}
+
+<script>
+    // Get data from Django context
+    const topProductLabels = JSON.parse('{{ top_product_labels|escapejs }}');
+    const topProductValues = JSON.parse('{{ top_product_values|escapejs }}');
+    const categoryChartLabels = JSON.parse('{{ category_chart_labels|escapejs }}');
+    const categoryChartData = JSON.parse('{{ category_chart_data|escapejs }}');
+
+    // Chart.js - Top 5 Products by Stock Value (Bar Chart)
+    if (document.getElementById('topProductsChart')) {
+        const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+        new Chart(topProductsCtx, {
+            type: 'bar',
+            data: {
+                labels: topProductLabels,
+                datasets: [{
+                    label: 'Stock Value (₹)',
+                    data: topProductValues,
+                    backgroundColor: [
+                        'rgba(32, 150, 255, 0.7)', // Light Blue
+                        'rgba(0, 123, 255, 0.7)', // Primary Blue
+                        'rgba(108, 117, 125, 0.7)',// Secondary Gray
+                        'rgba(23, 162, 184, 0.7)', // Cyan
+                        'rgba(40, 167, 69, 0.7)'  // Green
+                    ],
+                    borderColor: [
+                        'rgba(32, 150, 255, 1)',
+                        'rgba(0, 123, 255, 1)',
+                        'rgba(108, 117, 125, 1)',
+                        'rgba(23, 162, 184, 1)',
+                        'rgba(40, 167, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Stock Value (₹)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Product Name'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Chart.js - Stock Quantity by Category (Doughnut Chart)
+    if (document.getElementById('categoryStockChart')) {
+        const categoryStockCtx = document.getElementById('categoryStockChart').getContext('2d');
+        new Chart(categoryStockCtx, {
+            type: 'doughnut',
+            data: {
+                labels: categoryChartLabels,
+                datasets: [{
+                    label: 'Stock Quantity',
+                    data: categoryChartData,
+                    backgroundColor: [
+                        'rgba(0, 123, 255, 0.7)', // Blue
+                        'rgba(40, 167, 69, 0.7)',  // Green
+                        'rgba(255, 193, 7, 0.7)',  // Yellow
+                        'rgba(220, 53, 69, 0.7)',  // Red
+                        'rgba(108, 117, 125, 0.7)',// Gray
+                        'rgba(23, 162, 184, 0.7)', // Cyan
+                        'rgba(111, 66, 193, 0.7)'  // Purple
+                    ],
+                    borderColor: [
+                        'rgba(0, 123, 255, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(108, 117, 125, 1)',
+                        'rgba(23, 162, 184, 1)',
+                        'rgba(111, 66, 193, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+</script>
