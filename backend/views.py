@@ -30,6 +30,10 @@ from collections import defaultdict
 from django import forms
 from django.db.models.functions import Coalesce
 from itertools import chain
+from django.conf import settings
+from django.contrib.staticfiles import finders
+from io import BytesIO
+import os
 
 # Expense Form 
 class ExpenseForm(forms.ModelForm):
@@ -808,8 +812,6 @@ def create_sale_view(request):
 
     # --- POST Request: Handle Form Submission ---
     if request.method == "POST":
-        # Check if the request is an AJAX request (used for "Save & Print")
-        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
         
         try:
             with transaction.atomic():
@@ -840,6 +842,9 @@ def create_sale_view(request):
                 # Find all unique item indices from the form data
                 item_indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(post_data.keys())))))
                 
+                if not item_indices:
+                     raise ValidationError("At least one item must be added to the sale.")
+                     
                 for index in item_indices:
                     item_id = post_data.get(f'items[{index}][item_id]')
                     quantity = int(post_data.get(f'items[{index}][quantity]', 0))
@@ -901,43 +906,8 @@ def create_sale_view(request):
                     terms_conditions=post_data.get('terms_conditions', ''),
                 )
                 
-                sale_items_for_json = []
                 for data in items_data:
                     sale_item = SaleItem.objects.create(sale=sale, item=data['item_instance'], **{k: v for k, v in data.items() if k != 'item_instance'})
-                    sale_items_for_json.append({
-                        'name': sale_item.item.item_name,
-                        'qty': sale_item.quantity,
-                        'rate': f'{sale_item.item.sale_price:.2f}',
-                        'tax_rate': f'{float(re.sub(r"[^0-9.]", "", sale_item.item.gst_rate or "0")):.0f}%',
-                        'amount': f'{sale_item.amount:.2f}'
-                    })
-
-            # --- SUCCESS RESPONSE ---
-            if is_ajax:
-                # Build the data payload for the successful AJAX response
-                sale_data = {
-                    'invoice_no': sale.invoice_no,
-                    'invoice_date': sale.invoice_date.strftime('%d-%m-%Y'),
-                    'due_date': sale.due_date.strftime('%d-%m-%Y') if sale.due_date else 'N/A',
-                    'party_name': party.party_name,
-                    'party_address': party.billing_address,
-                    'party_gst': party.gst_no,
-                    'subtotal': f'₹ {sale.subtotal:.2f}',
-                    'discount': f'(-) {sale.discount:.2f}',
-                    'charges_note': sale.additional_charges_note or 'Charges',
-                    'additional_charges': f'(+) {sale.additional_charges:.2f}',
-                    'total_amount_str': f'₹ {sale.total_amount:.2f}',
-                    'total_amount_val': sale.total_amount,
-                    'amount_received': f'₹ {sale.amount_received:.2f}',
-                    'balance_amount': f'₹ {sale.balance_amount:.2f}',
-                    'notes': sale.notes,
-                    'terms': sale.terms_conditions,
-                    'items': sale_items_for_json,
-                    # Add taxable_amount and total_tax for print summary
-                    'taxable_amount': f'₹ {taxable_amount_total:.2f}',
-                    'total_tax': f'₹ {total_tax:.2f}',
-                }
-                return JsonResponse({'status': 'success', 'sale_data': sale_data})
             
             messages.success(request, "Sale created successfully!")
             if account.role == 'superadmin':
@@ -946,19 +916,20 @@ def create_sale_view(request):
                 return redirect('sales_list')
 
         except (ValidationError, Exception) as e:
-            # --- THIS IS THE CORRECTED ERROR HANDLING BLOCK ---
-            # Extract the main error message, however it's formatted
-            error_message = getattr(e, 'message', str(e))
-            if hasattr(e, 'message_dict'):
-                 error_message = next(iter(e.message_dict.values()))[0]
-
-            if is_ajax:
-                # For AJAX requests, ALWAYS return a JSON response, even for errors.
-                return JsonResponse({'status': 'error', 'message': error_message}, status=400)
-            else:
-                # For regular form submissions, use Django messages and redirect.
-                messages.error(request, error_message)
-                return redirect('Create_Sale')
+            # --- The new, simpler error handling ---
+            messages.error(request, str(e))
+            # Preserve form data for re-display
+            context = {
+                'add': account,
+                'items': ItemBase.objects.filter(tenant=target_tenant, is_active=True).order_by('item_name'),
+                'parties': Create_party.objects.filter(tenant=target_tenant, is_active=True).order_by('party_name'),
+                'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}",
+            }
+            if account.role == 'superadmin':
+                context['tenants'] = Tenant.objects.all().order_by('name')
+                context['tenant_id_from_url'] = request.GET.get('tenant_id')
+            
+            return render(request, 'create_sale.html', context)
 
     # --- GET Request: Display the Form (no changes needed here) ---
     context = {'add': account}
@@ -1235,6 +1206,21 @@ def get_tenant_data_for_sale_form(request, tenant_id):
         'items': list(items),
     }
     return JsonResponse(data)
+    
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt
+def get_tenant_data(request, tenant_id):
+    try:
+        tenant = Tenant.objects.get(id=tenant_id)
+        parties = Create_party.objects.filter(tenant=tenant, is_active=True).values('id', 'party_name', 'email', 'mobile_num', 'gst_no', 'billing_address')
+        items = ItemBase.objects.filter(tenant=tenant, is_active=True).values('id', 'item_name', 'sale_price', 'gst_rate')
+        
+        return JsonResponse({
+            'parties': list(parties),
+            'items': list(items)
+        })
+    except Tenant.DoesNotExist:
+        return JsonResponse({'error': 'Tenant not found'}, status=404)
 # Sale Detail View
 @tenant_required
 def sale_detail_view(request, sale_id):
@@ -1384,23 +1370,77 @@ def record_payment(request, sale_id):
 
     return redirect('sale_detail', sale_id=sale.id)
 
+# --- This is the new helper function ,it acts as a translator for the PDF generator---
+def link_callback(uri, rel):
+    """
+    Convert HTML URIs to absolute system paths so xhtml2pdf can access those
+    resources
+    """
+    # use short variable names
+    sUrl = settings.STATIC_URL      # Typically /static/
+    sRoot = settings.STATIC_ROOT    # Typically /path/to/project/static/
+    mUrl = settings.MEDIA_URL       # Typically /media/
+    mRoot = settings.MEDIA_ROOT     # Typically /path/to/project/media/
+
+    # convert URIs to absolute system paths
+    if uri.startswith(mUrl):
+        path = os.path.join(mRoot, uri.replace(mUrl, ""))
+    elif uri.startswith(sUrl):
+        path = os.path.join(sRoot, uri.replace(sUrl, ""))
+    else:
+        return uri  # handle absolute uri (e.g. http://some.com/foo.png)
+
+    # make sure that file exists
+    if not os.path.isfile(path):
+        raise Exception(f'media URI must start with {sUrl} or {mUrl}')
+    
+    # For images, you could add resizing logic here if needed
+    # But xhtml2pdf doesn't support image manipulation directly
+    # The best approach is to ensure your logos are properly sized
+    
+    return path
+
 
 # Sale Invoice Pdf
 @tenant_required
 def sale_invoice_pdf(request, sale_id):
-    account = get_object_or_404(Account, email=request.session['email'])
+    account = request.user
     sale = get_object_or_404(Sale, id=sale_id)
 
-    # Security check
     if account.role != 'superadmin' and sale.tenant != request.tenant:
         messages.error(request, "You are not authorized to view this invoice.")
         return redirect('sales_list')
 
+    # Convert total amount to words
+    from num2words import num2words
+    try:
+        amount_in_words = num2words(sale.total_amount, to='currency', currency='INR')
+        amount_in_words = amount_in_words.replace('euro', 'rupees').replace('cents', 'paisa')
+    except:
+        amount_in_words = ""
+
+    # Prepare the context for the template
     context = {
         'sale': sale,
         'tenant': sale.tenant,
+        'amount_in_words': amount_in_words,
     }
-    return render(request, 'sale_invoice_pdf.html', context)
+
+    # Render the template to an HTML string
+    template = get_template('sale_invoice_pdf.html')
+    html = template.render(context)
+
+    # --- PDF Generation with the link_callback ---
+    result = BytesIO()
+    # Pass the link_callback to pisa.CreatePDF
+    pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result, link_callback=link_callback)
+    
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="invoice_{sale.invoice_no}.pdf"'
+        return response
+        
+    return HttpResponse("Error Rendering PDF", status=400)
 
 
 # Superadmin Dashboard

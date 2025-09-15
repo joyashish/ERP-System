@@ -1,87 +1,393 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Invoice {{ sale.invoice_no }}</title>
-    <style>
-        /* This CSS is specifically for printing a professional invoice */
-        @page { size: A4; margin: 1cm; }
-        body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+  <meta charset="UTF-8">
+  <title>Invoice {{ sale.invoice_no }}</title>
+<style>
+    @page {
+        size: A4;
+        margin: 1cm;
+    }
+
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 10px;
+        color: #333;
+        margin: 0;
+        padding: 0;
+        line-height: 1.4;
+    }
+
+    /* Header */
+    .header-table {
+        width: 100%;
+        border-bottom: 1px solid #3f51b5;
+        padding-bottom: 6px;
+        margin-bottom: 10px;
+    }
+
+    .logo-cell {
+        width: 120px;
+        vertical-align: top;
+    }
+
+    .logo-cell img {
+        width: 100px;
+        max-height: 50px;
+        object-fit: contain;
+    }
+
+    .company-details {
+        text-align: right;
+        vertical-align: top;
+    }
+
+    .company-details h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #3f51b5;
+    }
+
+    .company-details p {
+        margin: 1px 0;
+        font-size: 0.75rem;
+        color: #555;
+    }
+
+    /* Invoice Meta */
+    .invoice-meta-container {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .bill-to {
+        width: 55%;
+        vertical-align: top;
+        font-size: 0.8rem;
+    }
+
+    .bill-to strong {
+        font-size: 0.9rem;
+        color: #3f51b5;
+    }
+
+    .invoice-details-table {
+        width: 40%;
+        border-collapse: collapse;
+        font-size: 0.75rem;
+    }
+
+    .invoice-details-table th,
+    .invoice-details-table td {
+        border: 1px solid #ddd;
+        padding: 4px;
+        text-align: center;
+    }
+
+    .invoice-details-table th {
+        background-color: #f5f5f5;
+        font-weight: 600;
+        color: #444;
+    }
+
+    /* Items */
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 6px;
+        margin-bottom: 10px;
+        font-size: 0.8rem;
+    }
+
+    .items-table th {
+        background: #3f51b5;
+        color: #fff;
+        padding: 5px;
+        text-align: center;
+        font-weight: 600;
+        border-right: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .items-table th:last-child {
+            border-right: none;
+        }
+
+    .items-table td {
+        border-right: 1px solid #444;
+        border-left: 1px solid #444;
+        padding: 3px;
+        text-align: center;
+        block-size: 28px;
+    }
+    .items-table td:last-child {
+            border-right: none;
+        }
         
-        /* --- NOTE: The header styles are now in the snippet, you can remove them from here if you wish --- */
-        /* .print-header { ... } */
+        .items-table tr td {
+            border-bottom: none;
+        }
         
-        .invoice-meta-container { display: flex; justify-content: space-between; }
-        .bill-to { width: 50%; }
-        .invoice-details-table { width: 45%; border-collapse: collapse; }
-        .invoice-details-table th, .invoice-details-table td { border: 1px solid #999; padding: 5px; text-align: center; }
-        .invoice-details-table th { background-color: #f2f2f2; font-weight: bold; }
-        .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .print-table th { border-bottom: 2px solid #000; padding: 8px; text-align: right; }
-        .print-table td { padding: 8px; text-align: right; border-bottom: 1px solid #ccc; }
-        .print-table th:nth-child(2), .print-table td:nth-child(2) { text-align: left; }
-        .print-table tr:last-child td { border-bottom: 2px solid #000; }
-        .print-summary-container { display: flex; justify-content: space-between; margin-top: 10px; }
-        .print-summary-left { width: 60%; }
-        .print-summary-right { width: 35%; }
-        .summary-line { display: flex; justify-content: space-between; padding: 4px 0; }
-        .summary-line.total { font-weight: bold; font-size: 12px; border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 5px; }
-    </style>
+        /* Bottom row border */
+        .items-table tr:last-child td {
+            border-bottom: 1px solid #444;
+        }
+
+
+    .items-table th:nth-child(1),
+    .items-table td:nth-child(1) {
+        text-align: center;
+        width: 5%;
+    }
+
+    .items-table th:nth-child(2),
+    .items-table td:nth-child(2) {
+        text-align: left;
+        width: 35%;
+    }
+
+    /* Summary Compact */
+    .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+        margin-top: 6px;
+    }
+
+    .summary-table td {
+        border: 1px solid #585858;
+        padding: 4px;
+        text-align: center;
+    }
+
+    .summary-table .total-row {
+        font-weight: bold;
+        background: #f5f5f5;
+        color: #3f51b5;
+    }
+
+    /* Amount in Words + Signature */
+    .amount-signature {
+        width: 100%;
+        margin-top: 8px;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+    }
+
+    .amount-signature td {
+        vertical-align: bottom;
+        padding: 4px;
+    }
+
+    .amount-words {
+        width: 65%;
+    }
+
+    .signature-box {
+        width: 35%;
+        text-align: right;
+    }
+
+    .signature-box p {
+        border-top: 1px solid #444;
+        display: inline-block;
+        padding-top: 4px;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    /* Three Equal Boxes */
+    .three-boxes {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+    }
+
+    .three-boxes td {
+        border: 1px solid #ccc;
+        padding: 6px;
+        font-size: 0.75rem;
+        vertical-align: top;
+        width: 33%;
+    }
+    /* if dont want box border
+    .three-boxes td {
+      width: 33%;
+      vertical-align: top;
+      padding: 6px;
+      font-size: 0.75rem;
+    } */
+
+    .qr-code img {
+        width: 40px;
+        height: 40px;
+        border: 1px solid #ddd;
+        padding: 3px;
+        background: #fff;
+    }
+    .qr-code {
+        text-align: center;
+        vertical-align: top;
+    }
+
+
+    /* Footer */
+    .footer {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 0.7rem;
+        color: #777;
+        border-top: 1px solid #ccc;
+        padding-top: 5px;
+    }
+</style>
 </head>
-<body onload="window.print()">
-    <div id="invoice-print">
+<body>
+<div id="invoice-print">
 
-        {% include 'snippets/print_header.html' %}
+  <!-- Header -->
+  <table class="header-table">
+    <tr>
+      <td class="logo-cell">
+        {% if tenant.logo %}
+          <img src="{{ tenant.logo.url }}" alt="{{ tenant.name }} Logo">
+        {% endif %}
+      </td>
+      <td class="company-details">
+        <h3>{{ tenant.name }}</h3>
+        <!-- <p>{{ tenant.address|linebreaksbr }}</p> -->
+        {% if tenant.phone %}<p>Phone: {{ tenant.phone }}</p>{% endif %}
+        {% if tenant.email %}<p>Email: {{ tenant.email }}</p>{% endif %}
+        {% if tenant.gst_number %}<p>GSTIN: {{ tenant.gst_number }}</p>{% endif %}
+      </td>
+    </tr>
+  </table>
 
-        <div class="invoice-meta-container">
-            <div class="bill-to">
-                <strong>BILL TO:</strong><br>
-                <span style="font-weight: bold;">{{ sale.party.party_name }}</span><br>
-                {{ sale.party.billing_address|linebreaksbr }}<br>
-                GSTIN: {{ sale.party.gst_no|default:"N/A" }}
-            </div>
-            <table class="invoice-details-table">
-                <thead><tr><th>Invoice No.</th><th>Invoice Date</th><th>Due Date</th></tr></thead>
-                <tbody><tr><td>{{ sale.invoice_no }}</td><td>{{ sale.invoice_date|date:"d-m-Y" }}</td><td>{{ sale.due_date|date:"d-m-Y"|default:"N/A" }}</td></tr></tbody>
-            </table>
-        </div>
-        <table class="print-table">
-            <thead>
-                <tr>
-                    <th style="text-align:center; width:5%;">S.NO.</th>
-                    <th style="text-align:left; width:45%;">ITEMS</th>
-                    <th style="width:10%;">QTY</th>
-                    <th style="width:15%;">RATE</th>
-                    <th style="width:10%;">TAX</th>
-                    <th style="width:15%;">AMOUNT</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in sale.items.all %}
-                <tr>
-                    <td style="text-align:center;">{{ forloop.counter }}</td>
-                    <td style="text-align:left;">{{ item.item.item_name }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>{{ item.item.sale_price|floatformat:2 }}</td>
-                    <td>{{ item.item.gst_rate|default:"0%" }}</td>
-                    <td>{{ item.amount|floatformat:2 }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
+  <!-- Invoice meta -->
+  <table class="invoice-meta-container">
+    <tr>
+      <td class="bill-to">
+        <strong>BILL TO:</strong><br>
+        <span style="font-weight: 600;">{{ sale.party.party_name }}</span><br>
+        {{ sale.party.billing_address|linebreaksbr }}<br>
+        GSTIN: {{ sale.party.gst_no|default:"N/A" }}
+      </td>
+      <td style="width: 5%;"></td>
+      <td>
+        <table class="invoice-details-table">
+          <thead>
+            <tr>
+              <th>Invoice No.</th>
+              <th>Invoice Date</th>
+              <th>Due Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ sale.invoice_no }}</td>
+              <td>{{ sale.invoice_date|date:"d-m-Y" }}</td>
+              <td>{{ sale.due_date|date:"d-m-Y"|default:"N/A" }}</td>
+            </tr>
+          </tbody>
         </table>
-        <div class="print-summary-container">
-            <div class="print-summary-left">
-                <p style="font-weight: bold;">Total Amount (In Words): {{ amount_in_words|default:" " }}</p>
-            </div>
-            <div class="print-summary-right">
-                <div class="summary-line"><span>Subtotal</span><span>{{ sale.subtotal|floatformat:2 }}</span></div>
-                <div class="summary-line"><span>Discount</span><span>(-) {{ sale.discount|floatformat:2 }}</span></div>
-                <div class="summary-line"><span>{{ sale.additional_charges_note|default:"Charges" }}</span><span>(+) {{ sale.additional_charges|floatformat:2 }}</span></div>
-                <div class="summary-line total"><span>TOTAL</span><span>{{ sale.total_amount|floatformat:2 }}</span></div>
-                <div class="summary-line"><span>RECEIVED AMOUNT</span><span>{{ sale.amount_received|floatformat:2 }}</span></div>
-                <div class="summary-line"><span>BALANCE</span><span>{{ sale.balance_amount|floatformat:2 }}</span></div>
-            </div>
-        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Items -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th>S.NO.</th>
+        <th>ITEMS</th>
+        <th>QTY</th>
+        <th>RATE</th>
+        <th>TAX</th>
+        <th>AMOUNT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in sale.items.all %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td style="text-align: left;">{{ item.item.item_name }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.item.sale_price|floatformat:2 }}</td>
+        <td>{{ item.item.gst_rate|default:"0%" }}</td>
+        <td>{{ item.amount|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Summary -->
+  <table class="summary-table">
+    <tr>
+      <td>Subtotal</td>
+      <td>{{ sale.subtotal|floatformat:2 }}</td>
+      <td>Discount</td>
+      <td>{{ sale.discount|floatformat:2 }}</td>
+      <td>Charges</td>
+      <td>{{ sale.additional_charges|floatformat:2 }}</td>
+    </tr>
+    <tr class="total-row">
+      <td colspan="4">TOTAL</td>
+      <td colspan="2">{{ sale.total_amount|floatformat:2 }}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Received</td>
+      <td colspan="2">{{ sale.amount_received|floatformat:2 }}</td>
+      <td colspan="2">Balance: {{ sale.balance_amount|floatformat:2 }}</td>
+    </tr>
+  </table>
+<br>
+  <!-- Amount in words + Signature -->
+  <div class="amount-signature">
+    <div class="amount-words">
+      <strong>Total Amount (In Words):</strong> {{ amount_in_words|default:" " }}
     </div>
+    <div class="signature-box">
+      <p>Authorized Signatory</p>
+    </div>
+  </div>
+
+  <!-- 3 Equal Boxes -->
+  <table class="three-boxes">
+  <tr>
+    {% if tenant.bank_name %}
+    <td class="bank-details">
+        <strong>Bank/UPI Details</strong><br>
+        {% if tenant.account_holder_name %}A/C Holder: {{ tenant.account_holder_name }}<br>{% endif %}
+        {% if tenant.bank_name %}Bank: {{ tenant.bank_name }}<br>{% endif %}
+        {% if tenant.account_no %}A/C No: {{ tenant.account_no }}<br>{% endif %}
+        {% if tenant.ifsc_code %}IFSC: {{ tenant.ifsc_code }}<br>{% endif %}
+    </td>
+    {% endif %}
+
+    {% if tenant.upi_id or tenant.qr_code %}
+    <td class="qr-code" align="center" valign="top">
+        {% if tenant.upi_id %}UPI: {{ tenant.upi_id }}<br>{% endif %}
+        <strong>Scan to Pay</strong><br>
+        <img src="{{ tenant.qr_code.url }}" alt="UPI QR Code">
+    </td>
+    {% endif %}
+
+    <td class="terms-box">
+      <strong>Terms & Conditions</strong><br>
+      Thanks for doing business with us!<br>
+      <!-- Payment is due as per agreed terms.<br>
+      Goods once sold will not be taken back.<br> -->
+      *Items can be returned within <strong>3-5 days</strong> subject to bill conditions.
+    </td>
+  </tr>
+</table>
+
+  <!-- Footer -->
+  <div class="footer">
+    This is a system generated invoice. For support, contact us at
+    {% if tenant.email %}{{ tenant.email }}{% else %}support@yourcompany.com{% endif %}
+    | Phone: {% if tenant.phone %}{{ tenant.phone }}{% else %}+91-XXXXXXXXXX{% endif %}
+  </div>
+
+</div>
 </body>
 </html>

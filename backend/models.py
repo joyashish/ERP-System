@@ -20,6 +20,13 @@ class Tenant(models.Model):
     email = models.EmailField(blank=True, null=True)
     gst_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="GST Number")
     logo = models.ImageField(upload_to='tenant_logos/', blank=True, null=True)
+    # --- NEW FIELDS for Bank & Payment Details ---
+    bank_name = models.CharField(max_length=100, blank=True, null=True)
+    account_holder_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="Account Holder's Name")
+    account_no = models.CharField(max_length=50, blank=True, null=True, verbose_name="Account Number")
+    ifsc_code = models.CharField(max_length=20, blank=True, null=True, verbose_name="IFSC Code")
+    upi_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="UPI ID")
+    qr_code = models.ImageField(upload_to='tenant_qr_codes/', blank=True, null=True, verbose_name="UPI QR Code Image")
 
     def __str__(self):
         return self.name

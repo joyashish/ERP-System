@@ -13,10 +13,13 @@
             {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} msg_sec">{{ message }}</div>{% endfor %}{% endif %}
             
             {% if tenant %}
-            <div class="card card-primary card-outline">
-                <div class="card-header"><h3 class="card-title">Company Profile & Branding</h3></div>
-                <form method="POST" enctype="multipart/form-data">
-                    {% csrf_token %}
+            <!-- The form now wraps all the cards -->
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Card 1: Company Profile & Branding -->
+                <div class="card card-primary card-outline">
+                    <div class="card-header"><h3 class="card-title">Company Profile & Branding</h3></div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6 form-group">
@@ -52,16 +55,63 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer text-right">
-                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                </div>
+
+                <!-- Card 2: Payment Details -->
+                <div class="card card-primary card-outline mt-4">
+                    <div class="card-header">
+                        <h3 class="card-title">Payment Details</h3>
                     </div>
-                </form>
-            </div>
+                    <div class="card-body">
+                        <p class="text-muted">This information will be displayed on your invoices to help customers pay you faster.</p>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label for="{{ form.bank_name.id_for_label }}">Bank Name</label>
+                                {{ form.bank_name }}
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="{{ form.account_holder_name.id_for_label }}">Account Holder's Name</label>
+                                {{ form.account_holder_name }}
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="{{ form.account_no.id_for_label }}">Bank Account Number</label>
+                                {{ form.account_no }}
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="{{ form.ifsc_code.id_for_label }}">IFSC Code</label>
+                                {{ form.ifsc_code }}
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label for="{{ form.upi_id.id_for_label }}">UPI ID</label>
+                                {{ form.upi_id }}
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label for="{{ form.qr_code.id_for_label }}">UPI QR Code Image</label>
+                                {{ form.qr_code }}
+                                <small class="form-text text-muted">Upload the QR code image for UPI payments.</small>
+                            </div>
+                            <div class="col-md-4">
+                                {% if tenant.qr_code %}
+                                    <label>Current QR Code</label><br>
+                                    <img src="{{ tenant.qr_code.url }}" alt="UPI QR Code" style="max-height: 100px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Save button is now at the very end, covering all cards -->
+                <div class="card-footer text-right bg-transparent border-top-0">
+                    <button type="submit" class="btn btn-primary">Save All Settings</button>
+                </div>
+
+            </form>
             {% else %}
             <div class="card"><div class="card-body text-center py-5"><i class="fas fa-info-circle fa-3x text-primary mb-3"></i><h4>Welcome, Superadmin</h4><p class="text-muted">Please select a tenant from the 'Settings' menu in the sidebar to manage their profile.</p></div></div>
             {% endif %}
         </div>
     </section>
 </div>
+
 {% include 'footer.html' %}
 {% include 'footer_link.html' %}

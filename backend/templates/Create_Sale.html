@@ -2,12 +2,12 @@
 {% include 'header.html' %}
 {% include 'navbar.html' %}
 {% include 'sidebar.html' %}
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Sale</title>
+    <title>Create Sale</title> -->
 
     <style>
         /* Custom styles for a cleaner layout */
@@ -69,85 +69,11 @@
                 margin-top: 10px;
             }
         }
-
-        /* --- UPDATED PRINT STYLES --- */
-@media print {
-    @page {
-        size: A4;
-        margin: 1cm; /* Adjust page margins */
-    }
-    body {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    .no-print { display: none !important; }
-    #invoice-print {
-        display: block !important;
-        padding: 0; /* Remove padding to use full page width */
-        font-family: Arial, sans-serif;
-    }
-
-    /* Centered Header */
-    .print-header {
-        text-align: center;
-        border-bottom: 2px solid #000;
-        padding-bottom: 10px;
-    }
-    .print-header h2 { margin: 0; font-size: 24px; font-weight: bold; }
-    .print-header p { margin: 2px 0; font-size: 12px; }
-
-    /* New container for BILL TO and Invoice Details */
-    .invoice-meta-container {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-        font-size: 11px;
-    }
-    .invoice-meta-container .bill-to { width: 50%; }
-
-    /* Table for Invoice No, Date, etc. */
-    .invoice-details-table {
-        width: 45%;
-        border-collapse: collapse;
-    }
-    .invoice-details-table th, .invoice-details-table td {
-        border: 1px solid #999;
-        padding: 5px;
-        text-align: center;
-        font-size: 11px;
-    }
-    .invoice-details-table th {
-        background-color: #f2f2f2 !important;
-        font-weight: bold;
-    }
-
-    /* Main items table */
-    .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px;}
-    .print-table th { border-bottom: 2px solid #000; padding: 8px; text-align: right; }
-    .print-table td { padding: 8px; text-align: right; }
-    .print-table th:nth-child(2), .print-table td:nth-child(2) { text-align: left; }
-    .print-table tr:last-child td { border-bottom: 2px solid #000; }
-
-    /* Other styles remain the same */
-    .print-summary-container { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11px; }
-    .print-summary-left { width: 60%; }
-    .print-summary-right { width: 35%; }
-    .summary-line { display: flex; justify-content: space-between; padding: 4px 0; }
-    .summary-line.total { font-weight: bold; font-size: 12px; border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 5px; }
-    .tax-summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; text-align: center; }
-    .tax-summary-table th, .tax-summary-table td { border: 1px solid #999; padding: 5px; }
-    .tax-summary-table th { font-weight: bold; }
-    .print-footer { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px; }
-    .print-footer .bank-details, .print-footer .terms { width: 40%; }
-    .print-footer .qr-code { text-align: center; }
-}
     </style>
 </head>
 <body>
     <div class="content-wrapper">
-        <div class="content-header no-print">
+        <div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6"><h1 class="m-0">Create Sale</h1></div>
@@ -161,7 +87,7 @@
             </div>
         </div>
 
-        <section class="content no-print">
+        <section class="content">
             <div class="container-fluid">
                 <div id="ajaxErrorContainer"></div>
                 {% if messages %}
@@ -177,7 +103,7 @@
                 </div>
                 {% endif %}
 
-                <form method="POST" enctype="multipart/form-data" id="saleForm">
+                <form method="POST" action="{% url 'Create_Sale' %}" enctype="multipart/form-data" id="saleForm">
                     {% csrf_token %}
                     {% if add.role == 'superadmin' %}
                     <!-- Use a div with a form-group class for proper spacing and styling -->
@@ -202,9 +128,6 @@
                         {% else %}
                         <a href="{% url 'sales_list' %}" class="btn btn-info mr-2"><i class="fas fa-list"></i> View Sales List</a>
                         {% endif %}
-                        
-                        <button type="submit" class="btn btn-secondary mr-2" id="saveButton"><i class="fas fa-save"></i> Save Only</button>
-                        <button type="button" class="btn btn-success" id="saveAndPrintButton"><i class="fas fa-print"></i> Save & Print</button>
                     </div>
 
                     <div class="row">
@@ -216,7 +139,7 @@
                                             <label for="partySelect" class="font-weight-bold">Select Party *</label>
                                             <div class="d-flex">
                                                 <select class="form-control form-control-sm" name="party_id" id="partySelect" required>
-                                                    <option value="">Select or Add a Party...</option>
+                                                    <option value="">Select or Add a Party.</option>
                                                     {% for party in parties %}
                                                     <option value="{{ party.id }}" data-email="{{ party.email }}" data-phone="{{ party.mobile_num }}" data-address="{{ party.billing_address }}" data-gst="{{ party.gst_no }}" data-pan="{{ party.pan_no }}">{{ party.party_name }}</option>
                                                     {% endfor %}
@@ -255,7 +178,8 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    <button type="button" class="btn btn-primary btn-sm mt-2" id="addItem"><i class="fas fa-plus"></i> Add Another Item</button>
+                                    <button type="button" class="btn btn-primary mr-2" id="addItem"><i class="fas fa-plus"></i> Add Another Item</button>
+                                    <button type="submit" class="btn btn-success mr-2" id="saveButton"><i class="fas fa-save"></i> Save</button>
                                 </div>
                             </div>
                         </div>
@@ -291,7 +215,7 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6"><div class="form-group"><label>Notes</label><textarea class="form-control form-control-sm" id="notes" name="notes" rows="2" placeholder="Add notes for internal use or for the customer..."></textarea></div></div>
-                                <div class="col-md-6"><div class="form-group"><label>Terms & Conditions</label><textarea class="form-control form-control-sm" id="terms" name="terms_conditions" rows="2">Goods once sold will not be taken back. Disputes subject to JHARKHAND jurisdiction.</textarea></div></div>
+                                <div class="col-md-6"><div class="form-group"><label>Terms & Conditions</label><textarea class="form-control form-control-sm" id="terms" name="terms_conditions" rows="2">Goods once sold will not be taken back, unless it fulfills the conditions</textarea></div></div>
                             </div>
                         </div>
                     </div>
@@ -300,90 +224,6 @@
         </section>
     </div>
 
-    <div id="invoice-print" class="d-none">
-    <div class="print-header">
-        <div class="company-info">
-            <h2>Your Company Name</h2>
-            <p>Your Address, City, State, PIN</p>
-            <p>PAN: YOURPANHERE | GSTIN: YOURGSTINHERE</p>
-            <p>Email: your.email@example.com | Phone: +91 12345 67890</p>
-        </div>
-    </div>
-
-    <div class="invoice-meta-container">
-        <div class="bill-to">
-            <strong>BILL TO:</strong><br>
-            <span id="printPartyName" style="font-weight: bold;"></span><br>
-            <span id="printPartyAddress"></span><br>
-            GSTIN: <span id="printPartyGst"></span>
-        </div>
-        <table class="invoice-details-table">
-            <thead>
-                <tr>
-                    <th>Invoice No.</th>
-                    <th>Invoice Date</th>
-                    <th>Due Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td id="printInvoiceNo"></td>
-                    <td id="printInvoiceDate"></td>
-                    <td id="printDueDate"></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <table class="print-table">
-        <thead>
-            <tr>
-                <th style="text-align:center; width:5%;">S.NO.</th>
-                <th style="text-align:left; width:45%;">ITEMS</th>
-                <th style="width:10%;">QTY</th>
-                <th style="width:15%;">RATE</th>
-                <th style="width:10%;">TAX</th>
-                <th style="width:15%;">AMOUNT</th>
-            </tr>
-        </thead>
-        <tbody id="printItemsBody"></tbody>
-    </table>
-
-    <div class="print-summary-container">
-        <div class="print-summary-left">
-            <p style="font-weight: bold;">Total Amount (In Words): <span id="amountInWords"></span></p>
-            <table class="tax-summary-table">
-                <thead><tr><th>HSN/SAC</th><th>Taxable Value</th><th>CGST</th><th>SGST</th><th>Total Tax</th></tr></thead>
-                <tbody id="taxSummaryBody"></tbody>
-            </table>
-        </div>
-        <div class="print-summary-right">
-            <div class="summary-line"><span>Subtotal</span><span id="printSubtotal"></span></div>
-            <div class="summary-line"><span>Discount</span><span id="printDiscount"></span></div>
-            <div class="summary-line"><span id="printChargesNote"></span><span id="printAdditionalCharges"></span></div>
-            <div class="summary-line total"><span>TOTAL</span><span id="printTotalAmount"></span></div>
-            <div class="summary-line"><span>RECEIVED AMOUNT</span><span id="printAmountReceived"></span></div>
-            <div class="summary-line"><span>BALANCE</span><span id="printBalanceAmount"></span></div>
-        </div>
-    </div>
-
-    <div class="print-footer">
-        <div class="bank-details">
-            <strong>Bank Details:</strong><br>
-            A/c Holder: Sanuj Kumar Gupta<br>
-            A/c: 5337777943, IFSC: CBIN0281583<br>
-            Bank: Central Bank of India, CHANDRI
-        </div>
-        <div class="qr-code">
-            <img src="https://placehold.co/80x80/000000/FFFFFF?text=QR" alt="QR Code">
-            <p>UPI: 9122133687@axl</p>
-        </div>
-        <div class="terms">
-            <strong>Terms and Conditions:</strong><br>
-            1. Goods once sold will not be taken back.<br>
-            2. Disputes subject to JHARKHAND jurisdiction.
-        </div>
-    </div>
 </div>
     
     <div id="loadingSpinner" class="spinner-overlay" style="display: none;">
@@ -393,198 +233,6 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- <script>
-    function numberToWords(num) {
-        const a = ['','one ','two ','three ','four ', 'five ','six ','seven ','eight ','nine ','ten ','eleven ','twelve ','thirteen ','fourteen ','fifteen ','sixteen ','seventeen ','eighteen ','nineteen '];
-        const b = ['', '', 'twenty','thirty','forty','fifty', 'sixty','seventy','eighty','ninety'];
-        
-        function inWords(n) {
-            if ((n = n.toString()).length > 9) return 'overflow';
-            n = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-            if (!n) return; var str = '';
-            str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'crore ' : '';
-            str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'lakh ' : '';
-            str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'thousand ' : '';
-            str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'hundred ' : '';
-            str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
-            return str;
-        }
-        
-        const [integerPart, decimalPart] = num.toString().split('.');
-        let words = inWords(integerPart);
-        if (decimalPart && parseInt(decimalPart) > 0) {
-            words += ' and ' + inWords(decimalPart) + 'paise ';
-        }
-        return words.trim().replace(/\s+/g, ' ').charAt(0).toUpperCase() + words.trim().replace(/\s+/g, ' ').slice(1) + 'Only';
-    }
-    
-    $(document).ready(function () {
-      let rowIndex = 1;
-
-      function updateRowAmount(row) {
-        const quantity = parseFloat(row.find('.quantity').val()) || 0;
-        const unitPrice = parseFloat(row.find('.unit-price').val()) || 0;
-        const discount = parseFloat(row.find('.discount').val()) || 0;
-        const gstText = row.find('.gst-rate').val() || '0';
-        const gstRate = parseFloat(gstText.replace('%', '')) || 0;
-        const taxableItemAmount = (quantity * unitPrice) - discount;
-        const taxAmount = taxableItemAmount * (gstRate / 100);
-        const amount = taxableItemAmount + taxAmount;
-        row.find('.amount').val(amount.toFixed(2));
-        updateTotals();
-      }
-
-      function updateTotals() {
-        let subtotal = 0;
-        let totalTax = 0;
-        $('.item-row').each(function () {
-          const quantity = parseFloat($(this).find('.quantity').val()) || 0;
-          const unitPrice = parseFloat($(this).find('.unit-price').val()) || 0;
-          const discount = parseFloat($(this).find('.discount').val()) || 0;
-          const gstText = $(this).find('.gst-rate').val() || '0';
-          const gstRate = parseFloat(gstText.replace('%','')) || 0;
-          const itemSubtotal = (quantity * unitPrice);
-          subtotal += itemSubtotal;
-          const taxableItemAmount = itemSubtotal - discount;
-          totalTax += taxableItemAmount * (gstRate / 100);
-        });
-
-        const totalDiscountInput = parseFloat($('#totalDiscount').val()) || 0;
-        const additionalCharges = parseFloat($('#additionalCharges').val()) || 0;
-        const taxableAmount = subtotal - totalDiscountInput;
-        const totalAmount = taxableAmount + totalTax + additionalCharges;
-        const amountReceived = parseFloat($('#amountReceived').val()) || 0;
-        const balanceAmount = totalAmount - amountReceived;
-
-        $('#subtotal').text('₹ ' + subtotal.toFixed(2));
-        $('#taxableAmount').text('₹ ' + taxableAmount.toFixed(2));
-        $('#totalTax').text('₹ ' + totalTax.toFixed(2));
-        $('#totalAmount').text('₹ ' + totalAmount.toFixed(2));
-        $('#balanceAmount').text('₹ ' + balanceAmount.toFixed(2));
-      }
-
-      function bindRowEvents() {
-        $('.item-select, .quantity, .discount').off('input change').on('input change', function () {
-          const row = $(this).closest('tr');
-          if ($(this).hasClass('item-select')) {
-            const selectedOption = $(this).find('option:selected');
-            row.find('.unit-price').val(selectedOption.data('price') || 0);
-            row.find('.gst-rate').val(selectedOption.data('gst') ? selectedOption.data('gst') + '%' : '0%');
-          }
-          updateRowAmount(row);
-        });
-      }
-
-      $('#partySelect').change(function () {
-        const selectedOption = $(this).find('option:selected');
-        if (selectedOption.val()) {
-          $('#partyNameDisplay').text(selectedOption.text());
-          $('#partyEmailDisplay').text(selectedOption.data('email') || 'N/A');
-          $('#partyPhoneDisplay').text(selectedOption.data('phone') || 'N/A');
-          $('#partyGstDisplay').text(selectedOption.data('gst') || 'N/A');
-          $('#partyDetails').slideDown();
-        } else {
-          $('#partyDetails').slideUp();
-        }
-      });
-      
-      $('#addItem').click(function () {
-        const rowHTML = `
-          <tr class="item-row">
-            <td data-label="Item"><select class="form-control form-control-sm item-select" name="items[${rowIndex}][item_id]" required><option value="">Select Item</option>{% for item in items %}<option value="{{ item.id }}" data-price="{{ item.sale_price }}" data-gst="{{ item.gst_rate }}">{{ item.item_name }}</option>{% endfor %}</select></td>
-            <td data-label="Qty"><input type="number" class="form-control form-control-sm quantity" name="items[${rowIndex}][quantity]" min="1" value="1" required></td>
-            <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" name="items[${rowIndex}][unit_price]" readonly></td>
-            <td data-label="GST"><input type="text" class="form-control form-control-sm gst-rate" name="items[${rowIndex}][gst_rate]" readonly></td>
-            <td data-label="Discount"><input type="number" class="form-control form-control-sm discount" name="items[${rowIndex}][discount]" min="0" value="0" step="0.01"></td>
-            <td data-label="Amount"><input type="number" class="form-control form-control-sm amount" name="items[${rowIndex}][amount]" readonly></td>
-            <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
-          </tr>`;
-        $('#itemsBody').append(rowHTML);
-        rowIndex++;
-        bindRowEvents();
-      });
-
-      $(document).on('click', '.remove-row', function () {
-        if ($('.item-row').length > 1) {
-          $(this).closest('tr').remove();
-          updateTotals();
-        }
-      });
-
-      $('#totalDiscount, #additionalCharges, #amountReceived').on('input', updateTotals);
-      
-      $('#saveButton').on('click', function(e) {
-        e.preventDefault();
-        $('#saleForm').attr('action', "{% url 'Create_Sale' %}").submit();
-      });
-
-      $('#saveAndPrintButton').on('click', function() {
-            const form = document.getElementById('saleForm');
-            const formData = new FormData(form);
-            
-            $('#loadingSpinner').show();
-            
-            fetch("{% url 'Create_Sale' %}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                $('#loadingSpinner').hide();
-                
-                if (data.status === 'success') {
-                    const saleData = data.sale_data;
-                    
-                    $('#printInvoiceNo').text(saleData.invoice_no);
-                    $('#printInvoiceDate').text(saleData.invoice_date);
-                    $('#printDueDate').text(saleData.due_date);
-                    $('#printPartyName').text(saleData.party_name);
-                    $('#printPartyAddress').html(saleData.party_address.replace(/\n/g, '<br>'));
-                    $('#printPartyGst').text(saleData.party_gst);
-                    
-                    $('#printSubtotal').text(saleData.subtotal);
-                    $('#printDiscount').text(saleData.discount);
-                    $('#printChargesNote').text(saleData.charges_note);
-                    $('#printAdditionalCharges').text(saleData.additional_charges);
-                    $('#printTotalAmount').text(saleData.total_amount_str);
-                    $('#printAmountReceived').text(saleData.amount_received);
-                    $('#printBalanceAmount').text(saleData.balance_amount);
-                    $('#amountInWords').text(numberToWords(saleData.total_amount_val));
-
-                    $('#printItemsBody').empty();
-                    $('#taxSummaryBody').empty();
-                    
-                    saleData.items.forEach((item, index) => {
-                        $('#printItemsBody').append(`<tr><td style="text-align:center;">${index + 1}</td><td style="text-align:left;">${item.name}</td><td>${item.qty}</td><td>${item.rate}</td><td>${item.tax_rate}</td><td>${item.amount}</td></tr>`);
-                    });
-
-                    // This part for tax summary would need more complex data from the backend
-                    // For now, it's a placeholder.
-                    $('#taxSummaryBody').append(`<tr><td>-</td><td>${saleData.taxable_amount}</td><td>-</td><td>-</td><td>${saleData.total_tax}</td></tr>`);
-
-                    window.print();
-                    window.location.href = "{% url 'Create_Sale' %}";
-                } else {
-                    const errorHtml = `<div class="alert alert-danger alert-dismissible fade show" role="alert"><strong>Error:</strong> ${data.message}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>`;
-                    $('#ajaxErrorContainer').html(errorHtml);
-                }
-            })
-            .catch(error => {
-                $('#loadingSpinner').hide();
-                console.error('Error:', error);
-                const errorHtml = `<div class="alert alert-danger">An unknown error occurred. Please check the console.</div>`;
-                $('#ajaxErrorContainer').html(errorHtml);
-            });
-      });
-
-      bindRowEvents();
-      updateTotals();
-    });
-    </script> -->
 <script>
     // This is the single, complete script for the page.
 
@@ -764,75 +412,19 @@
             bindRowEvents(); // Re-bind events for all rows
         });
 
-        $(document).on('click', '.remove-row', function () { /* ... same as before ... */ });
+        $(document).on('click', '.remove-row', function () {
+            if ($('.item-row').length > 1) {
+                $(this).closest('tr').remove();
+                updateTotals();
+            } else {
+                alert("You must have at least one item.");
+            }
+        });
         $('#totalDiscount, #additionalCharges, #amountReceived').on('input', updateTotals);
         
         $('#saveButton').on('click', function(e) {
             e.preventDefault();
             $('#saleForm').submit();
-        });
-
-        $('#saveAndPrintButton').on('click', function () {
-            const form = document.getElementById('saleForm');
-            const formData = new FormData(form);
-
-            $('#loadingSpinner').show();
-
-            fetch("{% url 'Create_Sale' %}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    $('#loadingSpinner').hide();
-
-                    if (data.status === 'success') {
-                        const saleData = data.sale_data;
-
-                        $('#printInvoiceNo').text(saleData.invoice_no);
-                        $('#printInvoiceDate').text(saleData.invoice_date);
-                        $('#printDueDate').text(saleData.due_date);
-                        $('#printPartyName').text(saleData.party_name);
-                        $('#printPartyAddress').html(saleData.party_address.replace(/\n/g, '<br>'));
-                        $('#printPartyGst').text(saleData.party_gst);
-
-                        $('#printSubtotal').text(saleData.subtotal);
-                        $('#printDiscount').text(saleData.discount);
-                        $('#printChargesNote').text(saleData.charges_note);
-                        $('#printAdditionalCharges').text(saleData.additional_charges);
-                        $('#printTotalAmount').text(saleData.total_amount_str);
-                        $('#printAmountReceived').text(saleData.amount_received);
-                        $('#printBalanceAmount').text(saleData.balance_amount);
-                        $('#amountInWords').text(numberToWords(saleData.total_amount_val));
-
-                        $('#printItemsBody').empty();
-                        $('#taxSummaryBody').empty();
-
-                        saleData.items.forEach((item, index) => {
-                            $('#printItemsBody').append(`<tr><td style="text-align:center;">${index + 1}</td><td style="text-align:left;">${item.name}</td><td>${item.qty}</td><td>${item.rate}</td><td>${item.tax_rate}</td><td>${item.amount}</td></tr>`);
-                        });
-
-                        // This part for tax summary would need more complex data from the backend
-                        // For now, it's a placeholder.
-                        $('#taxSummaryBody').append(`<tr><td>-</td><td>${saleData.taxable_amount}</td><td>-</td><td>-</td><td>${saleData.total_tax}</td></tr>`);
-
-                        window.print();
-                        window.location.href = "{% url 'Create_Sale' %}";
-                    } else {
-                        const errorHtml = `<div class="alert alert-danger alert-dismissible fade show" role="alert"><strong>Error:</strong> ${data.message}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>`;
-                        $('#ajaxErrorContainer').html(errorHtml);
-                    }
-                })
-                .catch(error => {
-                    $('#loadingSpinner').hide();
-                    console.error('Error:', error);
-                    const errorHtml = `<div class="alert alert-danger">An unknown error occurred. Please check the console.</div>`;
-                    $('#ajaxErrorContainer').html(errorHtml);
-                });
         });
 
         bindRowEvents();

@@ -38,7 +38,7 @@ It will display the tenant's logo and formatted address.
 <div class="invoice-header">
     <div class="logo-container">
         {% if tenant.logo %}
-            <img src="{{ tenant.logo.path }}" alt="{{ tenant.name }} Logo">
+            <img src="{{ tenant.logo.url }}" alt="{{ tenant.name }} Logo">
         {% endif %}
     </div>
     <div class="company-details">
