@@ -4,212 +4,215 @@
   <meta charset="UTF-8">
   <title>Invoice {{ sale.invoice_no }}</title>
 <style>
-    @page {
-        size: A4;
-        margin: 1cm;
-    }
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
 
-    body {
-        font-family: 'Segoe UI', Arial, sans-serif;
-        font-size: 10px;
-        color: #333;
-        margin: 0;
-        padding: 0;
-        line-height: 1.4;
-    }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 10px;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+  }
 
-    /* Header */
-    .header-table {
-        width: 100%;
-        border-bottom: 1px solid #3f51b5;
-        padding-bottom: 6px;
-        margin-bottom: 10px;
-    }
+  /* Header */
+  .header-table {
+    width: 100%;
+    border-bottom: 1px solid #3f51b5;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
 
-    .logo-cell {
-        width: 120px;
-        vertical-align: top;
-    }
+  .logo-cell {
+    width: 120px;
+    vertical-align: top;
+  }
 
-    .logo-cell img {
-        width: 100px;
-        max-height: 50px;
-        object-fit: contain;
-    }
+  .logo-cell img {
+    width: 100px;
+    max-height: 50px;
+    object-fit: contain;
+  }
 
-    .company-details {
-        text-align: right;
-        vertical-align: top;
-    }
+  .company-details {
+    text-align: right;
+    vertical-align: top;
+  }
 
-    .company-details h3 {
-        margin: 0;
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #3f51b5;
-    }
+  .company-details h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #3f51b5;
+  }
 
-    .company-details p {
-        margin: 1px 0;
-        font-size: 0.75rem;
-        color: #555;
-    }
+  .company-details p {
+    margin: 1px 0;
+    font-size: 0.75rem;
+    color: #555;
+  }
 
-    /* Invoice Meta */
-    .invoice-meta-container {
-        width: 100%;
-        margin-bottom: 8px;
-    }
+  /* Invoice Meta */
+  .invoice-meta-container {
+    width: 100%;
+    margin-bottom: 8px;
+  }
 
-    .bill-to {
-        width: 55%;
-        vertical-align: top;
-        font-size: 0.8rem;
-    }
+  .bill-to {
+    width: 55%;
+    vertical-align: top;
+    font-size: 0.8rem;
+  }
 
-    .bill-to strong {
-        font-size: 0.9rem;
-        color: #3f51b5;
-    }
+  .bill-to strong {
+    font-size: 0.9rem;
+    color: #3f51b5;
+  }
 
-    .invoice-details-table {
-        width: 40%;
-        border-collapse: collapse;
-        font-size: 0.75rem;
-    }
+  .invoice-details-table {
+    width: 40%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+  }
 
-    .invoice-details-table th,
-    .invoice-details-table td {
-        border: 1px solid #ddd;
-        padding: 4px;
-        text-align: center;
-    }
+  .invoice-details-table th,
+  .invoice-details-table td {
+    border: 1px solid #ddd;
+    padding: 4px;
+    text-align: center;
+  }
 
-    .invoice-details-table th {
-        background-color: #f5f5f5;
-        font-weight: 600;
-        color: #444;
-    }
+  .invoice-details-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+    color: #444;
+  }
 
-    /* Items */
-    .items-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 6px;
-        margin-bottom: 10px;
-        font-size: 0.8rem;
-    }
+  /* Items */
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+  }
 
-    .items-table th {
-        background: #3f51b5;
-        color: #fff;
-        padding: 5px;
-        text-align: center;
-        font-weight: 600;
-        border-right: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    .items-table th:last-child {
-            border-right: none;
-        }
+  .items-table th {
+    background: #3f51b5;
+    color: #fff;
+    padding: 5px;
+    text-align: center;
+    font-weight: 600;
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+  }
 
-    .items-table td {
-        border-right: 1px solid #444;
-        border-left: 1px solid #444;
-        padding: 3px;
-        text-align: center;
-        block-size: 28px;
-    }
-    .items-table td:last-child {
-            border-right: none;
-        }
-        
-        .items-table tr td {
-            border-bottom: none;
-        }
-        
-        /* Bottom row border */
-        .items-table tr:last-child td {
-            border-bottom: 1px solid #444;
-        }
+  .items-table th:last-child {
+    border-right: none;
+  }
+
+  .items-table td {
+    border-right: 1px solid #444;
+    border-left: 1px solid #444;
+    padding: 3px;
+    text-align: center;
+    block-size: 28px;
+  }
+
+  .items-table td:last-child {
+    border-right: none;
+  }
+
+  .items-table tr td {
+    border-bottom: none;
+  }
+
+  /* Bottom row border */
+  .items-table tr:last-child td {
+    border-bottom: 1px solid #444;
+  }
 
 
-    .items-table th:nth-child(1),
-    .items-table td:nth-child(1) {
-        text-align: center;
-        width: 5%;
-    }
+  .items-table th:nth-child(1),
+  .items-table td:nth-child(1) {
+    text-align: center;
+    width: 5%;
+  }
 
-    .items-table th:nth-child(2),
-    .items-table td:nth-child(2) {
-        text-align: left;
-        width: 35%;
-    }
+  .items-table th:nth-child(2),
+  .items-table td:nth-child(2) {
+    text-align: left;
+    width: 35%;
+  }
 
-    /* Summary Compact */
-    .summary-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.8rem;
-        margin-top: 6px;
-    }
+  /* Summary Compact */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-top: 6px;
+  }
 
-    .summary-table td {
-        border: 1px solid #585858;
-        padding: 4px;
-        text-align: center;
-    }
+  .summary-table td {
+    border: 1px solid #585858;
+    padding: 4px;
+    text-align: center;
+  }
 
-    .summary-table .total-row {
-        font-weight: bold;
-        background: #f5f5f5;
-        color: #3f51b5;
-    }
+  .summary-table .total-row {
+    font-weight: bold;
+    background: #f5f5f5;
+    color: #3f51b5;
+  }
 
-    /* Amount in Words + Signature */
-    .amount-signature {
-        width: 100%;
-        margin-top: 8px;
-        border-collapse: collapse;
-        font-size: 0.8rem;
-    }
+  /* Amount in Words + Signature */
+  .amount-signature {
+    width: 100%;
+    margin-top: 8px;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
 
-    .amount-signature td {
-        vertical-align: bottom;
-        padding: 4px;
-    }
+  .amount-signature td {
+    vertical-align: bottom;
+    padding: 4px;
+  }
 
-    .amount-words {
-        width: 65%;
-    }
+  .amount-words {
+    width: 65%;
+  }
 
-    .signature-box {
-        width: 35%;
-        text-align: right;
-    }
+  .signature-box {
+    width: 35%;
+    text-align: right;
+  }
 
-    .signature-box p {
-        border-top: 1px solid #444;
-        display: inline-block;
-        padding-top: 4px;
-        margin: 0;
-        font-weight: 600;
-    }
+  .signature-box p {
+    border-top: 1px solid #444;
+    display: inline-block;
+    padding-top: 4px;
+    margin: 0;
+    font-weight: 600;
+  }
 
-    /* Three Equal Boxes */
-    .three-boxes {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 12px;
-    }
+  /* Three Equal Boxes */
+  .three-boxes {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
 
-    .three-boxes td {
-        border: 1px solid #ccc;
-        padding: 6px;
-        font-size: 0.75rem;
-        vertical-align: top;
-        width: 33%;
-    }
-    /* if dont want box border
+  .three-boxes td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    font-size: 0.75rem;
+    vertical-align: top;
+    width: 33%;
+  }
+
+  /* if dont want box border
     .three-boxes td {
       width: 33%;
       vertical-align: top;
@@ -217,28 +220,29 @@
       font-size: 0.75rem;
     } */
 
-    .qr-code img {
-        width: 40px;
-        height: 40px;
-        border: 1px solid #ddd;
-        padding: 3px;
-        background: #fff;
-    }
-    .qr-code {
-        text-align: center;
-        vertical-align: top;
-    }
+  .qr-code img {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ddd;
+    padding: 3px;
+    background: #fff;
+  }
+
+  .qr-code {
+    text-align: center;
+    vertical-align: top;
+  }
 
 
-    /* Footer */
-    .footer {
-        margin-top: 10px;
-        text-align: center;
-        font-size: 0.7rem;
-        color: #777;
-        border-top: 1px solid #ccc;
-        padding-top: 5px;
-    }
+  /* Footer */
+  .footer {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #777;
+    border-top: 1px solid #ccc;
+    padding-top: 5px;
+  }
 </style>
 </head>
 <body>
@@ -320,25 +324,70 @@
   </table>
 
   <!-- Summary -->
-  <table class="summary-table">
-    <tr>
-      <td>Subtotal</td>
-      <td>{{ sale.subtotal|floatformat:2 }}</td>
-      <td>Discount</td>
-      <td>{{ sale.discount|floatformat:2 }}</td>
-      <td>Charges</td>
-      <td>{{ sale.additional_charges|floatformat:2 }}</td>
-    </tr>
-    <tr class="total-row">
-      <td colspan="4">TOTAL</td>
-      <td colspan="2">{{ sale.total_amount|floatformat:2 }}</td>
-    </tr>
-    <tr>
-      <td colspan="2">Received</td>
-      <td colspan="2">{{ sale.amount_received|floatformat:2 }}</td>
-      <td colspan="2">Balance: {{ sale.balance_amount|floatformat:2 }}</td>
-    </tr>
-  </table>
+<!-- Summary + Tax Table Side by Side -->
+<!-- Summary + Tax Table Side by Side -->
+<table style="width:100%; margin-top:6px; border-collapse:collapse;">
+  <tr>
+    <!-- Tax Table -->
+    <td style="width:40%; vertical-align:bottom;">
+      <table class="summary-table" style="font-size:8px; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <td><strong>HSN</strong></td>
+            <td><strong>Taxable</strong></td>
+            <td><strong>CGST</strong></td>
+            <td><strong>SGST</strong></td>
+            <td><strong>Total</strong></td>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in tax_summary %}
+          <tr>
+            <td>{{ row.hsn }}</td>
+            <td>{{ row.taxable_value|floatformat:2 }}</td>
+            <td>{{ row.cgst|floatformat:2 }}</td>
+            <td>{{ row.sgst|floatformat:2 }}</td>
+            <td>{{ row.total_tax|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+          <tr class="total-row">
+            <td><strong>Total</strong></td>
+            <td><strong>{{ tax_summary_total.taxable_value|floatformat:2 }}</strong></td>
+            <td><strong>{{ tax_summary_total.cgst|floatformat:2 }}</strong></td>
+            <td><strong>{{ tax_summary_total.sgst|floatformat:2 }}</strong></td>
+            <td><strong>{{ tax_summary_total.total_tax|floatformat:2 }}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </td>
+
+    <td style="width:10%; vertical-align:bottom;"></td>
+
+    <!-- Summary Table -->
+    <td style="width:40%; vertical-align:bottom;">
+      <table class="summary-table" style="font-size:8px; border-collapse:collapse;">
+        <tr>
+          <td>Subtotal</td>
+          <td>{{ sale.subtotal|floatformat:2 }}</td>
+          <td>Discount</td>
+          <td>{{ sale.discount|floatformat:2 }}</td>
+          <td>Charges</td>
+          <td>{{ sale.additional_charges|floatformat:2 }}</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="4">TOTAL</td>
+          <td colspan="2">{{ sale.total_amount|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <td colspan="2">Received</td>
+          <td colspan="2">{{ sale.amount_received|floatformat:2 }}</td>
+          <td colspan="2">Balance: {{ sale.balance_amount|floatformat:2 }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
 <br>
   <!-- Amount in words + Signature -->
   <div class="amount-signature">

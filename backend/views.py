@@ -34,6 +34,7 @@ from django.conf import settings
 from django.contrib.staticfiles import finders
 from io import BytesIO
 import os
+from datetime import date
 
 # Expense Form 
 class ExpenseForm(forms.ModelForm):
@@ -110,6 +111,91 @@ def get_tenant(request):
         if tenant_id:
             return get_object_or_404(Tenant, id=tenant_id)
     return getattr(request, 'tenant', None)
+
+# Generate Sales Invoice Number
+def generate_next_invoice_number(tenant):
+    """
+    Generates the next sequential invoice number using the tenant's unique ID.
+    Format: INV/YY-YY/T{ID}/{Seq} (e.g., INV/25-26/T1/00001)
+    """
+    today = timezone.now().date()
+
+    # Determine the financial year (e.g., "25-26")
+    if today.month >= 4:
+        current_year = today.year
+        next_year = current_year + 1
+        financial_year_start = date(current_year, 4, 1)
+    else:
+        next_year = today.year
+        current_year = next_year - 1
+        financial_year_start = date(current_year, 4, 1)
+        
+    fy_string = f"{str(current_year)[-2:]}-{str(next_year)[-2:]}"
+
+    # --- MODIFIED: Use Tenant ID for a unique prefix ---
+    tenant_prefix = f"T{tenant.id}"
+
+    # Find the last sale for this specific tenant in the current financial year
+    last_sale = Sale.objects.filter(
+        tenant=tenant, 
+        invoice_date__gte=financial_year_start
+    ).order_by('-id').first()
+
+    new_sequence = 1
+    if last_sale:
+        # Check if the last sale's invoice number is in the expected format for this tenant
+        expected_prefix = f"INV/{fy_string}/{tenant_prefix}/"
+        if last_sale.invoice_no.startswith(expected_prefix):
+            try:
+                # --- MODIFIED: Extract the number after the full prefix ---
+                last_sequence_str = last_sale.invoice_no.split('/')[-1]
+                last_sequence = int(last_sequence_str)
+                new_sequence = last_sequence + 1
+            except (IndexError, ValueError):
+                # Fallback if parsing fails
+                new_sequence = 1
+    
+    # Format the new invoice number with the tenant ID and 5-digit padding
+    invoice_number = f"INV/{fy_string}/{tenant_prefix}/{str(new_sequence).zfill(5)}"
+    
+    return invoice_number
+
+# Generate Bill Number / Purchase Number For purchase view 
+def generate_next_bill_number(tenant):
+    """
+    Generates the next sequential purchase bill number for a given tenant and year.
+    Format: PUR/YY/T{ID}/00001 (e.g., PUR/25/T1/00001)
+    """
+    today = timezone.now().date()
+    current_year_str = str(today.year)[-2:]  # Gets the last two digits of the year, e.g., "25"
+
+    # Use Tenant ID for a unique prefix
+    tenant_prefix = f"T{tenant.id}"
+
+    # Find the last purchase for this tenant in the current calendar year
+    last_purchase = Purchase.objects.filter(
+        tenant=tenant, 
+        purchase_date__year=today.year
+    ).order_by('-id').first()
+
+    new_sequence = 1
+    if last_purchase:
+        # Check if the last bill number is in the expected format
+        expected_prefix = f"PUR/{current_year_str}/{tenant_prefix}/"
+        if last_purchase.bill_number and last_purchase.bill_number.startswith(expected_prefix):
+            try:
+                # Extract the last sequence number
+                last_sequence_str = last_purchase.bill_number.split('/')[-1]
+                last_sequence = int(last_sequence_str)
+                new_sequence = last_sequence + 1
+            except (IndexError, ValueError):
+                # Fallback if parsing fails
+                new_sequence = 1
+    
+    # Format the new bill number with 5-digit padding
+    bill_number = f"PUR/{current_year_str}/{tenant_prefix}/{str(new_sequence).zfill(5)}"
+    
+    return bill_number
 
 # Print View
 def printVw(request):
@@ -887,10 +973,13 @@ def create_sale_view(request):
                 total_amount = taxable_amount_total + total_tax + additional_charges
                 amount_received = float(post_data.get('amount_received', 0))
                 
+                # Re-generate the invoice number right before saving to prevent race conditions
+                new_invoice_no = generate_next_invoice_number(target_tenant)
+
                 sale = Sale.objects.create(
                     tenant=target_tenant,
                     user=account,
-                    invoice_no=post_data.get('invoice_no'),
+                    invoice_no=new_invoice_no, # Use the newly generated number
                     party=party,
                     invoice_date=invoice_date_obj,
                     due_date=due_date_obj,
@@ -907,44 +996,44 @@ def create_sale_view(request):
                 )
                 
                 for data in items_data:
-                    sale_item = SaleItem.objects.create(sale=sale, item=data['item_instance'], **{k: v for k, v in data.items() if k != 'item_instance'})
+                    SaleItem.objects.create(sale=sale, item=data['item_instance'], **{k: v for k, v in data.items() if k != 'item_instance'})
             
-            messages.success(request, "Sale created successfully!")
-            if account.role == 'superadmin':
-                return redirect(f"/sales_list?tenant_id={target_tenant.id}")
-            else:
-                return redirect('sales_list')
+                messages.success(request, f"Sale {new_invoice_no} created successfully!")
+                if account.role == 'superadmin':
+                    return redirect(f"/sales_list?tenant_id={target_tenant.id}")
+                else:
+                    return redirect('sales_list')
 
         except (ValidationError, Exception) as e:
             # --- The new, simpler error handling ---
             messages.error(request, str(e))
-            # Preserve form data for re-display
-            context = {
-                'add': account,
-                'items': ItemBase.objects.filter(tenant=target_tenant, is_active=True).order_by('item_name'),
-                'parties': Create_party.objects.filter(tenant=target_tenant, is_active=True).order_by('party_name'),
-                'invoice_no': f"INV-{uuid.uuid4().hex[:8].upper()}",
-            }
-            if account.role == 'superadmin':
-                context['tenants'] = Tenant.objects.all().order_by('name')
-                context['tenant_id_from_url'] = request.GET.get('tenant_id')
-            
-            return render(request, 'create_sale.html', context)
+            redirect_url = reverse('Create_Sale')
+            if account.role == 'superadmin' and request.POST.get('tenant_id'):
+                return redirect(f"{redirect_url}?tenant_id={request.POST.get('tenant_id')}")
+            return redirect(redirect_url)
 
     # --- GET Request: Display the Form (no changes needed here) ---
     context = {'add': account}
+    tenant_for_context = None
+
     if account.role == 'superadmin':
         context['tenants'] = Tenant.objects.all().order_by('name')
-        context['tenant_id_from_url'] = request.GET.get('tenant_id')
-        context['items'] = ItemBase.objects.filter(is_active=True).order_by('item_name')
-        context['parties'] = Create_party.objects.filter(is_active=True).order_by('party_name')
+        tenant_id_from_url = request.GET.get('tenant_id')
+        context['tenant_id_from_url'] = tenant_id_from_url
+        if tenant_id_from_url:
+            tenant_for_context = get_object_or_404(Tenant, id=tenant_id_from_url)
     else:
-        tenant = request.tenant
-        context['tenant'] = tenant
-        context['items'] = ItemBase.objects.filter(tenant=tenant, is_active=True).order_by('item_name')
-        context['parties'] = Create_party.objects.filter(tenant=tenant, is_active=True).order_by('party_name')
-    
-    context['invoice_no'] = f"INV-{uuid.uuid4().hex[:8].upper()}"
+        tenant_for_context = request.tenant
+
+    if tenant_for_context:
+        context['invoice_no'] = generate_next_invoice_number(tenant_for_context)
+        context['items'] = ItemBase.objects.filter(tenant=tenant_for_context, is_active=True).order_by('item_name')
+        context['parties'] = Create_party.objects.filter(tenant=tenant_for_context, is_active=True, party_type__in=['Customer', 'Both']).order_by('party_name')
+    else:
+        context['invoice_no'] = "Select a tenant to generate invoice no."
+        context['items'] = []
+        context['parties'] = []
+
     return render(request, 'create_sale.html', context)
 
 
@@ -1411,7 +1500,7 @@ def sale_invoice_pdf(request, sale_id):
         messages.error(request, "You are not authorized to view this invoice.")
         return redirect('sales_list')
 
-    # Convert total amount to words
+    # Amount in words
     from num2words import num2words
     try:
         amount_in_words = num2words(sale.total_amount, to='currency', currency='INR')
@@ -1419,27 +1508,68 @@ def sale_invoice_pdf(request, sale_id):
     except:
         amount_in_words = ""
 
-    # Prepare the context for the template
+    # --- Build HSN/SAC Tax Summary ---
+    tax_summary = defaultdict(lambda: {
+        "taxable_value": Decimal("0.00"),
+        "cgst": Decimal("0.00"),
+        "sgst": Decimal("0.00"),
+        "total_tax": Decimal("0.00"),
+    })
+
+    for item in sale.items.all():
+        hsn = item.item.hsn_sac_code or "N/A"
+        taxable_value = Decimal(item.quantity) * item.item.sale_price
+        gst_rate = Decimal(item.item.gst_rate.replace("%", "") or "0")  # e.g. "18%" -> 18
+        half_rate = gst_rate / Decimal(2)
+
+        cgst = taxable_value * (half_rate / 100)
+        sgst = taxable_value * (half_rate / 100)
+        total_tax = cgst + sgst
+
+        tax_summary[hsn]["taxable_value"] += taxable_value
+        tax_summary[hsn]["cgst"] += cgst
+        tax_summary[hsn]["sgst"] += sgst
+        tax_summary[hsn]["total_tax"] += total_tax
+
+    # Convert to list for template
+    tax_summary_list = [
+        {
+            "hsn": hsn,
+            "taxable_value": values["taxable_value"],
+            "cgst": values["cgst"],
+            "sgst": values["sgst"],
+            "total_tax": values["total_tax"],
+        }
+        for hsn, values in tax_summary.items()
+    ]
+    # --- Grand Totals across all HSN rows ---
+    from types import SimpleNamespace
+    tax_summary_total = SimpleNamespace(
+        taxable_value=sum(row["taxable_value"] for row in tax_summary_list),
+        cgst=sum(row["cgst"] for row in tax_summary_list),
+        sgst=sum(row["sgst"] for row in tax_summary_list),
+        total_tax=sum(row["total_tax"] for row in tax_summary_list),
+    )
+
     context = {
         'sale': sale,
         'tenant': sale.tenant,
         'amount_in_words': amount_in_words,
+        'tax_summary': tax_summary_list,
+        "tax_summary_total": tax_summary_total, 
     }
 
-    # Render the template to an HTML string
     template = get_template('sale_invoice_pdf.html')
     html = template.render(context)
 
-    # --- PDF Generation with the link_callback ---
     result = BytesIO()
-    # Pass the link_callback to pisa.CreatePDF
     pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result, link_callback=link_callback)
-    
+
     if not pdf.err:
         response = HttpResponse(result.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="invoice_{sale.invoice_no}.pdf"'
         return response
-        
+
     return HttpResponse("Error Rendering PDF", status=400)
 
 
@@ -1916,30 +2046,31 @@ def edit_profile_view(request):
 def create_purchase_view(request):
     account = request.user
     context = {'add': account}
+    tenant_for_context = None
 
     # --- Logic for displaying the form (GET request) ---
     if account.role == 'superadmin':
-        # For superadmin, let's start with a clear slate. We'll load vendors with JavaScript.
         context['tenants'] = Tenant.objects.all().order_by('name')
-        context['tenant_id_from_url'] = request.GET.get('tenant_id')
-        # Initialize empty for superadmin (will be loaded via AJAX)
+        tenant_id_from_url = request.GET.get('tenant_id')
+        context['tenant_id_from_url'] = tenant_id_from_url
+        if tenant_id_from_url:
+            tenant_for_context = get_object_or_404(Tenant, id=tenant_id_from_url)
+    else:
+        tenant_for_context = request.tenant
+        context['tenant'] = tenant_for_context
+
+    if tenant_for_context:
+        context['vendors'] = Create_party.objects.filter(tenant=tenant_for_context, is_active=True, party_type__in=['Supplier', 'Both']).order_by('party_name')
+        context['items'] = Product.objects.filter(tenant=tenant_for_context, is_active=True).values('id', 'item_name', 'purchase_price').order_by('item_name')
+        # --- Auto-generate the new bill number ---
+        context['bill_number'] = generate_next_bill_number(tenant_for_context)
+    else:
         context['vendors'] = []
         context['items'] = []
-    else:
-        # For regular users, filter parties that are 'Supplier' or 'Both'
-        tenant = request.tenant
-        context['tenant'] = tenant
-        context['vendors'] = Create_party.objects.filter(
-            tenant=tenant, 
-            is_active=True,
-            party_type__in=['Supplier', 'Both']
-        ).order_by('party_name')
-        context['items'] = Product.objects.filter(tenant=tenant, is_active=True).values('id', 'item_name', 'purchase_price').order_by('item_name')
+        context['bill_number'] = "Select a tenant to generate Bill No."
     
     # Add the available purchase statuses to the context for the dropdown
     context['purchase_statuses'] = Purchase.PurchaseStatus.choices
-    # --- Auto-generate a bill number ---
-    context['bill_number'] = f"PUR-{uuid.uuid4().hex[:8].upper()}"
 
     # --- Logic for saving the form (POST request) ---
     if request.method == 'POST':
@@ -1960,12 +2091,15 @@ def create_purchase_view(request):
                 # Get the selected status from the form
                 purchase_status = post_data.get('status', Purchase.PurchaseStatus.ORDERED)
 
+                # --- Re-generate the bill number right before saving ---
+                new_bill_no = generate_next_bill_number(target_tenant)
+
                 # Create the main Purchase object
                 purchase = Purchase.objects.create(
                     tenant=target_tenant,
                     user=account,
                     vendor=vendor,
-                    bill_number=post_data.get('bill_number'),
+                    bill_number=new_bill_no, # Use the newly generated number
                     purchase_date=post_data.get('purchase_date'),
                     notes=post_data.get('notes'),
                     status=purchase_status # Save the selected status
@@ -1973,24 +2107,23 @@ def create_purchase_view(request):
 
                 total_amount = 0
                 item_indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(post_data.keys())))))
+                if not item_indices:
+                    raise ValidationError("Cannot create a purchase with no items.")
 
                 for index in item_indices:
                     item_id = post_data.get(f'items[{index}][item_id]')
                     quantity = int(post_data.get(f'items[{index}][quantity]', 0))
                     price = Decimal(post_data.get(f'items[{index}][price]', 0))
                     
-                    if not all([item_id, quantity > 0, price > 0]):
+                    if not all([item_id, quantity > 0, price >= 0]):
                         continue
                     
                     product = get_object_or_404(Product, id=item_id, tenant=target_tenant)
                     
                     # Create the individual PurchaseItem
                     PurchaseItem.objects.create(
-                        purchase=purchase,
-                        item=product,
-                        quantity=quantity,
-                        purchase_price=price,
-                        amount=quantity * price
+                        purchase=purchase, item=product, quantity=quantity,
+                        purchase_price=price, amount=quantity * price
                     )
 
                     # --- CRITICAL LOGIC: Only update stock if purchase is 'Received' ---
@@ -2000,23 +2133,28 @@ def create_purchase_view(request):
 
                     total_amount += (quantity * price)
                 
-                if total_amount == 0:
+                if total_amount == 0 and not item_indices:
                     raise ValidationError("Cannot create a purchase with no valid items.")
                 
                 # Update the total amount on the main Purchase object
                 purchase.total_amount = total_amount
                 purchase.save()
 
-                messages.success(request, "Purchase recorded successfully!")
+                messages.success(request, f"Purchase {new_bill_no} recorded successfully!")
+                redirect_url = reverse('purchase_list')
                 # --- THIS IS THE CORRECTED REDIRECT LOGIC ---
                 if account.role == 'superadmin':
-                    return redirect(f"{reverse('purchase_list')}?tenant_id={target_tenant.id}")
+                    return redirect(f"{redirect_url}?tenant_id={target_tenant.id}")
                 else:
-                    return redirect('purchase_list')
+                    return redirect(redirect_url)
 
         except (ValidationError, Exception) as e:
             messages.error(request, f"Error: {e}")
-            return redirect('create_purchase')
+            # Redirect back to the form page, preserving tenant context
+            redirect_url = reverse('create_purchase')
+            if account.role == 'superadmin' and request.POST.get('tenant_id'):
+                 return redirect(f"{redirect_url}?tenant_id={request.POST.get('tenant_id')}")
+            return redirect(redirect_url)
 
     return render(request, 'create_purchase.html', context)
     
