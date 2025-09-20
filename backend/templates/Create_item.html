@@ -295,6 +295,11 @@
                             <small class="form-text text-muted">Initial quantity in inventory</small>
                           </div>
                           <div class="form-group col-md-4">
+                            <label for="minStockLevel">Min. Stock Level</label>
+                            <input type="number" id="minStockLevel" class="form-control" name="min_stock_level" value="0" min="0">
+                            <small class="form-text text-muted">Auto-alert when stock reaches this level</small>
+                          </div>
+                          <div class="form-group col-md-4">
                             <label for="stockDate">As of Date</label>
                             <input type="date" id="stockDate" class="form-control" name="stock_date" 
                                    value="{% now 'Y-m-d' %}">
@@ -322,31 +327,34 @@
 
                       <!-- Other Tab -->
                       <div class="tab-pane fade" id="product-other" role="tabpanel" aria-labelledby="product-other-tab">
-                        <div class="form-group col-md-4">
-                          <label for="productImage">Product Image</label>
-                          <input type="file" name="product_image" class="form-control-file" id="productImage">
-                          <small class="form-text text-muted">Recommended size: 500x500 pixels</small>
-                        </div>
-                        
-                        <div class="form-group col-md-4">
-                          <label for="categorySelect">Category</label>
-                          <div class="d-flex gap-2">
-                            <select class="form-control" name="category" id="categorySelect" style="flex: 1;">
-                              <option value="">Select Category</option>
-                              {% for cat in category %}
-                              <option value="{{ cat.id }}">{{ cat.cname }}</option>
-                              {% endfor %}
-                            </select>
-                            <button type="button" class="btn btn-success" data-bs-toggle="modal"
-                              data-bs-target="#addcategoryModal">+ Add Category</button>
+                        <div class="form-row">
+                          <div class="form-group col-md-6">
+                            <label for="productImage">Product Image</label>
+                            <input type="file" name="product_image" class="form-control-file" id="productImage">
+                            <small class="form-text text-muted">Recommended size: 500x500 pixels</small>
                           </div>
-                          <small class="form-text text-muted">Group this product belongs to</small>
-                        </div>
-                        <div class="form-group col-md-4">
-                          <label for="productDescription">Item Description</label>
-                          <textarea class="form-control" id="productDescription" rows="4" name="item_des"
-                            placeholder="Describe the product features..."></textarea>
-                          <small class="form-text text-muted">Detailed product information</small>
+
+                          <div class="form-group col-md-6">
+                            <label for="categorySelect">Category</label>
+                            <div class="d-flex gap-2">
+                              <select class="form-control" name="category" id="categorySelect" style="flex: 1;">
+                                <option value="">Select Category</option>
+                                {% for cat in category %}
+                                <option value="{{ cat.id }}">{{ cat.cname }}</option>
+                                {% endfor %}
+                              </select>
+                              <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addcategoryModal">+ Add
+                                Category</button>
+                            </div>
+                            <small class="form-text text-muted">Group this product belongs to</small>
+                          </div>
+                          
+                          <div class="form-group col-md-12">
+                            <label for="productDescription">Item Description</label>
+                            <textarea class="form-control" id="productDescription" rows="4" name="item_des"
+                              placeholder="Describe the product features..."></textarea>
+                            <small class="form-text text-muted">Detailed product information</small>
+                          </div>
                         </div>
                       </div>
                     </div>

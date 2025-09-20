@@ -2,6 +2,7 @@ from django.shortcuts import render,redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from backend.models import *
 from .forms import TenantSettingsForm
+from backend.forms import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
 from django.db.models.functions import TruncMonth
@@ -382,56 +383,60 @@ def ChangePasswordVw(request):
 # Create Party View
 @tenant_required
 def Create_partyVw(request):
-    account = Account.objects.get(email=request.session['email'])
+    account = request.user # It's better to use request.user from your decorator
     
     if request.method == "POST":
         target_tenant = None
-        # Determine the correct tenant to assign the party to
         if account.role == 'superadmin':
             tenant_id = request.POST.get('tenant_id')
             if not tenant_id:
                 messages.error(request, "Superadmin must select a tenant.")
-                return redirect('Create_Party')
+                return redirect('Create_party') # Correct redirect name
             target_tenant = get_object_or_404(Tenant, id=tenant_id)
         else:
-            # For regular users, the tenant is set by middleware
             target_tenant = request.tenant
 
         party_name = request.POST.get('pname')
-        # Check for duplicates within the correct tenant
         if Create_party.objects.filter(party_name=party_name, tenant=target_tenant).exists():
             messages.warning(request, f"Party '{party_name}' already exists for this tenant.")
         else:
+            # --- THIS BLOCK IS CORRECTED ---
+            # Get the value from the form, or None if it's empty
+            op_bal = request.POST.get('op_bal')
+            credit_period = request.POST.get('credit_period')
+            credit_limit = request.POST.get('credit_limit')
+
             Create_party.objects.create(
-                tenant=target_tenant,  # Use the identified target tenant
+                tenant=target_tenant,
                 user=account,
                 party_name=party_name,
                 mobile_num=request.POST.get('pnum'),
                 email=request.POST.get('pemail'),
-                opening_balance=request.POST.get('op_bal', 0),
+                # If the value is an empty string, save 0, otherwise save the value
+                opening_balance=op_bal if op_bal else 0,
                 gst_no=request.POST.get('gst_in'),
                 pan_no=request.POST.get('pan_no'),
                 party_type=request.POST.get('p_type'),
                 party_category=request.POST.get('p_category'),
                 billing_address=request.POST.get('billing_address'),
                 shipping_address=request.POST.get('shipping_address'),
-                credit_period=request.POST.get('credit_period', 0),
-                credit_limit=request.POST.get('credit_limit', 0),
+                # Same logic for other number fields
+                credit_period=credit_period if credit_period else 0,
+                credit_limit=credit_limit if credit_limit else 0,
                 is_active=True
             )
+            # --- END OF CORRECTION ---
             messages.success(request, 'Party Added Successfully.')
         
-        # Redirect based on who is logged in
         if account.role == 'superadmin':
-             return redirect(f"/Party_list?tenant_id={target_tenant.id}")
+            return redirect(f"/Party_list?tenant_id={target_tenant.id}")
         else:
-             return redirect('Party_list')
-        
-    # For GET request, prepare context
+            return redirect('Party_list')
+            
+    # GET request logic
     context = {'add': account}
     if account.role == 'superadmin':
         context['tenants'] = Tenant.objects.all()
-        # Pre-select tenant if coming from a tenant-specific page
         context['tenant_id_from_url'] = request.GET.get('tenant_id')
 
     return render(request, 'Create_party.html', context)
@@ -705,6 +710,7 @@ def create_item_view(request):
                     'stock_date': request.POST.get('stock_date') or None,
                     'expiry_date': request.POST.get('expiry_date') or None,
                     'batch_number': request.POST.get('batch_number') or None,
+                    'min_stock_level': request.POST.get('min_stock_level', 0) or 0,
                 }
                 product = Product(**product_data)
                 product.full_clean()
@@ -760,83 +766,48 @@ def create_item_view(request):
 # Update Item View
 @tenant_required
 def update_item_view(request, item_id):
-    account = get_object_or_404(Account, email=request.session['email'])
-    
-    # Fetch the base item to check its type and for security
+    account = request.user # Use request.user from your decorator
     item_base = get_object_or_404(ItemBase, id=item_id)
     
-    # Security Check: Ensure user is a superadmin or belongs to the correct tenant
+    # Security Check
     if account.role != 'superadmin' and item_base.tenant != request.tenant:
         messages.error(request, "You are not authorized to edit this item.")
         return redirect('Item_list')
         
-    # Determine if the item is a Product or Service to fetch the specific instance
+    # Determine which item type and form to use
     if item_base.item_type == 'product':
         item_instance = get_object_or_404(Product, id=item_id)
+        FormClass = ProductUpdateForm
     else: # 'service'
         item_instance = get_object_or_404(Service, id=item_id)
+        FormClass = ServiceUpdateForm
         
-    if request.method == "POST":
-        try:
-            # For simplicity, we'll update the fields directly.
-            # A Django ModelForm would be a more advanced way to handle this.
-            
-            # Common fields
-            item_instance.item_name = request.POST.get('item_name', '').strip()
-            item_instance.description = request.POST.get('item_des', '')
-            item_instance.category_id = request.POST.get('category')
-            item_instance.gst_rate = request.POST.get('gst')
-            item_instance.hsn_sac_code = request.POST.get('hsn')
-            item_instance.sale_price = request.POST.get('sale_price')
-            
-            if 'product_image' in request.FILES:
-                item_instance.image = request.FILES['product_image']
+    tenant = item_instance.tenant
 
-            # Product-specific fields
-            if item_instance.item_type == 'product':
-                item_instance.unit_id = request.POST.get('unit')
-                item_instance.purchase_price = request.POST.get('purchase_price')
-                item_instance.opening_stock = request.POST.get('opening_stock')
-                item_instance.stock_date = request.POST.get('stock_date') or None
-                item_instance.expiry_date = request.POST.get('expiry_date') or None
-                item_instance.batch_number = request.POST.get('batch_number')
-            
-            # Service-specific fields (if you add them to the form)
-            elif item_instance.item_type == 'service':
-                item_instance.sale_price = request.POST.get('sale_price')
-            
-            item_instance.full_clean()
-            item_instance.save()
+    if request.method == "POST":
+        # Pass the tenant to the form for dropdown filtering
+        form = FormClass(request.POST, request.FILES, instance=item_instance, tenant=tenant)
+        if form.is_valid():
+            form.save()
             messages.success(request, f"Item '{item_instance.item_name}' updated successfully.")
 
             if account.role == 'superadmin':
-                return redirect(f"/Item_list?tenant_id={item_instance.tenant.id}")
+                return redirect(f"{reverse('Item_list')}?tenant_id={tenant.id}")
             else:
                 return redirect('Item_list')
-        
-        except ValidationError as e:
-            error_messages = e.message_dict if hasattr(e, 'message_dict') else {'__all__': e.messages}
-            for field, errors in error_messages.items():
-                for error in errors:
-                    messages.error(request, f"{field.replace('_', ' ').title()}: {error}")
-        except Exception as e:
-            messages.error(request, f"An unexpected error occurred: {str(e)}")
-        
-        return redirect('update_item', item_id=item_instance.id)
+        else:
+            # If form is invalid, errors will be displayed automatically
+            messages.error(request, "Please correct the errors below.")
+    else:
+        # For a GET request, create an unbound form pre-filled with the item's data
+        form = FormClass(instance=item_instance, tenant=tenant)
 
-    # For GET request, prepare the context
     context = {
         'add': account,
+        'form': form,
         'item': item_instance,
+        'tenant': tenant,
     }
-    # Load tenant-specific or all Units/Categories for the dropdowns
-    if account.role == 'superadmin':
-        context['unit'] = Unit.objects.filter(tenant=item_instance.tenant)
-        context['category'] = Category.objects.filter(tenant=item_instance.tenant)
-    else:
-        context['unit'] = Unit.objects.filter(tenant=request.tenant, is_active=True)
-        context['category'] = Category.objects.filter(tenant=request.tenant, is_active=True)
-
     return render(request, 'update_item.html', context)
 
 # Delete Item View 

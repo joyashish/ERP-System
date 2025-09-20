@@ -1,7 +1,6 @@
 {% include 'header.html' %}
 {% include 'navbar.html' %}
 {% include 'sidebar.html' %}
-{% load static %}
 
 <div class="content-wrapper">
     <div class="content-header">
@@ -11,7 +10,7 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'Item_list' %}">Item List</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'Item_list' %}?tenant_id={{ tenant.id }}">Item List</a></li>
                         <li class="breadcrumb-item active">{{ item.item_name }}</li>
                     </ol>
                 </div>
@@ -21,81 +20,93 @@
 
     <section class="content">
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-12">
-                    {% if messages %}
-                    <div class="container-fluid">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="card card-primary card-outline">
+                    <div class="card-header"><h3 class="card-title">Editing: <strong>{{ item.item_name }}</strong></h3></div>
+                    <div class="card-body">
+                        {% if messages %}
                         {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show msg_sec" role="alert">
-                            {{ message }}
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">×</span>
-                            </button>
-                        </div>
+                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
                         {% endfor %}
+                        {% endif %}
+
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <h5>Please correct the following errors:</h5>
+                            <ul>
+                                {% for field, error_list in form.errors.items %}
+                                    {% for error in error_list %}
+                                    <li><strong>{{ field|title }}</strong>: {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label for="{{ form.item_name.id_for_label }}">Item Name *</label>
+                                {{ form.item_name }}
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="{{ form.category.id_for_label }}">Category</label>
+                                {{ form.category }}
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label for="{{ form.description.id_for_label }}">Description</label>
+                                {{ form.description }}
+                            </div>
+                        </div>
+
+                        {% if item.item_type == 'product' %}
+                        <hr><h5 class="mt-4">Pricing & Tax</h5>
+                        <div class="row">
+                            <div class="col-md-4 form-group"><label for="{{ form.sale_price.id_for_label }}">Sales Price *</label>{{ form.sale_price }}</div>
+                            <div class="col-md-4 form-group"><label for="{{ form.purchase_price.id_for_label }}">Purchase Price *</label>{{ form.purchase_price }}</div>
+                            <div class="col-md-4 form-group"><label for="{{ form.unit.id_for_label }}">Unit *</label>{{ form.unit }}</div>
+                            <div class="col-md-4 form-group"><label for="{{ form.gst_rate.id_for_label }}">GST Rate</label>{{ form.gst_rate }}</div>
+                            <div class="col-md-4 form-group"><label for="{{ form.hsn_sac_code.id_for_label }}">HSN Code</label>{{ form.hsn_sac_code }}</div>
+                        </div>
+                        <hr><h5 class="mt-4">Stock & Inventory</h5>
+                        <div class="row">
+                            <div class="col-md-3 form-group"><label for="{{ form.opening_stock.id_for_label }}">Stock Quantity</label>{{ form.opening_stock }}</div>
+                            <div class="col-md-3 form-group"><label for="{{ form.min_stock_level.id_for_label }}">Min. Stock Level</label>{{ form.min_stock_level }}</div>
+                            <div class="col-md-3 form-group"><label for="{{ form.stock_date.id_for_label }}">As of Date</label>{{ form.stock_date }}</div>
+                            <div class="col-md-3 form-group"><label for="{{ form.batch_number.id_for_label }}">Batch Number</label>{{ form.batch_number }}</div>
+                            <div class="col-md-3 form-group"><label for="{{ form.expiry_date.id_for_label }}">Expiry Date</label>{{ form.expiry_date }}</div>
+                        </div>
+                        {% else %}
+                        <hr><h5 class="mt-4">Service Details</h5>
+                        <div class="row">
+                            <div class="col-md-4 form-group"><label for="{{ form.sale_price.id_for_label }}">Sales Price *</label>{{ form.sale_price }}</div>
+                            <div class="col-md-4 form-group"><label for="{{ form.service_unit.id_for_label }}">Service Unit</label>{{ form.service_unit }}</div>
+                             <div class="col-md-4 form-group"><label for="{{ form.service_start_date.id_for_label }}">Service Start Date</label>{{ form.service_start_date }}</div>
+                            <div class="col-md-4 form-group"><label for="{{ form.gst_rate.id_for_label }}">GST Rate</label>{{ form.gst_rate }}</div>
+                            <div class="col-md-4 form-group"><label for="{{ form.hsn_sac_code.id_for_label }}">SAC Code</label>{{ form.hsn_sac_code }}</div>
+                        </div>
+                        {% endif %}
+
+                        <hr><h5 class="mt-4">Image</h5>
+                        <div class="row">
+                           <div class="col-md-6 form-group">
+                                <label for="{{ form.image.id_for_label }}">Upload New Image</label>
+                                {{ form.image }}
+                            </div>
+                            <div class="col-md-6">
+                                {% if item.image %}
+                                <label>Current Image</label><br>
+                                <img src="{{ item.image.url }}" alt="{{ item.item_name }}" style="max-height: 80px; border-radius: 5px;">
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                    {% endif %}
-
-                    <div class="card col-12">
-                        <div class="card-header">
-                            <h3 class="card-title">Editing: {{ item.item_name }}</h3>
-                        </div>
-                        <div class="card-body">
-                            <form method="POST" enctype="multipart/form-data">
-                                {% csrf_token %}
-
-                                <div class="form-group col-md-4">
-                                    <label for="itemName">Item Name *</label>
-                                    <input type="text" class="form-control" id="itemName" name="item_name" value="{{ item.item_name }}" required>
-                                </div>
-
-                                {% if item.item_type == 'product' %}
-                                <div id="product-form">
-                                    <h5 class="mt-4">Product Details</h5>
-                                    <hr>
-                                    <div class="form-row">
-                                        <div class="form-group col-md-4">
-                                            <label for="unitSelect">Select Unit *</label>
-                                            <select class="form-control" name="unit" id="unitSelect">
-                                                {% for u in unit %}<option value="{{ u.id }}" {% if u.id == item.unit.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="form-group col-md-4">
-                                            <label for="salesPrice">Sales Price *</label>
-                                            <input type="number" id="salesPrice" class="form-control" name="sale_price" value="{{ item.sale_price }}" step="0.01" min="0">
-                                        </div>
-                                        <div class="form-group col-md-4">
-                                            <label for="purchasePrice">Purchase Price *</label>
-                                            <input type="number" id="purchasePrice" class="form-control" name="purchase_price" value="{{ item.purchase_price }}" step="0.01" min="0">
-                                        </div>
-                                        <div class="form-group col-md-4">
-                                            <label for="openingStock">Stock Quantity</label>
-                                            <input type="number" id="openingStock" class="form-control" name="opening_stock" value="{{ item.opening_stock }}">
-                                        </div>
-                                        </div>
-                                </div>
-                                {% endif %}
-                                {% if item.item_type == 'service' %}
-                                <div id="service-form">
-                                    <h5 class="mt-4">Service Details</h5>
-                                    <hr>
-                                    <div class="form-row">
-                                        <div class="form-group col-md-4">
-                                            <label for="servicePrice">Sales Price *</label>
-                                            <input type="number" id="servicePrice" class="form-control" name="sale_price" value="{{ item.sale_price }}"
-                                                step="0.01" min="0">
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
-
-                                <button type="submit" class="btn btn-success mt-3">Update Item</button>
-                                <a href="{% if add.role == 'superadmin' %}{% url 'Item_list' %}?tenant_id={{item.tenant.id}}{% else %}{% url 'Item_list' %}{% endif %}" class="btn btn-secondary mt-3">Cancel</a>
-                            </form>
-                        </div>
+                    <div class="card-footer text-right">
+                        <a href="{% if add.role == 'superadmin' %}{% url 'Item_list' %}?tenant_id={{item.tenant.id}}{% else %}{% url 'Item_list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Update Item</button>
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
     </section>
 </div>

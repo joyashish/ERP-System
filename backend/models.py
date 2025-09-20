@@ -96,15 +96,15 @@ class Category(models.Model):
 # Create Party Model
 class Create_party(models.Model):
     party_name = models.CharField(max_length=255)
-    mobile_num = models.CharField(max_length=15)
-    email = models.EmailField()
+    mobile_num = models.CharField(max_length=12,  blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
     opening_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     gst_no = models.CharField(max_length=20, blank=True, null=True)
     pan_no = models.CharField(max_length=10, blank=True, null=True)
-    party_type = models.CharField(max_length=100)
-    party_category = models.CharField(max_length=100)
-    billing_address = models.TextField()
-    shipping_address = models.TextField()
+    party_type = models.CharField(max_length=25,  blank=True, null=True)
+    party_category = models.CharField(max_length=25,  blank=True, null=True)
+    billing_address = models.TextField(blank=True, null=True)
+    shipping_address = models.TextField(blank=True, null=True)
     credit_period = models.IntegerField(default=0)
     credit_limit = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='parties')
@@ -112,7 +112,7 @@ class Create_party(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ('tenant', 'party_name', 'email')
+        unique_together = ('tenant', 'party_name') # Removed email to allow multiple parties with same name but different emails if desired
 
     def __str__(self):
         return self.party_name
