@@ -169,8 +169,10 @@
                                                 <tr class="item-row">
                                                     <td data-label="Item"><select class="form-control form-control-sm item-select" name="items[0][item_id]" required><option value="">Select Item</option>{% for item in items %}<option value="{{ item.id }}" data-price="{{ item.sale_price }}" data-gst="{{ item.gst_rate }}">{{ item.item_name }}</option>{% endfor %}</select></td>
                                                     <td data-label="Qty"><input type="number" class="form-control form-control-sm quantity" name="items[0][quantity]" min="1" value="1" required></td>
-                                                    <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" name="items[0][unit_price]" readonly></td>
+                                                    <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" name="items[0][unit_price]"></td>
                                                     <td data-label="GST"><input type="text" class="form-control form-control-sm gst-rate" name="items[0][gst_rate]" readonly></td>
+
+                                                    <!-- Item-Level Discount (Line Item Discount): This is the discount applied to a single item in your "Sale Items" table. Saved In: The discount field of your SaleItem model. -->
                                                     <td data-label="Discount"><input type="number" class="form-control form-control-sm discount" name="items[0][discount]" min="0" value="0" step="0.01"></td>
                                                     <td data-label="Amount"><input type="number" class="form-control form-control-sm amount" name="items[0][amount]" readonly></td>
                                                     <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
@@ -197,6 +199,7 @@
                                 <div class="card-header"><h5 class="card-title mb-0 font-weight-bold">Payment Summary</h5></div>
                                 <div class="card-body">
                                     <div class="summary-row"><span class="summary-label">Subtotal</span><span class="summary-value" id="subtotal">₹ 0.00</span></div>
+                                    <!-- Overall Discount (Invoice Discount): This is the discount applied to the entire sale in your "Payment Summary" section. Saved In: The discount field of your Sale model. -->
                                     <div class="summary-row"><span class="summary-label">Discount</span><input type="number" class="form-control form-control-sm summary-input" id="totalDiscount" name="discount" value="0" step="0.01" min="0"></div>
                                     <div class="summary-row">
                                         <input type="text" class="form-control form-control-sm" id="additionalChargesNote" name="additional_charges_note" placeholder="e.g., Additional Charges">
@@ -330,26 +333,40 @@
          * Recalculates all totals in the Payment Summary section.
          */
         function updateTotals() {
-            let subtotal = 0, totalTax = 0;
+            let subtotal = 0,totalItemDiscount = 0, totalTax = 0;
+
+            // 1. Loop through each item to calculate line totals and gather data
             $('.item-row').each(function () {
                 const row = $(this);
                 const quantity = parseFloat(row.find('.quantity').val()) || 0;
                 const unitPrice = parseFloat(row.find('.unit-price').val()) || 0;
-                const discount = parseFloat(row.find('.discount').val()) || 0;
+                const itemDiscount  = parseFloat(row.find('.discount').val()) || 0;
                 const gstText = row.find('.gst-rate').val() || '0%';
                 const gstRate = parseFloat(gstText.replace('%','')) || 0;
-                const itemSubtotal = (quantity * unitPrice);
-                subtotal += itemSubtotal;
-                const taxableItemAmount = itemSubtotal - discount;
+
+                // Calculate subtotal before any discounts
+                subtotal += quantity * unitPrice;
+
+                // Keep track of the sum of all item-level discounts
+                totalItemDiscount += itemDiscount;
+                
+                // Tax is calculated on the price after the item-level discount
+                const taxableItemAmount = (quantity * unitPrice) - itemDiscount;
                 totalTax += taxableItemAmount * (gstRate / 100);
             });
-            const totalDiscountInput = parseFloat($('#totalDiscount').val()) || 0;
+            // 2. Get overall invoice-level adjustments
+            const overallDiscount = parseFloat($('#totalDiscount').val()) || 0;
             const additionalCharges = parseFloat($('#additionalCharges').val()) || 0;
-            const taxableAmount = subtotal - totalDiscountInput;
+
+            // 3. Calculate final summary
+            // Taxable amount is the subtotal minus BOTH types of discounts
+            const totalDiscount = totalItemDiscount + overallDiscount;
+            const taxableAmount = subtotal - totalDiscount;
             const totalAmount = taxableAmount + totalTax + additionalCharges;
             const amountReceived = parseFloat($('#amountReceived').val()) || 0;
             const balanceAmount = totalAmount - amountReceived;
 
+            // 4. Update the display
             $('#subtotal').text('₹ ' + subtotal.toFixed(2));
             $('#taxableAmount').text('₹ ' + taxableAmount.toFixed(2));
             $('#totalTax').text('₹ ' + totalTax.toFixed(2));
@@ -361,14 +378,17 @@
          * Binds calculation events to inputs in the item rows.
          */
         function bindRowEvents(row) {
-            const target = row ? row.find('.item-select, .quantity, .discount') : $(document);
-            target.on('input change', '.item-select, .quantity, .discount', function () {
+            const target = row ? row.find('.item-select, .quantity, .discount, .unit-price') : $(document);
+            target.on('input change', '.item-select, .quantity, .discount, .unit-price', function () {
                 const currentRow = $(this).closest('tr');
+                // When a new item is selected from the dropdown, it populates the price.
+                // But now the user can override it.
                 if ($(this).hasClass('item-select')) {
                     const selectedOption = $(this).find('option:selected');
                     currentRow.find('.unit-price').val(selectedOption.data('price') || 0);
                     currentRow.find('.gst-rate').val(selectedOption.data('gst') || '');
                 }
+                // Any change will trigger a recalculation
                 updateRowAmount(currentRow);
             });
         }
@@ -401,7 +421,7 @@
               <tr class="item-row">
                 <td data-label="Item"><select class="form-control form-control-sm item-select" name="items[${rowIndex}][item_id]" required>${itemOptions}</select></td>
                 <td data-label="Qty"><input type="number" class="form-control form-control-sm quantity" name="items[${rowIndex}][quantity]" min="1" value="1" required></td>
-                <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" name="items[${rowIndex}][unit_price]" readonly></td>
+                <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" name="items[${rowIndex}][unit_price]" step="0.01" min="0"></td>
                 <td data-label="GST"><input type="text" class="form-control form-control-sm gst-rate" name="items[${rowIndex}][gst_rate]" readonly></td>
                 <td data-label="Discount"><input type="number" class="form-control form-control-sm discount" name="items[${rowIndex}][discount]" min="0" value="0" step="0.01"></td>
                 <td data-label="Amount"><input type="number" class="form-control form-control-sm amount" name="items[${rowIndex}][amount]" readonly></td>

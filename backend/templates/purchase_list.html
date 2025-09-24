@@ -93,6 +93,7 @@
                         <table id="example1" class="table table-bordered table-hover">
                             <thead>
                                 <tr>
+                                    <th>S.no</th>
                                     <th>Date</th>
                                     <th>Bill No.</th>
                                     <th>Vendor</th>
@@ -104,6 +105,7 @@
                             <tbody>
                                 {% for purchase in purchases %}
                                 <tr>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ purchase.purchase_date|date:"d M, Y" }}</td>
                                     <td>
                                         <a href="{% url 'view_purchase' purchase.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="text-primary font-weight-bold">

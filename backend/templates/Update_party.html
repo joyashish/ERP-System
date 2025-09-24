@@ -7,13 +7,11 @@
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Update Party</h1>
-                </div>
+                <div class="col-sm-6"><h1 class="m-0">Update Party</h1></div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'Party_list' %}">Party List</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'Party_list' %}?tenant_id={{ tenant.id }}">Party List</a></li>
                         <li class="breadcrumb-item active">{{ party.party_name }}</li>
                     </ol>
                 </div>
@@ -25,94 +23,62 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-12">
-                    <div class="card card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title">Editing: {{ party.party_name }}</h3>
-                        </div>
+                    <div class="card card-primary card-outline">
+                        <div class="card-header"><h3 class="card-title">Editing: <strong>{{ party.party_name }}</strong></h3></div>
                         <div class="card-body">
-                            {% if messages %}
-                                {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                {% endfor %}
-                            {% endif %}
+                            {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+                            {% if form.errors %}<div class="alert alert-danger">Please correct the errors shown in the fields below.</div>{% endif %}
 
-                            <form method="POST" action="{% url 'update_party' party.id %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}">
+                            <form method="POST">
                                 {% csrf_token %}
                                 
-                                <h5>General Details</h5>
+                                <h5 class="section-header">General Details</h5>
                                 <div class="form-row">
-                                    <div class="form-group col-md-4">
-                                        <label>Party Name</label>
-                                        <input type="text" value="{{ party.party_name }}" class="form-control" name="pname" required>
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label>Mobile Number</label>
-                                        <input type="text" value="{{ party.mobile_num }}" class="form-control" name="pnum" required>
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label>Email</label>
-                                        <input type="email" class="form-control" value="{{ party.email }}" name="pemail" required>
-                                    </div>
+                                    <div class="form-group col-md-4"><label for="{{ form.party_name.id_for_label }}">Party Name *</label>{{ form.party_name }}</div>
+                                    <div class="form-group col-md-4"><label for="{{ form.mobile_num.id_for_label }}">Mobile Number</label>{{ form.mobile_num }}</div>
+                                    <div class="form-group col-md-4"><label for="{{ form.email.id_for_label }}">Email</label>{{ form.email }}</div>
                                 </div>
 
                                 <div class="form-row">
-                                    <div class="form-group col-md-4">
-                                        <label>Opening Balance</label>
-                                        <input type="number" class="form-control" value="{{ party.opening_balance }}" name="op_bal" step="0.01" required>
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label>GSTIN</label>
-                                        <input type="text" value="{{ party.gst_no|default:'' }}" class="form-control" name="gst_in">
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label>PAN Number</label>
-                                        <input type="text" class="form-control" value="{{ party.pan_no|default:'' }}" name="pan_no">
-                                    </div>
+                                    <div class="form-group col-md-4"><label for="{{ form.opening_balance.id_for_label }}">Opening Balance</label>{{ form.opening_balance }}</div>
+                                    <div class="form-group col-md-4"><label for="{{ form.gst_no.id_for_label }}">GSTIN</label>{{ form.gst_no }}</div>
+                                    <div class="form-group col-md-4"><label for="{{ form.pan_no.id_for_label }}">PAN Number</label>{{ form.pan_no }}</div>
                                 </div>
                                 
                                 <div class="form-row">
                                     <div class="form-group col-md-4">
-                                        <label>Party Type</label>
-                                        <input type="text" class="form-control" value="{{ party.party_type }}" name="p_type" required>
+                                        <label for="partyType">Party Type *</label>
+                                        <select id="partyType" class="form-control" name="party_type" required>
+                                            <option value="Customer" {% if party.party_type == 'Customer' %}selected{% endif %}>Customer</option>
+                                            <option value="Supplier" {% if party.party_type == 'Supplier' %}selected{% endif %}>Supplier</option>
+                                        </select>
                                     </div>
                                     <div class="form-group col-md-4">
-                                        <label>Party Category</label>
-                                        <input type="text" class="form-control" value="{{ party.party_category }}" name="p_category" required>
+                                        <label for="partyCategory">Party Category</label>
+                                        <select id="partyCategory" class="form-control" name="party_category">
+                                            <option value="">Select Category</option>
+                                            <option value="Regular" {% if party.party_category == 'Regular' %}selected{% endif %}>Regular</option>
+                                            <option value="VIP" {% if party.party_category == 'VIP' %}selected{% endif %}>VIP</option>
+                                            <option value="Wholesale" {% if party.party_category == 'Wholesale' %}selected{% endif %}>Wholesale</option>
+                                        </select>
                                     </div>
                                 </div>
-                                
-                                <h5 class="mt-3">Address Details</h5>
+
+                                <h5 class="section-header mt-3">Address Details</h5>
                                 <div class="form-row">
-                                    <div class="form-group col-md-6">
-                                        <label>Billing Address</label>
-                                        <textarea class="form-control" name="billing_address" rows="3">{{ party.billing_address }}</textarea>
-                                    </div>
-                                    <div class="form-group col-md-6">
-                                        <label>Shipping Address</label>
-                                        <textarea class="form-control" name="shipping_address" rows="3">{{ party.shipping_address }}</textarea>
-                                    </div>
+                                    <div class="form-group col-md-6"><label for="billingAddress">Billing Address</label><textarea id="billingAddress" data-toggle="modal" data-target="#billingModal" class="form-control" name="billing_address" placeholder="Click to Edit Billing Address" readonly>{{ form.billing_address.value|default:"" }}</textarea></div>
+                                    <div class="form-group col-md-6"><label for="shippingAddress">Shipping Address</label><textarea id="shippingAddress" class="form-control" name="shipping_address">{{ form.shipping_address.value|default:"" }}</textarea><div class="form-check mt-2"><input type="checkbox" id="sameAsBilling" class="form-check-input"><label for="sameAsBilling" class="form-check-label">Same as Billing Address</label></div></div>
                                 </div>
-                                
-                                <h5 class="mt-3">Credit Information</h5>
+
+                                <h5 class="section-header mt-3">Credit Information</h5>
                                 <div class="form-row">
-                                    <div class="form-group col-md-4">
-                                        <label>Credit Period (days)</label>
-                                        <input type="number" value="{{ party.credit_period }}" class="form-control" name="credit_period" required>
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label>Credit Limit (₹)</label>
-                                        <input type="number" value="{{ party.credit_limit }}" class="form-control" name="credit_limit" step="0.01" required>
-                                    </div>
+                                    <div class="form-group col-md-4"><label for="{{ form.credit_period.id_for_label }}">Credit Period (days)</label><input type="number" class="form-control" name="credit_period" value="{{ form.credit_period.value|default:0 }}"></div>
+                                    <div class="form-group col-md-4"><label for="{{ form.credit_limit.id_for_label }}">Credit Limit (₹)</label><input type="number" class="form-control" name="credit_limit" value="{{ form.credit_limit.value|default:0.00 }}" step="0.01"></div>
                                 </div>
 
                                 <div class="mt-4">
                                     <button type="submit" class="btn btn-primary">Update Party</button>
-                                    <a href="{% url 'Party_list' %}{% if add.role == 'superadmin' and tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary">Cancel</a>
+                                    <a href="{% url 'Party_list' %}{% if add.role == 'superadmin' %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary">Cancel</a>
                                 </div>
                             </form>
                         </div>
@@ -123,5 +89,118 @@
     </section>
 </div>
 
+<div class="modal fade" id="billingModal" tabindex="-1" role="dialog" aria-labelledby="billingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="billingModalLabel">Enter Billing Address</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 form-group"><label for="state">State *</label><select id="state" class="form-control"></select></div>
+                    <div class="col-md-6 form-group"><label for="district">District *</label><select id="district" class="form-control" disabled></select></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8 form-group"><label for="city">City/Town/Village *</label><input type="text" id="city" class="form-control" placeholder="Enter City/Town/Village name"></div>
+                    <div class="col-md-4 form-group"><label for="pincode">Pincode *</label><input type="text" id="pincode" class="form-control" placeholder="Enter Pincode" maxlength="6"></div>
+                </div>
+                <div class="row">
+                     <div class="col-md-12 form-group"><label for="street1">Street Address / House No. *</label><input type="text" id="street1" class="form-control" placeholder="e.g., H/No 123, Main Road"></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button><button type="button" class="btn btn-primary" id="saveBillingAddress">Save Address</button></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function () {
+    const stateSelect = $('#state');
+    const districtSelect = $('#district');
+    const cityInput = $('#city'); // The city is now a text input
+    
+    // --- NEW: LOGIC TO PRE-POPULATE THE MODAL ---
+    $('#billingModal').on('show.bs.modal', function () {
+        const addressText = $('#billingAddress').val().trim();
+        if (!addressText) return; // Do nothing if the address is empty
+
+        // Simple parser based on the format: "Street\nCity, District\nState - Pincode"
+        const lines = addressText.split('\n');
+        try {
+            const street = lines[0] ? lines[0].trim() : '';
+            const city = lines[1] ? lines[1].split(',')[0].trim() : '';
+            const district = lines[1] ? lines[1].split(',')[1].trim() : '';
+            const state = lines[2] ? lines[2].split('-')[0].trim() : '';
+            const pincode = lines[2] ? lines[2].split('-')[1].trim() : '';
+
+            // Set the values in the modal
+            $('#street1').val(street);
+            $('#city').val(city);
+            $('#pincode').val(pincode);
+
+            // Set the state dropdown and trigger a change to load the districts
+            stateSelect.val(state).trigger('change');
+            
+            // IMPORTANT: We must wait for the districts to load before selecting one
+            setTimeout(function() {
+                districtSelect.val(district);
+            }, 500); // 500ms delay to allow the API call to complete
+
+        } catch (e) {
+            console.error("Could not parse address. Please re-enter manually.", e);
+            // If parsing fails, just present a blank modal for the user to fix.
+        }
+    });
+
+
+    // --- The rest of your script remains the same ---
+    const apiUrl = 'https://raw.githubusercontent.com/sab99r/Indian-States-And-Districts/master/states-and-districts.json';
+
+    // 1. Fetch and Populate States
+    fetch(apiUrl).then(response => response.json()).then(data => {
+        stateSelect.html('<option value="">Select State</option>');
+        data.states.forEach(stateObj => stateSelect.append(`<option value="${stateObj.state}">${stateObj.state}</option>`));
+    }).catch(error => console.error("Error fetching states:", error));
+
+    // 2. Handle State Change to Populate Districts
+    stateSelect.on('change', function() {
+        const selectedState = $(this).val();
+        districtSelect.html('<option value="">Loading...</option>').prop('disabled', true);
+        if (!selectedState) {
+            districtSelect.html('<option value="">Select State First</option>');
+            return;
+        }
+        fetch(apiUrl).then(response => response.json()).then(data => {
+            const stateData = data.states.find(s => s.state === selectedState);
+            districtSelect.html('<option value="">Select District</option>').prop('disabled', false);
+            if (stateData) {
+                stateData.districts.forEach(district => districtSelect.append(`<option value="${district}">${district}</option>`));
+            }
+        });
+    });
+
+    // 3. Save Address to Text Area
+    $("#saveBillingAddress").click(function () {
+        const street = $("#street1").val();
+        const city = $("#city").val();
+        const district = $("#district").val();
+        const state = $("#state").val();
+        const pincode = $("#pincode").val();
+        
+        if (!street || !city || !district || !state || !pincode) {
+            alert("Please fill all required address fields (*).");
+            return;
+        }
+        const finalAddress = `${street}\n${city}, ${district}\n${state} - ${pincode}`;
+        $("#billingAddress").val(finalAddress).trigger("input");
+        $("#billingModal").modal("hide");
+    });
+    
+    // 4. Same as Billing Logic
+    $("#sameAsBilling").change(function () { if ($(this).is(":checked")) { $("#shippingAddress").val($("#billingAddress").val()); } else { $("#shippingAddress").val(""); } });
+    $("#billingAddress").on("input", function () { if ($("#sameAsBilling").is(":checked")) { $("#shippingAddress").val($(this).val()); } });
+});
+</script>
+
+
 {% include 'footer.html' %}
-{% include 'footer_link.html' %}

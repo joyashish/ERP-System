@@ -343,7 +343,7 @@ def DashVw(request):
         expiry_date__lte=thirty_days_from_now
     ).count()
     
-    recent_sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-created_at')[:5]
+    recent_sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-id')[:5]
 
     context = {
         'add': account,
@@ -397,6 +397,7 @@ def Create_partyVw(request):
             target_tenant = request.tenant
 
         party_name = request.POST.get('pname')
+        party_type = request.POST.get('p_type')
         if Create_party.objects.filter(party_name=party_name, tenant=target_tenant).exists():
             messages.warning(request, f"Party '{party_name}' already exists for this tenant.")
         else:
@@ -454,14 +455,14 @@ def Party_listVw(request):
         if tenant_id:
             try:
                 tenant = Tenant.objects.get(id=tenant_id)
-                party_list = Create_party.objects.filter(tenant=tenant, is_active=True)
+                party_list = Create_party.objects.filter(tenant=tenant, is_active=True).order_by('-id')
             except Tenant.DoesNotExist:
                 # Handle case where an invalid tenant_id is passed
                 pass 
     else:
         # This logic for regular users is correct and remains the same
         tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
-        party_list = Create_party.objects.filter(tenant=tenant, is_active=True)
+        party_list = Create_party.objects.filter(tenant=tenant, is_active=True).order_by('-id')
 
     total_balance = party_list.aggregate(total=Sum('opening_balance'))['total'] or 0.00
     total_credit = party_list.aggregate(total=Sum('credit_limit'))['total'] or 0.00
@@ -505,11 +506,12 @@ def Dlt_Party_ListVw(request, id):
 # Update Party View
 @tenant_required
 def Updt_Party_List(request, id):
-    account = Account.objects.filter(email=request.session['email']).first()
-    # tenant = get_tenant(request) if not account.role == 'superadmin' else None
+    account = request.user
     
-    # Use get_object_or_404 to fetch the single party object we want to update
-    party_to_update = get_object_or_404(Create_party, id=id)
+    if account.role == 'superadmin':
+        party_to_update = get_object_or_404(Create_party, id=id)
+    else:
+        party_to_update = get_object_or_404(Create_party, id=id, tenant=request.tenant)
     
     # Security check: Ensure user has permission to edit this party
     if account.role != 'superadmin' and party_to_update.tenant != request.tenant:
@@ -518,31 +520,38 @@ def Updt_Party_List(request, id):
     
     if request.method == "POST":
         # Update the object with data from the form
-        party_to_update.party_name = request.POST.get('pname')
-        party_to_update.mobile_num = request.POST.get('pnum')
-        party_to_update.email = request.POST.get('pemail')
-        party_to_update.opening_balance = request.POST.get('op_bal', 0)
-        party_to_update.gst_no = request.POST.get('gst_in')
-        party_to_update.pan_no = request.POST.get('pan_no')
-        party_to_update.party_type = request.POST.get('p_type')
-        party_to_update.party_category = request.POST.get('p_category')
-        party_to_update.billing_address = request.POST.get('billing_address')
-        party_to_update.shipping_address = request.POST.get('shipping_address')
-        party_to_update.credit_period = request.POST.get('credit_period', 0)
-        party_to_update.credit_limit = request.POST.get('credit_limit', 0)
+        form = PartyUpdateForm(request.POST, instance=party_to_update)
+        if form.is_valid():
+            # Save the form but don't commit to the database just yet
+            party = form.save(commit=False)
 
-        party_to_update.save()
-        messages.info(request, 'Party Update Successfully.')
-        
-        # Redirect based on who is logged in
-        if account.role == 'superadmin':
-            # Get the tenant_id from the party being updated
-            return redirect(f"{reverse('Party_list')}?tenant_id={party_to_update.tenant.id}")
+            # Manually handle potentially empty number fields
+            # If the value from the form is an empty string, save 0 instead.
+            party.opening_balance = request.POST.get('opening_balance') or 0
+            party.credit_period = request.POST.get('credit_period') or 0
+            party.credit_limit = request.POST.get('credit_limit') or 0
+            
+            # Now, save the instance with the corrected data
+            party.save()
+            messages.success(request, 'Party updated successfully.')
+            redirect_url = reverse('Party_list')
+
+            if account.role == 'superadmin':
+                return redirect(f"{redirect_url}?tenant_id={party_to_update.tenant.id}")
+            else:
+                return redirect(redirect_url)
         else:
-            return redirect('Party_list')
+            messages.error(request, "Please correct the errors below.")
+
+    else: # GET request
+        form = PartyUpdateForm(instance=party_to_update)
     
-    # For GET request, pass tenant_id to template for potential use
-    context = {'add': account, 'party': party_to_update, 'tenant': party_to_update.tenant}
+    context = {
+        'add': account, 
+        'form': form,
+        'party': party_to_update, 
+        'tenant': party_to_update.tenant
+    }
     return render(request, 'Update_party.html', context)
     
 # Party Details View
@@ -557,7 +566,7 @@ def party_detail_view(request, party_id):
         return redirect('Party_list')
 
     # Fetch related sales and calculate financial totals
-    sales = Sale.objects.filter(party=party).order_by('-invoice_date')
+    sales = Sale.objects.filter(party=party).order_by('-id')
     financials = sales.aggregate(
         total_sales=Sum('total_amount'),
         total_paid=Sum('amount_received')
@@ -590,14 +599,14 @@ def item_list_view(request):
         if tenant_id:
             try:
                 tenant = Tenant.objects.get(id=tenant_id)
-                products = Product.objects.filter(tenant=tenant)
-                services = Service.objects.filter(tenant=tenant)
+                products = Product.objects.filter(tenant=tenant, is_active=True).order_by('-id')
+                services = Service.objects.filter(tenant=tenant, is_active=True).order_by('-id')
             except Tenant.DoesNotExist:
                 pass
     else:
         tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
-        products = Product.objects.filter(tenant=tenant)
-        services = Service.objects.filter(tenant=tenant)
+        products = Product.objects.filter(tenant=tenant, is_active=True).order_by('-id')
+        services = Service.objects.filter(tenant=tenant, is_active=True).order_by('-id')
     
     # --- NEW: Get and apply the filter from the URL ---
     item_filter = request.GET.get('filter')
@@ -810,7 +819,7 @@ def update_item_view(request, item_id):
     }
     return render(request, 'update_item.html', context)
 
-# Delete Item View 
+# Delete Item (soft delete)
 @tenant_required
 def delete_item_view(request, item_id):
     account = get_object_or_404(Account, email=request.session['email'])
@@ -865,7 +874,7 @@ def toggle_item_status(request, item_id):
 # Create Sale View (Detailed)
 @tenant_required
 def create_sale_view(request):
-    account = get_object_or_404(Account, email=request.session['email'])
+    account = request.user
 
     # --- POST Request: Handle Form Submission ---
     if request.method == "POST":
@@ -912,7 +921,7 @@ def create_sale_view(request):
                     
                     # Get the purchase price from the Product model
                     item_purchase_price = item.product.purchase_price if hasattr(item, 'product') else 0
-                    unit_price = float(item.sale_price)
+                    unit_price = float(post_data.get(f'items[{index}][unit_price]', 0))
                     item_discount = float(post_data.get(f'items[{index}][discount]', 0))
                     item_subtotal = quantity * unit_price
                     taxable_amount_item = item_subtotal - item_discount
@@ -930,7 +939,7 @@ def create_sale_view(request):
                         product.save()
                     
                     items_data.append({
-                        'item_instance': item, 'quantity': quantity, 'discount': item_discount,
+                        'item_instance': item, 'quantity': quantity,'unit_price': unit_price, 'discount': item_discount,
                         'tax_amount': tax_amount_item, 'amount': taxable_amount_item + tax_amount_item,
                         'purchase_price': item_purchase_price,
                     })
@@ -938,9 +947,22 @@ def create_sale_view(request):
                 if not items_data:
                     raise ValidationError("At least one valid item must be added to the sale.")
                 
+                # discount_overall = float(post_data.get('discount', 0))
+
+                # 1. Get the sum of all individual item discounts from our loop
+                total_item_discount = sum(item['discount'] for item in items_data)
+
+                # 2. Get the overall invoice-level discount from the form
                 discount_overall = float(post_data.get('discount', 0))
+
+                # 3. Calculate the true total discount
+                total_discount = total_item_discount + discount_overall
+                # 4. Calculate the taxable amount by subtracting the TOTAL discount from the subtotal
+                taxable_amount_total = total_item_subtotal - total_discount
+                print("total_item_discount",total_item_discount,discount_overall,total_discount,taxable_amount_total)
+
                 additional_charges = float(post_data.get('additional_charges', 0))
-                taxable_amount_total = total_item_subtotal - discount_overall
+                # taxable_amount_total = total_item_subtotal - discount_overall
                 total_amount = taxable_amount_total + total_tax + additional_charges
                 amount_received = float(post_data.get('amount_received', 0))
                 
@@ -987,6 +1009,7 @@ def create_sale_view(request):
     context = {'add': account}
     tenant_for_context = None
 
+    # STEP 1: Determine the correct tenant FIRST.
     if account.role == 'superadmin':
         context['tenants'] = Tenant.objects.all().order_by('name')
         tenant_id_from_url = request.GET.get('tenant_id')
@@ -994,13 +1017,24 @@ def create_sale_view(request):
         if tenant_id_from_url:
             tenant_for_context = get_object_or_404(Tenant, id=tenant_id_from_url)
     else:
+        # For regular users, the tenant is fixed.
         tenant_for_context = request.tenant
 
+    # STEP 2: Now that we have the tenant, fetch all related data.
     if tenant_for_context:
         context['invoice_no'] = generate_next_invoice_number(tenant_for_context)
         context['items'] = ItemBase.objects.filter(tenant=tenant_for_context, is_active=True).order_by('item_name')
-        context['parties'] = Create_party.objects.filter(tenant=tenant_for_context, is_active=True, party_type__in=['Customer', 'Both']).order_by('party_name')
+        
+        # This query will now use the correct tenant for both superadmin and regular admin
+        # and correctly filters for the 'Customer' party type.
+        context['parties'] = Create_party.objects.filter(
+            tenant=tenant_for_context, 
+            is_active=True, 
+            party_type__in=['Customer'] 
+        ).order_by('party_name')
+
     else:
+        # This handles the case where a superadmin has not yet selected a tenant.
         context['invoice_no'] = "Select a tenant to generate invoice no."
         context['items'] = []
         context['parties'] = []
@@ -1022,13 +1056,13 @@ def sales_list(request):
         if tenant_id:
             try:
                 tenant = Tenant.objects.get(id=tenant_id)
-                sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-invoice_date')
+                sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-id')
                 filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True)
             except Tenant.DoesNotExist:
                 pass
     else:
         tenant = request.tenant
-        sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-invoice_date')
+        sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-id')
         filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True)
 
     # 2. Get filter parameters
@@ -1253,12 +1287,12 @@ def delete_sale(request, sale_id):
 # --- VIEW to Get tenant data for sale ---
 def get_tenant_data_for_sale_form(request, tenant_id):
     # Ensure only authenticated superadmins can access this
-    account = Account.objects.filter(email=request.session.get('email')).first()
+    account = request.user
     if not account or account.role != 'superadmin':
         return JsonResponse({'error': 'Unauthorized'}, status=403)
 
     # Fetch parties and items for the requested tenant
-    parties = Create_party.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'party_name')
+    parties = Create_party.objects.filter(tenant_id=tenant_id, is_active=True,party_type__in=['Customer']).values('id', 'party_name','email', 'mobile_num', 'gst_no', 'billing_address')
     items = ItemBase.objects.filter(tenant_id=tenant_id, is_active=True).values('id', 'item_name', 'sale_price', 'gst_rate')
 
     data = {
@@ -1268,34 +1302,26 @@ def get_tenant_data_for_sale_form(request, tenant_id):
     return JsonResponse(data)
     
 from django.views.decorators.csrf import csrf_exempt
-@csrf_exempt
-def get_tenant_data(request, tenant_id):
-    try:
-        tenant = Tenant.objects.get(id=tenant_id)
-        parties = Create_party.objects.filter(tenant=tenant, is_active=True).values('id', 'party_name', 'email', 'mobile_num', 'gst_no', 'billing_address')
-        items = ItemBase.objects.filter(tenant=tenant, is_active=True).values('id', 'item_name', 'sale_price', 'gst_rate')
-        
-        return JsonResponse({
-            'parties': list(parties),
-            'items': list(items)
-        })
-    except Tenant.DoesNotExist:
-        return JsonResponse({'error': 'Tenant not found'}, status=404)
+
 # Sale Detail View
 @tenant_required
 def sale_detail_view(request, sale_id):
-    account = get_object_or_404(Account, email=request.session['email'])
+    account = request.user
     sale = get_object_or_404(Sale.objects.prefetch_related('items', 'items__item', 'payments'), id=sale_id)
 
     # Security check: Ensure the user has permission to view this sale
     if account.role != 'superadmin' and sale.tenant != request.tenant:
         messages.error(request, "You are not authorized to view this sale.")
         return redirect('sales_list')
-
+    
+    # --- NEW: Calculate total item-level discount ---
+    total_item_discount = sale.items.aggregate(total=Sum('discount'))['total'] or 0
+    
     context = {
         'add': account,
         'sale': sale,
         'tenant': sale.tenant,
+        'total_item_discount': total_item_discount,
     }
     return render(request, 'sale_detail.html', context)
 
@@ -1318,7 +1344,7 @@ def sales_report_view(request):
 
     if tenant:
         sales_items = SaleItem.objects.filter(sale__tenant=tenant).select_related('sale', 'item', 'sale__party')
-        filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True, party_type__in=['Customer', 'Both'])
+        filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True, party_type__in=['Customer'])
         filter_products = Product.objects.filter(tenant=tenant, is_active=True)
     
     # Get filters from URL
@@ -1489,7 +1515,7 @@ def sale_invoice_pdf(request, sale_id):
 
     for item in sale.items.all():
         hsn = item.item.hsn_sac_code or "N/A"
-        taxable_value = Decimal(item.quantity) * item.item.sale_price
+        taxable_value = Decimal(item.quantity) * item.unit_price
         gst_rate = Decimal(item.item.gst_rate.replace("%", "") or "0")  # e.g. "18%" -> 18
         half_rate = gst_rate / Decimal(2)
 
@@ -1501,6 +1527,9 @@ def sale_invoice_pdf(request, sale_id):
         tax_summary[hsn]["cgst"] += cgst
         tax_summary[hsn]["sgst"] += sgst
         tax_summary[hsn]["total_tax"] += total_tax
+
+        # --- NEW: Calculate total item-level discount ---
+        total_item_discount = sale.items.aggregate(total=Sum('discount'))['total'] or 0
 
     # Convert to list for template
     tax_summary_list = [
@@ -1527,7 +1556,8 @@ def sale_invoice_pdf(request, sale_id):
         'tenant': sale.tenant,
         'amount_in_words': amount_in_words,
         'tax_summary': tax_summary_list,
-        "tax_summary_total": tax_summary_total, 
+        "tax_summary_total": tax_summary_total,
+        'total_item_discount': total_item_discount, 
     }
 
     template = get_template('sale_invoice_pdf.html')
@@ -2167,14 +2197,14 @@ def purchase_list_view(request):
         tenant_id = request.GET.get('tenant_id')
         if tenant_id:
             tenant = get_object_or_404(Tenant, id=tenant_id)
-            purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-purchase_date')
+            purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-id')
             # Get vendors only for the selected tenant
             filter_vendors = Create_party.objects.filter(
                 tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']
             ).order_by('party_name')
     else:
         tenant = request.tenant
-        purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-purchase_date')
+        purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-id')
         # Get vendors for the current user's tenant
         filter_vendors = Create_party.objects.filter(
             tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']
@@ -2625,10 +2655,10 @@ def stock_adjustment_list(request):
         tenant_id = request.GET.get('tenant_id')
         if tenant_id:
             tenant = get_object_or_404(Tenant, id=tenant_id)
-            adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-created_at')
+            adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-id')
     else:
         tenant = request.tenant
-        adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-created_at')
+        adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-id')
 
     context = {
         'add': account,
@@ -2741,10 +2771,10 @@ def expense_list(request):
         tenant_id = request.GET.get('tenant_id')
         if tenant_id:
             tenant = get_object_or_404(Tenant, id=tenant_id)
-            expenses = Expense.objects.filter(tenant=tenant)
+            expenses = Expense.objects.filter(tenant=tenant).order_by('-id')
     else:
         tenant = request.tenant
-        expenses = Expense.objects.filter(tenant=tenant)
+        expenses = Expense.objects.filter(tenant=tenant).order_by('-id')
 
     # Filtering logic
     start_date = request.GET.get('start_date')
@@ -2889,8 +2919,8 @@ def inventory_report_view(request):
         tenant = request.tenant
 
     if tenant:
-        products_queryset = Product.objects.filter(tenant=tenant, is_active=True).select_related('category').order_by('item_name')
-        categories = Category.objects.filter(tenant=tenant, is_active=True).order_by('cname')
+        products_queryset = Product.objects.filter(tenant=tenant, is_active=True).select_related('category').order_by('expiry_date')
+        categories = Category.objects.filter(tenant=tenant, is_active=True).order_by('-id')
     
     category_id = request.GET.get('category')
     if category_id:

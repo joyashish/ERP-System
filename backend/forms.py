@@ -1,6 +1,6 @@
 from django import forms
 from .models import Tenant
-from .models import Product, Service, Unit, Category
+from backend.models import *
 
 
 class TenantSettingsForm(forms.ModelForm):
@@ -90,3 +90,21 @@ class ServiceUpdateForm(forms.ModelForm):
             
         for field_name, field in self.fields.items():
             field.widget.attrs['class'] = 'form-control'
+
+class PartyUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Create_party
+        # We will render these fields manually, but listing them is good practice
+        fields = [
+            'party_name', 'mobile_num', 'email', 'opening_balance',
+            'gst_no', 'pan_no', 'party_type', 'party_category',
+            'billing_address', 'shipping_address',
+            'credit_period', 'credit_limit'
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Apply Bootstrap classes to all visible fields
+        for field_name, field in self.fields.items():
+            if field_name not in ['billing_address', 'shipping_address']:
+                field.widget.attrs.update({'class': 'form-control'})

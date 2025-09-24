@@ -161,6 +161,7 @@
                         <table id="example1" class="table table-bordered table-hover">
                             <thead>
                                 <tr>
+                                    <th>S.no</th>
                                     <th>Date</th>
                                     <th>Invoice Number</th>
                                     <th>Party Name</th>
@@ -173,6 +174,7 @@
                             <tbody>
                                 {% for sale in sales_list %}
                                 <tr>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ sale.invoice_date|date:"d M, Y" }}</td>
                                     <td><a href="{% url 'sale_detail' sale.id %}">{{ sale.invoice_no }}</a></td>
                                     <td>{{ sale.party.party_name }}</td>

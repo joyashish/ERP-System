@@ -107,6 +107,7 @@
                     <table id="example1" class="table data-table stripe hover nowrap table-bordered">
                     <thead>
                       <tr>
+                        <th>S.no</th>
                         <th>Party Name</th>
                         <th>Mobile</th>
                         <th>Email</th>
@@ -115,13 +116,14 @@
                         <th>Category</th>
                         <th>Balance</th>
                         <th>Credit Limit</th>
-                        <th>Status</th>
+                        <!-- <th>Status</th> -->
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {% for party in party_list %}
                       <tr>
+                        <td>{{ forloop.counter }}</td>
                         <td><a href="{% url 'party_detail' party.id %}">{{ party.party_name }}</a></td>
                         <td>{{ party.mobile_num }}</td>
                         <td>{{ party.email }}</td>
@@ -130,13 +132,13 @@
                         <td>{{ party.party_category }}</td>
                         <td class="text-right">{{ party.opening_balance }}</td>
                         <td class="text-right">{{ party.credit_limit }}</td>
-                        <td data-label="Status" class="text-center">
+                        <!-- <td data-label="Status" class="text-center">
                           {% if party.is_active %}
                           <span class="badge badge-success">Active</span>
                           {% else %}
                           <span class="badge badge-secondary">Inactive</span>
                           {% endif %}
-                        </td>
+                        </td> -->
                         <td data-label="Actions">
                           <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-toggle="dropdown"

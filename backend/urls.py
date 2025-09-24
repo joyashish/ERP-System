@@ -58,13 +58,12 @@ urlpatterns=[
     path('item/delete/<int:item_id>/', views.delete_item_view, name='delete_item'),
     path('item/toggle-status/<int:item_id>/', views.toggle_item_status, name='toggle_item_status'),
     # path('item/update/<int:id>/', lambda x, id: None, name='update_item'),
-    path('item/delete/<int:id>/', lambda x, id: None, name='delete_item'),
 
 
     
     # Get Tenant Data 
     path('api/get_tenant_data/<int:tenant_id>/', views.get_tenant_data_for_sale_form, name='get_tenant_data'),
-    path('sale_list/', lambda x: None, name='sale_list'),
+    # path('sale_list/', lambda x: None, name='sale_list'),
     
 
     #.....Sales URL......#

@@ -90,11 +90,12 @@
                                     <table class="table table-striped">
                                         <thead>
                                             <tr>
-                                                <th>#</th>
+                                                <th>S.No</th>
                                                 <th>Item</th>
-                                                <th>Qty</th>
-                                                <th>Price</th>
-                                                <th>Discount</th>
+                                                <th class="text-center">Qty</th>
+                                                <th class="text-right">Price</th>
+                                                <th>Total Tax:</th>
+                                                <th>Item Discount</th>
                                                 <th>Amount</th>
                                             </tr>
                                         </thead>
@@ -104,7 +105,8 @@
                                                 <td>{{ forloop.counter }}</td>
                                                 <td>{{ item.item.item_name }}</td>
                                                 <td>{{ item.quantity }}</td>
-                                                <td>₹{{ item.item.sale_price|floatformat:2 }}</td>
+                                                <td>₹{{ item.unit_price|floatformat:2 }}</td>
+                                                <td>(+) ₹{{ sale.total_tax|floatformat:2 }}</td>
                                                 <td>₹{{ item.discount|floatformat:2 }}</td>
                                                 <td>₹{{ item.amount|floatformat:2 }}</td>
                                             </tr>
@@ -133,15 +135,17 @@
                                     </table>
                                 </div>
                                 <div class="col-md-6">
+                                    <h4 class="mb-3">Calculation Summary</h4>
                                     <div class="table-responsive">
                                         <table class="table">
-                                            <tr><th style="width:50%">Subtotal:</th><td>₹{{ sale.subtotal|floatformat:2 }}</td></tr>
-                                            <tr><th>Discount:</th><td>(-) ₹{{ sale.discount|floatformat:2 }}</td></tr>
-                                            <tr><th>Total Tax:</th><td>(+) ₹{{ sale.total_tax|floatformat:2 }}</td></tr>
-                                            <tr><th>Additional Charges:</th><td>(+) ₹{{ sale.additional_charges|floatformat:2 }}</td></tr>
-                                            <tr><th>Total:</th><td><strong>₹{{ sale.total_amount|floatformat:2 }}</strong></td></tr>
-                                            <tr><th>Amount Paid:</th><td>₹{{ sale.amount_received|floatformat:2 }}</td></tr>
-                                            <tr><th>Balance Due:</th><td><strong>₹{{ sale.balance_amount|floatformat:2 }}</strong></td></tr>
+                                            <tr><th style="width:50%">Subtotal:</th><td class="text-right">₹{{ sale.subtotal|floatformat:2 }}</td></tr>
+                                            <tr><th>Item Discounts:</th><td class="text-right">(-) ₹{{ total_item_discount|floatformat:2 }}</td></tr>
+                                            <tr><th>Invoice Discount:</th><td class="text-right">(-) ₹{{ sale.discount|floatformat:2 }}</td></tr>
+                                            <tr><th>Total Tax (GST):</th><td class="text-right">(+) ₹{{ sale.total_tax|floatformat:2 }}</td></tr>
+                                            <tr><th>{{ sale.additional_charges_note|default:"Additional Charges" }}:</th><td class="text-right">(+) ₹{{ sale.additional_charges|floatformat:2 }}</td></tr>
+                                            <tr style="font-size: 1.2rem; font-weight: bold; border-top: 2px solid #dee2e6; border-bottom: 2px solid #dee2e6;"><th>Grand Total:</th><td class="text-right">₹{{ sale.total_amount|floatformat:2 }}</td></tr>
+                                            <tr><th>Amount Paid:</th><td class="text-right">₹{{ sale.amount_received|floatformat:2 }}</td></tr>
+                                            <tr class="text-success" style="font-weight: bold;"><th>Balance Due:</th><td class="text-right">₹{{ sale.balance_amount|floatformat:2 }}</td></tr>
                                         </table>
                                     </div>
                                 </div>

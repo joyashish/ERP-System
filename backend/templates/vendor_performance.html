@@ -31,6 +31,7 @@
                         <table class="table table-bordered table-hover">
                             <thead class="thead-light">
                                 <tr>
+                                    <th>S.no</th>
                                     <th>Vendor Name</th>
                                     <th class="text-right">Total Purchase Volume</th>
                                     <th class="text-center">Successful Deliveries</th>
@@ -40,6 +41,7 @@
                             <tbody>
                                 {% for vendor in vendors %}
                                 <tr>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ vendor.party_name }}</td>
                                     <td class="text-right">₹{{ vendor.annotated_total_volume|floatformat:2 }}</td>
                                     <td class="text-center">{{ vendor.annotated_successful_deliveries }}</td>

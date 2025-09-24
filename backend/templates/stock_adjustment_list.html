@@ -25,6 +25,7 @@
                         <table class="table table-bordered table-hover">
                             <thead class="thead-light">
                                 <tr>
+                                    <th>S.no</th>
                                     <th>Date</th>
                                     <th>Product</th>
                                     <th>Type</th>
@@ -36,6 +37,7 @@
                             <tbody>
                                 {% for adj in adjustments %}
                                 <tr>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ adj.created_at|date:"d M, Y H:i" }}</td>
                                     <td>{{ adj.product.item_name }}</td>
                                     <td>

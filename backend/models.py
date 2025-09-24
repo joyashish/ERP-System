@@ -234,6 +234,7 @@ class Sale(models.Model):
     payment_terms = models.IntegerField(default=0)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     total_tax = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    # Overall Discount (Invoice Discount): This is the discount applied to the entire sale in your "Payment Summary" section. Saved In: The discount field of your Sale model.
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     additional_charges = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     additional_charges_note = models.CharField(max_length=255, blank=True, null=True, help_text="Reason for additional charges, e.g., Shipping")
@@ -292,7 +293,10 @@ class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
     item = models.ForeignKey(ItemBase, on_delete=models.SET_NULL, null=True)
     quantity = models.PositiveIntegerField(default=1)
+    # Item-Level Discount (Line Item Discount): This is the discount applied to a single item in your "Sale Items" table. Saved In: The discount field of your SaleItem model.
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    # Stores the actual price per unit used in this specific sale
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     # Store the cost of the item at the time of sale for accurate profit calculation
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

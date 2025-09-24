@@ -49,6 +49,7 @@
                 <div class="card-body p-0"> <div class="table-responsive">
                         <table class="table table-hover mb-0"> <thead class="thead-light">
                                 <tr>
+                                    <th>S.no</th>
                                     <th>Date</th>
                                     <th>Category</th>
                                     <th>Description</th>
@@ -60,6 +61,7 @@
                             <tbody>
                                 {% for expense in expenses %}
                                 <tr>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ expense.expense_date|date:"d M, Y" }}</td>
                                     <td><span class="badge badge-secondary">{{ expense.category.name }}</span></td>
                                     <td>{{ expense.description|truncatewords:10 }}</td>
