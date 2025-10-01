@@ -31,6 +31,10 @@ urlpatterns=[
     path('accounts/delete/<int:account_id>/', views.delete_account, name='delete_account'),
     path('accounts/edit/<int:account_id>/', views.edit_account, name='edit_account'),
 
+    # Url for Tenant Switching used for superadmin only to view other pages by setting tenant_id
+    path('set-tenant-context/<int:tenant_id>/', views.set_tenant_context, name='set_tenant_context'),
+    path('clear-tenant-context/', views.clear_tenant_context, name='clear_tenant_context'),
+
     path('tenants/toggle-status/<int:tenant_id>/', views.toggle_tenant_status, name='toggle_tenant_status'),
     #..... Admin dash ......# 
     path('dash',views.DashVw,name='dash'),

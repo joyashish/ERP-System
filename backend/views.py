@@ -5,6 +5,7 @@ from .forms import TenantSettingsForm
 from backend.forms import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import datetime
@@ -70,17 +71,31 @@ def superadmin_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
-# def tenant_required(view_func):
-#     def wrapper(request, *args, **kwargs):
-#         if not request.session.get('email'):
-#             return redirect('/')
-#         account = Account.objects.filter(email=request.session['email']).first()
-#         if account.role == 'superadmin':
-#             return view_func(request, *args, **kwargs)
-#         if not request.session.get('tenant_id'):
-#             return redirect('/')
-#         return view_func(request, *args, **kwargs)
-#     return wrapper
+# View to Switch Tenant (used for superadmin only to set tenant id)
+def set_tenant_context(request, tenant_id):
+    """
+    Allows a superadmin to set a specific tenant in their session
+    to manage that tenant's data.
+    """
+    # 1. Fetch the tenant object and store it in a variable
+    tenant = get_object_or_404(Tenant, id=tenant_id)
+    
+    # 2. Set the session
+    request.session['managed_tenant_id'] = tenant_id
+    
+    # 3. Use the tenant's name in the success message
+    messages.success(request, f"You are now managing '{tenant.name}' (ID: {tenant_id}).")
+    
+    return redirect('dash')
+
+@superadmin_required
+def clear_tenant_context(request):
+    """
+    Clears the managed_tenant_id from the superadmin's session.
+    """
+    if 'managed_tenant_id' in request.session:
+        del request.session['managed_tenant_id']
+    return redirect('superadmin_dashboard')
 
 def tenant_required(view_func):
     """
@@ -95,11 +110,19 @@ def tenant_required(view_func):
         # Superadmins can access any tenant-aware page.
         # The view itself is responsible for getting the tenant_id from the URL.
         if request.user.role == 'superadmin':
+            managed_tenant_id = request.session.get('managed_tenant_id')
+            if managed_tenant_id:
+                # If managing a tenant, attach that tenant to the request
+                request.tenant = get_object_or_404(Tenant, id=managed_tenant_id)
+            else:
+                # If not managing a specific tenant, set tenant to None
+                request.tenant = None
             return view_func(request, *args, **kwargs)
         
         # Regular users must have a tenant associated with them.
+        # Regular User Logic
         if not request.tenant:
-            messages.error(request, "Could not identify your tenant account. Please log in again.")
+            messages.error(request, "Could not identify your account. Please log in again.")
             return redirect('/') # Or a logout URL
             
         return view_func(request, *args, **kwargs)
@@ -203,28 +226,37 @@ def printVw(request):
     return render(request, 'print.html')
 
 # Add Unit
-@tenant_required
+@login_required # Use Django's standard login_required decorator
 def add_unit(request):
-    tenant = get_tenant(request)
-    account = Account.objects.filter(email=request.session['email']).first()
-    
     if request.method == 'POST':
         unit_name = request.POST.get('unit_name')
         if unit_name:
-            Unit.objects.create(name=unit_name, tenant=tenant)
-    return redirect('/Create_item')
+            # Check if unit already exists to prevent duplicates
+            if Unit.objects.filter(name__iexact=unit_name).exists():
+                messages.warning(request, f"Unit '{unit_name}' already exists.")
+            else:
+                # No tenant is needed to create the unit
+                Unit.objects.create(name=unit_name)
+                messages.success(request, f"Unit '{unit_name}' added successfully.")
+    
+    # Redirect back to the page the user came from
+    return redirect(request.META.get('HTTP_REFERER', 'Create_item'))
 
 # Add Category
-@tenant_required
+@login_required
 def add_category(request):
-    tenant = get_tenant(request)
-    account = Account.objects.filter(email=request.session['email']).first()
-    
     if request.method == 'POST':
         cat_name = request.POST.get('cat_name')
         if cat_name:
-            Category.objects.create(cname=cat_name, tenant=tenant)
-    return redirect('/Create_item')
+            # Check if category already exists to prevent duplicates
+            if Category.objects.filter(cname__iexact=cat_name).exists():
+                messages.warning(request, f"Category '{cat_name}' already exists.")
+            else:
+                Category.objects.create(cname=cat_name)
+                messages.success(request, f"Category '{cat_name}' added successfully.")
+    
+    # Redirect back to the page the user came from
+    return redirect(request.META.get('HTTP_REFERER', 'Create_item'))
 
 # Admin Login View
 # def Admin_loginVW(request):
@@ -294,16 +326,11 @@ def logout_view(request): # Renamed to avoid conflict with the imported logout
 @tenant_required
 def DashVw(request):
     account = request.user
-    tenant = None
+    # The new decorator provides request.tenant automatically
+    tenant = request.tenant
 
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if tenant_id:
-            tenant = get_object_or_404(Tenant, id=tenant_id)
-    else:
-        tenant = request.tenant
-
-    if not tenant:
+    # If a superadmin hasn't selected a tenant yet, show a welcome message
+    if not tenant and account.role == 'superadmin':
         context = {'add': account, 'tenant': None}
         return render(request, 'Dash.html', context)
         
@@ -445,24 +472,18 @@ def Create_partyVw(request):
 # Party List View
 @tenant_required
 def Party_listVw(request):
-    account = Account.objects.filter(email=request.session['email']).first()
+    account = request.user
     
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        tenant = None
-        party_list = Create_party.objects.none() # Default to an empty list
+    # The new decorator provides request.tenant automatically for both superadmins and regular users
+    tenant = request.tenant
 
-        if tenant_id:
-            try:
-                tenant = Tenant.objects.get(id=tenant_id)
-                party_list = Create_party.objects.filter(tenant=tenant, is_active=True).order_by('-id')
-            except Tenant.DoesNotExist:
-                # Handle case where an invalid tenant_id is passed
-                pass 
-    else:
-        # This logic for regular users is correct and remains the same
-        tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
-        party_list = Create_party.objects.filter(tenant=tenant, is_active=True).order_by('-id')
+    if not tenant and account.role == 'superadmin':
+        # Guide the superadmin if they haven't selected a tenant yet
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to manage parties.")
+        return redirect('superadmin_dashboard')
+
+    # Now the query is simple and the same for everyone
+    party_list = Create_party.objects.filter(tenant=tenant, is_active=True).order_by('-id')
 
     total_balance = party_list.aggregate(total=Sum('opening_balance'))['total'] or 0.00
     total_credit = party_list.aggregate(total=Sum('credit_limit'))['total'] or 0.00
@@ -588,26 +609,19 @@ def party_detail_view(request, party_id):
 # Item List View
 @tenant_required
 def item_list_view(request):
-    account = Account.objects.filter(email=request.session['email']).first()
-    tenant = None
-    products = Product.objects.none()
-    services = Service.objects.none()
+    account = request.user
+    # The new decorator provides request.tenant automatically
+    tenant = request.tenant
 
-    # Determine tenant context
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if tenant_id:
-            try:
-                tenant = Tenant.objects.get(id=tenant_id)
-                products = Product.objects.filter(tenant=tenant, is_active=True).order_by('-id')
-                services = Service.objects.filter(tenant=tenant, is_active=True).order_by('-id')
-            except Tenant.DoesNotExist:
-                pass
-    else:
-        tenant = get_object_or_404(Tenant, id=request.session['tenant_id'])
-        products = Product.objects.filter(tenant=tenant, is_active=True).order_by('-id')
-        services = Service.objects.filter(tenant=tenant, is_active=True).order_by('-id')
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to manage items.")
+        return redirect('superadmin_dashboard')
     
+    # Base queries are now simpler
+    products = Product.objects.filter(tenant=tenant, is_active=True).order_by('-id')
+    services = Service.objects.filter(tenant=tenant, is_active=True).order_by('-id')
+
     # --- NEW: Get and apply the filter from the URL ---
     item_filter = request.GET.get('filter')
     
@@ -632,7 +646,7 @@ def item_list_view(request):
         services_to_display = services.none()
         filter_display_name = 'Expiring Soon'
     # Combine the filtered querysets for display
-    items = list(products_to_display) + list(services_to_display)
+    items = sorted(list(products_to_display) + list(services_to_display), key=lambda x: x.item_name)
     
     # --- Calculate counts based on the UNFILTERED base querysets ---
     product_count = products.count()
@@ -660,7 +674,7 @@ def item_list_view(request):
 # Create Item View
 @tenant_required
 def create_item_view(request):
-    account = get_object_or_404(Account, email=request.session['email'])
+    account = request.user
     
     # --- POST Request: Handle Form Submission ---
     if request.method == "POST":
@@ -755,20 +769,20 @@ def create_item_view(request):
 
     # --- GET Request: Display the Form ---
     context = {'add': account}
+    # MODIFIED: Fetch all active units,category for EVERYONE, since units,category are now global.
+    # This line is now outside the if/else block.
+    context['unit'] = Unit.objects.filter(is_active=True).order_by('name')
+    # MODIFIED: Fetch all active categories for EVERYONE
+    context['category'] = Category.objects.filter(is_active=True).order_by('cname')
+    
     if account.role == 'superadmin':
         context['tenants'] = Tenant.objects.all().order_by('name')
         # Pre-select tenant if coming from a tenant-specific page
         context['tenant_id_from_url'] = request.GET.get('tenant_id')
-        # For superadmin, load all units/categories. A better approach for many tenants
-        # would be to use JavaScript to load these dynamically based on tenant selection.
-        context['unit'] = Unit.objects.all()
-        context['category'] = Category.objects.all()
     else:
         # For regular users, only load data for their tenant
         tenant = request.tenant
         context['tenant'] = tenant
-        context['unit'] = Unit.objects.filter(tenant=tenant, is_active=True)
-        context['category'] = Category.objects.filter(tenant=tenant, is_active=True)
 
     return render(request, 'Create_item.html', context)
 
@@ -1045,25 +1059,19 @@ def create_sale_view(request):
 # Sales List View
 @tenant_required
 def sales_list(request):
-    account = get_object_or_404(Account, email=request.session['email'])
-    tenant = None
-    sales = Sale.objects.none()
-    filter_parties = Create_party.objects.none()
+    account = request.user
+    
+    # The new decorator provides request.tenant automatically
+    tenant = request.tenant
 
-    # 1. Determine the base queryset
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if tenant_id:
-            try:
-                tenant = Tenant.objects.get(id=tenant_id)
-                sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-id')
-                filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True)
-            except Tenant.DoesNotExist:
-                pass
-    else:
-        tenant = request.tenant
-        sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-id')
-        filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True)
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to manage sales.")
+        return redirect('superadmin_dashboard')
+
+    # 1. Base queries are now simple and unified
+    sales = Sale.objects.filter(tenant=tenant).select_related('party').order_by('-id')
+    filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True, party_type__in=['Customer', 'Both'])
 
     # 2. Get filter parameters
     start_date = request.GET.get('start_date')
@@ -1081,16 +1089,12 @@ def sales_list(request):
     if status:
         today = timezone.now().date()
         if status == 'PAID':
-            sales = sales.filter(balance_amount__lte=0)
-        
-        # --- THIS IS THE CORRECTED LOGIC ---
+            sales = sales.filter(balance_amount__lte=0)       
         elif status == 'UNPAID':
             sales = sales.filter(
                 Q(balance_amount__gt=0) & 
                 (Q(due_date__gte=today) | Q(due_date__isnull=True))
             )
-        # ------------------------------------
-
         elif status == 'OVERDUE':
             sales = sales.filter(balance_amount__gt=0, due_date__lt=today)
             
@@ -1329,23 +1333,20 @@ def sale_detail_view(request, sale_id):
 @tenant_required
 def sales_report_view(request):
     account = request.user
-    tenant = None
     sales_items = SaleItem.objects.none()
     filter_parties = Create_party.objects.none()
     filter_products = Product.objects.none()
+    tenant = request.tenant
 
-    # Determine Tenant
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if tenant_id:
-            tenant = get_object_or_404(Tenant, id=tenant_id)
-    else:
-        tenant = request.tenant
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to view the sales report.")
+        return redirect('superadmin_dashboard')
 
-    if tenant:
-        sales_items = SaleItem.objects.filter(sale__tenant=tenant).select_related('sale', 'item', 'sale__party')
-        filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True, party_type__in=['Customer'])
-        filter_products = Product.objects.filter(tenant=tenant, is_active=True)
+    # Base queries are now simple and unified
+    sales_items = SaleItem.objects.filter(sale__tenant=tenant).select_related('sale', 'item', 'sale__party')
+    filter_parties = Create_party.objects.filter(tenant=tenant, is_active=True, party_type__in=['Customer'])
+    filter_products = Product.objects.filter(tenant=tenant, is_active=True)
     
     # Get filters from URL
     start_date = request.GET.get('start_date')
@@ -2188,27 +2189,19 @@ def get_purchase_data_for_form(request, tenant_id):
 @tenant_required
 def purchase_list_view(request):
     account = request.user
-    purchases = Purchase.objects.none()
-    tenant = None
-    filter_vendors = Create_party.objects.none()
+    # The new decorator provides request.tenant automatically
+    tenant = request.tenant
 
-    # 1. Determine the base queryset and available filters
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if tenant_id:
-            tenant = get_object_or_404(Tenant, id=tenant_id)
-            purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-id')
-            # Get vendors only for the selected tenant
-            filter_vendors = Create_party.objects.filter(
-                tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']
-            ).order_by('party_name')
-    else:
-        tenant = request.tenant
-        purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-id')
-        # Get vendors for the current user's tenant
-        filter_vendors = Create_party.objects.filter(
-            tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']
-        ).order_by('party_name')
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to manage purchases.")
+        return redirect('superadmin_dashboard')
+
+    # 1. Base queryset and available filters
+    purchases = Purchase.objects.filter(tenant=tenant).select_related('vendor').order_by('-id')
+    filter_vendors = Create_party.objects.filter(
+        tenant=tenant, is_active=True, party_type__in=['Supplier', 'Both']
+    ).order_by('party_name')
 
     # 2. Get filter parameters from the request
     start_date = request.GET.get('start_date')
@@ -2601,16 +2594,13 @@ def create_purchase_return(request, purchase_id):
 @tenant_required
 def vendor_performance_view(request):
     account = request.user
-    tenant = None
+    # The new decorator provides request.tenant automatically
+    tenant = request.tenant
 
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if not tenant_id:
-            messages.info(request, "From the sidebar, please expand 'Vendor Performance' and select a tenant to view their dashboard.")
-            return redirect('superadmin_dashboard')
-        tenant = get_object_or_404(Tenant, id=tenant_id)
-    else:
-        tenant = request.tenant
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to view vendor performance.")
+        return redirect('superadmin_dashboard')
 
     # --- OPTIMIZED QUERY WITH ANNOTATIONS (CORRECTED) ---
     vendors = Create_party.objects.filter(
@@ -2649,16 +2639,16 @@ def vendor_performance_view(request):
 def stock_adjustment_list(request):
     account = request.user
     adjustments = StockAdjustment.objects.none()
-    tenant = None
+    # The new decorator provides request.tenant automatically
+    tenant = request.tenant
 
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if tenant_id:
-            tenant = get_object_or_404(Tenant, id=tenant_id)
-            adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-id')
-    else:
-        tenant = request.tenant
-        adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-id')
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to manage stock adjustments.")
+        return redirect('superadmin_dashboard')
+
+    # The query is now simple and unified for both user roles
+    adjustments = StockAdjustment.objects.filter(tenant=tenant).select_related('product', 'adjusted_by').order_by('-id')
 
     context = {
         'add': account,
@@ -2765,16 +2755,14 @@ def get_products_for_tenant_api(request, tenant_id):
 def expense_list(request):
     account = request.user
     expenses = Expense.objects.none()
-    tenant = None
+    tenant = request.tenant
 
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if tenant_id:
-            tenant = get_object_or_404(Tenant, id=tenant_id)
-            expenses = Expense.objects.filter(tenant=tenant).order_by('-id')
-    else:
-        tenant = request.tenant
-        expenses = Expense.objects.filter(tenant=tenant).order_by('-id')
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to manage expenses.")
+        return redirect('superadmin_dashboard')
+
+    expenses = Expense.objects.filter(tenant=tenant).order_by('-id')
 
     # Filtering logic
     start_date = request.GET.get('start_date')
@@ -2907,20 +2895,19 @@ def get_expense_categories_api(request, tenant_id):
 @tenant_required
 def inventory_report_view(request):
     account = request.user
-    tenant = None
     products_queryset = Product.objects.none() # Use a different name for the base queryset
     categories = Category.objects.none()
 
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if tenant_id:
-            tenant = get_object_or_404(Tenant, id=tenant_id)
-    else:
-        tenant = request.tenant
+    tenant = request.tenant
 
-    if tenant:
-        products_queryset = Product.objects.filter(tenant=tenant, is_active=True).select_related('category').order_by('expiry_date')
-        categories = Category.objects.filter(tenant=tenant, is_active=True).order_by('-id')
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to view the inventory report.")
+        return redirect('superadmin_dashboard')
+    
+    # Base queries are now simple and unified
+    products_queryset = Product.objects.filter(tenant=tenant, is_active=True).select_related('category').order_by('expiry_date')
+    categories = Category.objects.filter(is_active=True).order_by('cname') # Categories are global
     
     category_id = request.GET.get('category')
     if category_id:
@@ -2990,21 +2977,20 @@ def inventory_report_view(request):
 @tenant_required
 def settings_view(request):
     account = request.user
-    tenant = None
+    tenant = request.tenant
 
-    if account.role == 'superadmin':
-        tenant_id = request.GET.get('tenant_id')
-        if not tenant_id:
-            messages.info(request, "From the sidebar, please expand 'Settings' and select a tenant.")
-            return redirect('superadmin_dashboard')
-        tenant = get_object_or_404(Tenant, id=tenant_id)
-    else:
-        if account.role != 'admin':
-            messages.error(request, "You do not have permission to view this page.")
-            return redirect('dash')
-        tenant = request.tenant
+    # Guide the superadmin if they haven't selected a tenant yet
+    if not tenant and account.role == 'superadmin':
+        messages.info(request, "Please select a tenant from the Superadmin Dashboard to manage settings.")
+        return redirect('superadmin_dashboard')
 
-    # --- NEW LOGIC: Pre-fill empty company details from the first admin ---
+    # For regular tenants, only the 'admin' can access settings
+    if account.role == 'user':
+        messages.error(request, "You do not have permission to view this page.")
+        return redirect('dash')
+
+
+    # --- Pre-fill empty company details from the first admin ---
     if request.method != 'POST': # Only do this on the initial page load (GET request)
         if not tenant.email or not tenant.phone:
             first_admin = tenant.accounts.filter(role='admin').first()
@@ -3023,6 +3009,8 @@ def settings_view(request):
             form.save()
             messages.success(request, "Settings updated successfully.")
             return redirect(request.get_full_path())
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
         # The form will now be initialized with the pre-filled tenant instance
         form = TenantSettingsForm(instance=tenant)

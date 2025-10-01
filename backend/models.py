@@ -71,24 +71,26 @@ class Account(models.Model):
 
 # Unit Model
 class Unit(models.Model):
-    name = models.CharField(max_length=100)
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='units')
+    name = models.CharField(max_length=100, unique=True) # Make the name itself unique
     is_active = models.BooleanField(default=True)
+    # The 'tenant' ForeignKey is now removed.
 
     class Meta:
-        unique_together = ('tenant', 'name')
+        # The unique_together is no longer needed
+        pass
 
     def __str__(self):
         return self.name
 
 # Category Model
 class Category(models.Model):
-    cname = models.CharField(max_length=100)
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='categories')
+    cname = models.CharField(max_length=100, unique=True) # Make the name itself unique
     is_active = models.BooleanField(default=True)
+    # The 'tenant' ForeignKey is now removed.
 
     class Meta:
-        unique_together = ('tenant', 'cname')
+        # The unique_together is no longer needed
+        pass
 
     def __str__(self):
         return self.cname

@@ -248,7 +248,9 @@
 
     $(document).ready(function () {
         let rowIndex = 1;
-        let currentTenantItems = []; // Stores items for the currently selected tenant
+        // The new line that gets data directly from the Django context
+        let currentTenantItems = [{% for item in items %}{ id: {{ item.id }}, item_name: '{{ item.item_name|escapejs }}', sale_price: '{{ item.sale_price }}', gst_rate: '{{ item.gst_rate|default_if_none:"" }}' },{% endfor %}];
+        // Stores items for the currently selected tenant
 
         /**
          * Updates Party/Item dropdowns with new data after an AJAX call.

@@ -96,6 +96,17 @@
 
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
+        
+        <!-- Exit Management - clears tenant_id and returns to the superadmin dash(appears only when superadmin is in management mode) -->
+        {% if request.user.role == 'superadmin' and 'managed_tenant_id' in request.session %}
+        <li class="nav-item">
+            <a class="nav-link text-warning" href="{% url 'superadmin_dashboard' %}"
+                title="Stop managing and return to Superadmin Dashboard">
+                <i class="fas fa-user-shield"></i> Exit Management
+            </a>
+        </li>
+        {% endif %}
+
         <!-- Dark/Light Mode Toggle -->
         <li class="nav-item">
             <a class="nav-link theme-toggle" href="#" role="button" title="Toggle Dark/Light Mode">

@@ -43,9 +43,13 @@ class ProductUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         tenant = kwargs.pop('tenant', None)
         super().__init__(*args, **kwargs)
-        if tenant:
-            self.fields['unit'].queryset = Unit.objects.filter(tenant=tenant)
-            self.fields['category'].queryset = Category.objects.filter(tenant=tenant)
+
+        # The Unit field is now global, so we don't filter it by tenant.
+        # We just fetch all active units.
+        self.fields['unit'].queryset = Unit.objects.filter(is_active=True).order_by('name')
+        
+        # MODIFIED: The Category field is now also global
+        self.fields['category'].queryset = Category.objects.filter(is_active=True).order_by('cname')
 
         # MODIFIED: Set a user-friendly empty label for the category dropdown
         self.fields['category'].empty_label = "Select a Category"
@@ -72,8 +76,9 @@ class ServiceUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         tenant = kwargs.pop('tenant', None)
         super().__init__(*args, **kwargs)
-        if tenant:
-            self.fields['category'].queryset = Category.objects.filter(tenant=tenant)
+        
+        # MODIFIED: The Category field is now also global
+        self.fields['category'].queryset = Category.objects.filter(is_active=True).order_by('cname')
             
         # Set a user-friendly empty label for the category dropdown (ForeignKey)
         self.fields['category'].empty_label = "Select a Category"
