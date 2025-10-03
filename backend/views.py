@@ -2266,45 +2266,94 @@ def view_purchase(request, purchase_id):
 @tenant_required
 def edit_purchase_view(request, purchase_id):
     account = request.user
-    tenant = get_tenant(request) if not account.role == 'superadmin' else None
     
     if account.role == 'superadmin':
-        purchase = get_object_or_404(Purchase, id=purchase_id)
+        purchase = get_object_or_404(Purchase.objects.prefetch_related('items__item'), id=purchase_id)
     else:
-        purchase = get_object_or_404(Purchase, id=purchase_id, tenant=tenant)
-    
+        purchase = get_object_or_404(Purchase.objects.prefetch_related('items__item'), id=purchase_id, tenant=request.tenant)
+
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                # Handle purchase editing logic here
                 post_data = request.POST
-                vendor = get_object_or_404(Create_party, id=post_data.get('vendor_id'), tenant=purchase.tenant)
-                purchase_status = post_data.get('status', Purchase.PurchaseStatus.ORDERED)
+                original_status = purchase.status
+
+                # --- 1. Revert Stock Changes from the Original Purchase State ---
+                # If the purchase was previously 'Received', add the item quantities back to stock 
+                # before we recalculate. This effectively "undoes" the original stock addition.
+                if original_status == Purchase.PurchaseStatus.RECEIVED:
+                    for item in purchase.items.all():
+                        if item.item and hasattr(item.item, 'opening_stock'):
+                            product = Product.objects.select_for_update().get(id=item.item.id)
+                            product.opening_stock -= item.quantity # Revert by subtracting
+                            product.save()
+
+                # --- 2. Clear Old Items and Reprocess New Item List ---
+                purchase.items.all().delete()
+
+                total_amount = Decimal('0.0')
+                item_indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(post_data.keys())))))
+                if not item_indices:
+                    raise ValidationError("A purchase must have at least one item.")
+
+                new_purchase_items = []
+                for index in item_indices:
+                    item_id = post_data.get(f'items[{index}][item_id]')
+                    quantity = int(post_data.get(f'items[{index}][quantity]', 0))
+                    price = Decimal(post_data.get(f'items[{index}][price]', 0))
+                    
+                    if not all([item_id, quantity > 0, price >= 0]):
+                        continue
+                        
+                    product = get_object_or_404(Product, id=item_id, tenant=purchase.tenant)
+                    
+                    new_purchase_items.append(PurchaseItem(
+                        purchase=purchase, item=product, quantity=quantity,
+                        purchase_price=price, amount=quantity * price
+                    ))
+                    total_amount += (quantity * price)
                 
-                # Update purchase details
-                purchase.vendor = vendor
-                purchase.bill_number = post_data.get('bill_number')
+                if not new_purchase_items:
+                    raise ValidationError("Cannot update a purchase with no valid items.")
+                
+                PurchaseItem.objects.bulk_create(new_purchase_items)
+
+                # --- 3. Update the Main Purchase Object ---
+                purchase.vendor = get_object_or_404(Create_party, id=post_data.get('vendor_id'), tenant=purchase.tenant)
                 purchase.purchase_date = post_data.get('purchase_date')
                 purchase.notes = post_data.get('notes')
-                purchase.status = purchase_status
+                purchase.total_amount = total_amount
+                new_status = post_data.get('status')
+                purchase.status = new_status
                 purchase.save()
-                
-                messages.success(request, f"Purchase {purchase.bill_number} updated successfully!")
-                
-                # Redirect with tenant context for superadmin
+
+                # --- 4. Apply Stock Changes for the NEW Purchase State ---
+                # If the new status is 'Received', add the new item quantities to stock.
+                if new_status == Purchase.PurchaseStatus.RECEIVED:
+                    for item in purchase.items.all():
+                         if item.item and hasattr(item.item, 'opening_stock'):
+                            product = Product.objects.select_for_update().get(id=item.item.id)
+                            product.opening_stock += item.quantity # Correctly ADDING stock
+                            product.save()
+
+                messages.success(request, "Purchase updated successfully!")
+                redirect_url = reverse('purchase_list')
                 if account.role == 'superadmin':
-                    return redirect(f"{reverse('purchase_list')}?tenant_id={purchase.tenant.id}")
+                    return redirect(f"{redirect_url}?tenant_id={purchase.tenant.id}")
                 else:
-                    return redirect('purchase_list')
-                    
-        except Exception as e:
+                    return redirect(redirect_url)
+
+        except (ValidationError, Exception) as e:
             messages.error(request, f"Error updating purchase: {e}")
-    
+            return redirect('edit_purchase', purchase_id=purchase.id)
+
+    # --- GET Request Logic (This part is correct) ---
     context = {
-        'purchase': purchase,
         'add': account,
-        'tenant': tenant,
+        'purchase': purchase,
+        'tenant': purchase.tenant,
         'vendors': Create_party.objects.filter(tenant=purchase.tenant, is_active=True, party_type__in=['Supplier', 'Both']),
+        'items': Product.objects.filter(tenant=purchase.tenant, is_active=True),
         'purchase_statuses': Purchase.PurchaseStatus.choices,
     }
     return render(request, 'edit_purchase.html', context)

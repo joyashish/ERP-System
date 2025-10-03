@@ -6,13 +6,11 @@
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Edit Purchase</h1>
-                </div>
+                <div class="col-sm-6"><h1 class="m-0">Edit Purchase</h1></div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'purchase_list' %}">Purchases</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'purchase_list' %}?tenant_id={{ tenant.id }}">Purchases</a></li>
                         <li class="breadcrumb-item"><a href="{% url 'view_purchase' purchase.id %}">{{ purchase.bill_number }}</a></li>
                         <li class="breadcrumb-item active">Edit</li>
                     </ol>
@@ -23,85 +21,163 @@
 
     <section class="content">
         <div class="container-fluid">
-            {% if messages %}
-            <div class="row">
-                <div class="col-12">
-                    {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
+            {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="close" data-dismiss="alert">&times;</button></div>{% endfor %}{% endif %}
 
             <form method="POST">
                 {% csrf_token %}
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Edit Purchase Details</h3>
-                    </div>
+                <div class="card card-primary card-outline">
+                    <div class="card-header"><h3 class="card-title">Edit Purchase Details</h3></div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Bill Number</label>
-                                    <input type="text" name="bill_number" class="form-control" value="{{ purchase.bill_number }}" required>
-                                </div>
+                            <div class="col-md-3 form-group">
+                                <label>Bill Number</label>
+                                <input type="text" class="form-control" value="{{ purchase.bill_number }}" readonly>
+                                <input type="hidden" name="bill_number" value="{{ purchase.bill_number }}">
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Vendor</label>
-                                    <select name="vendor_id" class="form-control" required>
-                                        <option value="">-- Select Vendor --</option>
-                                        {% for vendor in vendors %}
-                                        <option value="{{ vendor.id }}" {% if vendor.id == purchase.vendor.id %}selected{% endif %}>
-                                            {{ vendor.party_name }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+                            <div class="col-md-3 form-group">
+                                <label>Vendor</label>
+                                <select name="vendor_id" class="form-control" required>
+                                    {% for vendor in vendors %}<option value="{{ vendor.id }}" {% if vendor.id == purchase.vendor.id %}selected{% endif %}>{{ vendor.party_name }}</option>{% endfor %}
+                                </select>
                             </div>
+                            <div class="col-md-3 form-group">
+                                <label>Purchase Date</label>
+                                <input type="date" name="purchase_date" class="form-control" value="{{ purchase.purchase_date|date:'Y-m-d' }}" required>
+                            </div>
+                            <div class="col-md-3 form-group">
+                                <label>Status</label>
+                                <select name="status" class="form-control" required>
+                                    {% for value, label in purchase_statuses %}<option value="{{ value }}" {% if value == purchase.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <hr>
+                        <h5>Items Purchased</h5>
+                        <div class="table-responsive">
+                            <table class="table" id="items-table">
+                                <thead><tr><th>Item (Product)</th><th>Quantity</th><th>Purchase Price</th><th>Amount</th><th></th></tr></thead>
+                                <tbody>
+                                    {% for p_item in purchase.items.all %}
+                                    <tr class="item-row">
+                                        <td>
+                                            <select class="form-control item-select" name="items[{{ forloop.counter0 }}][item_id]" required>
+                                                <option value="">-- Select Item --</option>
+                                                {% for item in items %}<option value="{{ item.id }}" data-price="{{ item.purchase_price }}" {% if item.id == p_item.item.id %}selected{% endif %}>{{ item.item_name }}</option>{% endfor %}
+                                            </select>
+                                        </td>
+                                        <td><input type="number" class="form-control quantity" name="items[{{ forloop.counter0 }}][quantity]" value="{{ p_item.quantity }}" min="1"></td>
+                                        <td><input type="number" class="form-control price" name="items[{{ forloop.counter0 }}][price]" value="{{ p_item.purchase_price|floatformat:2 }}" step="0.01" min="0"></td>
+                                        <td><input type="text" class="form-control amount" value="{{ p_item.amount|floatformat:2 }}" readonly></td>
+                                        <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" id="add-item" class="btn btn-primary btn-sm mt-2">+ Add Item</button>
+                        <hr>
+                        <div class="row d-flex justify-content-end">
                             <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Purchase Date</label>
-                                    <input type="date" name="purchase_date" class="form-control" value="{{ purchase.purchase_date|date:'Y-m-d' }}" required>
+                                <div class="d-flex justify-content-between">
+                                    <h5 class="font-weight-bold">Grand Total:</h5>
+                                    <h5 class="font-weight-bold" id="grand-total">₹ 0.00</h5>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Status</label>
-                                    <select name="status" class="form-control" required>
-                                        {% for value, label in purchase_statuses %}
-                                        <option value="{{ value }}" {% if value == purchase.status %}selected{% endif %}>
-                                            {{ label }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+                        <div class="row">   
+                            <div class="col-md-12 form-group">
+                                <label>Notes</label>
+                                <textarea name="notes" class="form-control" rows="2">{{ purchase.notes|default:'' }}</textarea>
                             </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label>Notes</label>
-                            <textarea name="notes" class="form-control" rows="3">{{ purchase.notes }}</textarea>
-                        </div>
                     </div>
-                    <div class="card-footer">
-                        <button type="submit" class="btn btn-primary">Update Purchase</button>
+                    <div class="card-footer text-right">
                         <a href="{% url 'view_purchase' purchase.id %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Update Purchase</button>
                     </div>
                 </div>
             </form>
         </div>
     </section>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Start rowIndex from the number of items already on the page
+    let rowIndex = {{ purchase.items.count }};
+    
+    // Store all available items in a JavaScript variable
+    const allItems = [
+        {% for item in items %}
+        {id: {{ item.id }}, name: "{{ item.item_name|escapejs }}", price: "{{ item.purchase_price|floatformat:2 }}"},
+        {% endfor %}
+    ];
+
+    function updateGrandTotal() {
+        let total = 0;
+        $('.item-row .amount').each(function() {
+            total += parseFloat($(this).val()) || 0;
+        });
+        $('#grand-total').text('₹ ' + total.toFixed(2));
+    }
+
+    function updateRowAmount(row) {
+        const quantity = parseFloat(row.find('.quantity').val()) || 0;
+        const price = parseFloat(row.find('.price').val()) || 0;
+        row.find('.amount').val((quantity * price).toFixed(2));
+        updateGrandTotal();
+    }
+    
+    function bindEvents(row) {
+        row.find('.item-select').on('change', function() {
+            const selectedOption = $(this).find('option:selected');
+            const price = selectedOption.data('price') || '0.00';
+            $(this).closest('.item-row').find('.price').val(price);
+            updateRowAmount($(this).closest('.item-row'));
+        });
+        
+        row.find('.quantity, .price').on('input', function() {
+            updateRowAmount($(this).closest('.item-row'));
+        });
+    }
+
+    $('#add-item').on('click', function() {
+        let itemOptions = '<option value="">-- Select Item --</option>';
+        allItems.forEach(item => {
+            itemOptions += `<option value="${item.id}" data-price="${item.price}">${item.name}</option>`;
+        });
+
+        const newRowHTML = `
+            <tr class="item-row">
+                <td><select class="form-control item-select" name="items[${rowIndex}][item_id]" required>${itemOptions}</select></td>
+                <td><input type="number" class="form-control quantity" name="items[${rowIndex}][quantity]" value="1" min="1"></td>
+                <td><input type="number" class="form-control price" name="items[${rowIndex}][price]" step="0.01" min="0"></td>
+                <td><input type="text" class="form-control amount" readonly></td>
+                <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+            </tr>`;
+        
+        const newRow = $(newRowHTML);
+        $('#items-table tbody').append(newRow);
+        bindEvents(newRow);
+        rowIndex++;
+    });
+
+    $(document).on('click', '.remove-row', function() {
+        if ($('.item-row').length > 1) {
+            $(this).closest('.item-row').remove();
+            updateGrandTotal();
+        } else {
+            alert("A purchase must have at least one item.");
+        }
+    });
+
+    // Initial binding for existing rows and calculate total on page load
+    bindEvents($('.item-row'));
+    updateGrandTotal();
+});
+</script>
 
 {% include 'footer.html' %}
 {% include 'footer_link.html' %}
