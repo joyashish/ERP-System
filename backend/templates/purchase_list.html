@@ -2,6 +2,12 @@
 {% include 'navbar.html' %}
 {% include 'sidebar.html' %}
 
+<style>
+    .status-form { display: inline-flex; align-items: center; gap: 5px; }
+    .status-badge.editable { cursor: pointer; transition: opacity 0.2s; }
+    .status-badge.editable:hover { opacity: 0.8; }
+</style>
+
 <div class="content-wrapper">
     <div class="content-header">
         <div class="container-fluid">
@@ -98,7 +104,7 @@
                                     <th>Bill No.</th>
                                     <th>Vendor</th>
                                     <th>Total Amount</th>
-                                    <th>Status</th>
+                                    <th class="text-center">Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -116,17 +122,24 @@
                                     <td>₹{{ purchase.total_amount|floatformat:2 }}</td>
 
                                     <td class="text-center">
-                                        {% if purchase.status == 'RECEIVED' %}
-                                            <span class="badge badge-success">{{ purchase.get_status_display }}</span>
-                                        {% elif purchase.status == 'ORDERED' %}
-                                            <span class="badge badge-info">{{ purchase.get_status_display }}</span>
-                                        {% elif purchase.status == 'PARTIALLY_RECEIVED' %}
-                                            <span class="badge badge-warning">{{ purchase.get_status_display }}</span>
-                                        {% elif purchase.status == 'CANCELLED' %}
-                                            <span class="badge badge-danger">{{ purchase.get_status_display }}</span>
-                                        {% else %} 
-                                            <span class="badge badge-secondary">{{ purchase.get_status_display }}</span>
-                                        {% endif %}
+                                        <form class="status-form" method="POST" action="{% url 'update_purchase_status_inline' purchase.id %}">
+                                            {% csrf_token %}
+                                            <span class="badge status-badge editable
+                                                {% if purchase.status == 'RECEIVED' %}badge-success
+                                                {% elif purchase.status == 'ORDERED' %}badge-info
+                                                {% elif purchase.status == 'PARTIALLY_RECEIVED' %}badge-primary
+                                                {% elif purchase.status == 'PARTIALLY_RETURNED' %}badge-warning
+                                                {% elif purchase.status == 'CANCELLED' or purchase.status == 'FULLY_RETURNED' %}badge-danger
+                                                {% else %}badge-secondary{% endif %}">
+                                                {{ purchase.get_status_display }} <i class="fas fa-pencil-alt fa-xs ml-1"></i>
+                                            </span>
+                                            <select name="status" class="form-control form-control-sm status-select" style="display: none;">
+                                                {% for value, label in purchase_statuses %}
+                                                <option value="{{ value }}" {% if value == purchase.status %}selected{% endif %}>{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <button type="submit" class="btn btn-xs btn-primary status-update-btn" style="display: none;">Update</button>
+                                        </form>
                                     </td>
 
                                     <td>
@@ -164,5 +177,42 @@
     </section>
 </div>
 
+
+
 {% include 'footer.html' %}
 {% include 'footer_link.html' %}
+
+<script>
+$(document).ready(function() {
+    // Function to reset all status forms to their initial state (showing the badge)
+    function resetAllStatusForms() {
+        $('.status-form').each(function() {
+            $(this).find('.status-badge').show();
+            $(this).find('.status-select').hide();
+            $(this).find('.status-update-btn').hide();
+        });
+    }
+
+    // When a clickable status badge is clicked...
+    $('.status-badge.editable').on('click', function(e) {
+        e.stopPropagation(); // Prevents the click from bubbling up to the document
+        
+        // First, reset all other forms on the page
+        resetAllStatusForms();
+        
+        // Now, show the controls for the specific form that was clicked
+        var form = $(this).closest('.status-form');
+        $(this).hide();
+        form.find('.status-select').show().focus(); // .focus() is a nice UX touch
+        form.find('.status-update-btn').show();
+    });
+
+    // When clicking anywhere on the document...
+    $(document).on('click', function(e) {
+        // If the click was NOT on a status form, reset all forms
+        if (!$(e.target).closest('.status-form').length) {
+            resetAllStatusForms();
+        }
+    });
+});
+</script>

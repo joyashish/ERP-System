@@ -2233,6 +2233,47 @@ def purchase_list_view(request):
         }
     }
     return render(request, 'purchase_list.html', context)
+
+# Updated purchase status form purchase list page
+@tenant_required
+def update_purchase_status_inline(request, purchase_id):
+    if request.method == 'POST':
+        # Security: Get the purchase and ensure it belongs to the user's tenant
+        if request.user.role == 'superadmin':
+            purchase = get_object_or_404(Purchase, id=purchase_id, tenant=request.tenant)
+        else:
+            purchase = get_object_or_404(Purchase, id=purchase_id, tenant=request.tenant)
+
+        new_status = request.POST.get('status')
+        old_status = purchase.status
+
+        # You can add more complex logic here if needed (e.g., from can_change_status)
+        if new_status and new_status in [choice[0] for choice in Purchase.PurchaseStatus.choices]:
+            # Handle stock changes if moving to/from 'RECEIVED'
+            purchase.update_stock_on_status_change(old_status, new_status)
+            
+            purchase.status = new_status
+            purchase.save()
+
+            # Create a history record
+            PurchaseStatusHistory.objects.create(
+                purchase=purchase,
+                old_status=old_status,
+                new_status=new_status,
+                changed_by=request.user,
+                notes="Status updated from list view."
+            )
+            messages.success(request, f"Status for {purchase.bill_number} updated to {purchase.get_status_display()}.")
+        else:
+            messages.error(request, "Invalid status.")
+            
+    # Redirect back to the purchase list, preserving the tenant context
+    redirect_url = reverse('purchase_list')
+    if request.user.role == 'superadmin' and request.tenant:
+        return redirect(f"{redirect_url}?tenant_id={request.tenant.id}")
+    return redirect(redirect_url)
+
+
 # View Purchase details individually 
 @tenant_required
 def view_purchase(request, purchase_id):
@@ -2357,6 +2398,8 @@ def edit_purchase_view(request, purchase_id):
         'purchase_statuses': Purchase.PurchaseStatus.choices,
     }
     return render(request, 'edit_purchase.html', context)
+
+
 # Delete Purchse 
 @tenant_required
 def delete_purchase(request, purchase_id):

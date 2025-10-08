@@ -114,6 +114,7 @@ urlpatterns=[
     path('purchase/<int:purchase_id>/add-payment/', views.add_purchase_payment, name='add_purchase_payment'),
     path('payment/<int:payment_id>/delete/', views.delete_purchase_payment, name='delete_purchase_payment'),
     path('purchase/<int:purchase_id>/return/', views.create_purchase_return, name='create_purchase_return'),
+    path('purchase/update-status/<int:purchase_id>/', views.update_purchase_status_inline, name='update_purchase_status_inline'),
 
     # Vendor Performance url
     path('vendors/performance/', views.vendor_performance_view, name='vendor_performance'),
