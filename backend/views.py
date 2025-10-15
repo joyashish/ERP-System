@@ -473,28 +473,61 @@ def Create_partyVw(request):
 @tenant_required
 def Party_listVw(request):
     account = request.user
-    
-    # The new decorator provides request.tenant automatically for both superadmins and regular users
     tenant = request.tenant
 
     if not tenant and account.role == 'superadmin':
-        # Guide the superadmin if they haven't selected a tenant yet
         messages.info(request, "Please select a tenant from the Superadmin Dashboard to manage parties.")
         return redirect('superadmin_dashboard')
 
-    # Now the query is simple and the same for everyone
-    party_list = Create_party.objects.filter(tenant=tenant, is_active=True).order_by('-id')
+    # Base queryset for all active parties in the tenant
+    base_query = Create_party.objects.filter(tenant=tenant, is_active=True)
 
-    total_balance = party_list.aggregate(total=Sum('opening_balance'))['total'] or 0.00
-    total_credit = party_list.aggregate(total=Sum('credit_limit'))['total'] or 0.00
+    # --- Get filter parameters from the request ---
+    search_query = request.GET.get('q', '')
+    party_type_filter = request.GET.get('party_type', '')
+    category_filter = request.GET.get('category', '')
+
+    # --- Apply filters to a new variable to preserve the base query ---
+    filtered_parties = base_query
+    if search_query:
+        filtered_parties = filtered_parties.filter(party_name__icontains=search_query)
+    
+    if party_type_filter:
+        filtered_parties = filtered_parties.filter(party_type=party_type_filter)
+
+    if category_filter:
+        filtered_parties = filtered_parties.filter(party_category=category_filter)
+
+    # Order the final list
+    party_list = filtered_parties.order_by('-id')
+
+    # --- For dropdown options: Exclude null AND empty string values ---
+    # This ensures the blank option from the database does not appear
+    party_types = base_query.exclude(
+        Q(party_type__isnull=True) | Q(party_type__exact='')
+    ).values_list('party_type', flat=True).distinct()
+    
+    party_categories = base_query.exclude(
+        Q(party_category__isnull=True) | Q(party_category__exact='')
+    ).values_list('party_category', flat=True).distinct()
+
+    # --- Stat calculations are performed on the unfiltered base query ---
+    total_balance = base_query.aggregate(total=Sum('opening_balance'))['total'] or 0.00
+    total_credit = base_query.aggregate(total=Sum('credit_limit'))['total'] or 0.00
     
     context = {
         'party_list': party_list,
-        'total_parties': party_list.count(),
+        'total_parties': base_query.count(),
         'total_balance': total_balance,
         'total_credit': total_credit,
         'add': account,
-        'tenant': tenant, # Pass the specific tenant to the template
+        'tenant': tenant,
+        'party_types': party_types,
+        'party_categories': party_categories,
+        # --- Crucially, pass the current filter values back to the template ---
+        'search_query': search_query,
+        'party_type_filter': party_type_filter,
+        'category_filter': category_filter,
     }
     return render(request, 'Party_list.html', context)
 

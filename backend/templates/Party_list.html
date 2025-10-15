@@ -70,6 +70,60 @@
         </div><!-- /.container-fluid -->
     </section>
 
+<!-- Filter section starts -->
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-default">
+            <div class="card-body">
+                <form method="GET" action="{% url 'Party_list' %}">
+                    
+                    {% if tenant %}
+                        <input type="hidden" name="tenant_id" value="{{ tenant.id }}">
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Party Name</label>
+                                <input type="text" name="q" class="form-control" placeholder="Search by name..." value="{{ search_query }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Party Type</label>
+                                <select name="party_type" class="form-control">
+                                    <option value="">All Types</option>
+                                    {% for type in party_types %}
+                                        <option value="{{ type }}" {% if party_type_filter == type %}selected{% endif %}>{{ type }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select name="category" class="form-control">
+                                    <option value="">All Categories</option>
+                                    {% for category in party_categories %}
+                                        <option value="{{ category }}" {% if category_filter == category %}selected{% endif %}>{{ category }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-group w-100">
+                                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                                <a href="{% url 'Party_list' %}{% if tenant %}?tenant_id={{ tenant.id }}{% endif %}" class="btn btn-secondary w-100 mt-2">Clear</a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- filter section end -->
+
     <!-- Party List Table -->
     <section class="content">
         <div class="container-fluid">
