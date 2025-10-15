@@ -1517,7 +1517,7 @@ def sale_invoice_pdf(request, sale_id):
     for item in sale.items.all():
         hsn = item.item.hsn_sac_code or "N/A"
         taxable_value = Decimal(item.quantity) * item.unit_price
-        gst_rate = Decimal(item.item.gst_rate.replace("%", "") or "0")  # e.g. "18%" -> 18
+        gst_rate = Decimal((item.item.gst_rate or "0").replace("%", ""))  # e.g. "18%" -> 18
         half_rate = gst_rate / Decimal(2)
 
         cgst = taxable_value * (half_rate / 100)

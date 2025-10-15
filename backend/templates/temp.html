@@ -921,3 +921,555 @@ This creates a clean, scalable, and professional workflow for your superadmin.
 
 
 Next Edit purchase page to edit the purchase items
+
+
+Old create sale page code
+{% load static %}
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+
+<style>
+    /* === GENERAL PAGE LAYOUT === */
+    .content-wrapper {
+        background: #f7f9fc;
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .table thead th {
+        background: #f1f5f9;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .btn {
+        border-radius: 8px;
+    }
+
+    /* .btn-info {
+        background-color: #2563eb;
+        border-color: #2563eb;
+    }
+
+    .btn-info:hover {
+        background-color: #1e40af;
+        border-color: #1e40af;
+    } */
+
+    /* === PARTY DETAILS CARD === */
+    #partyDetails {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        display: none;
+    }
+
+    #partyDetails strong {
+        font-size: 1.05rem;
+        color: #1a202c;
+    }
+
+    #partyDetails i {
+        color: #4a5568;
+        width: 18px;
+        text-align: center;
+    }
+
+    #partyDetails span {
+        color: #2d3748;
+    }
+
+    /* === PAYMENT SUMMARY === */
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.65rem;
+        font-size: 0.92em;
+    }
+
+    .summary-label {
+        font-weight: 500;
+        color: #2d3748;
+    }
+
+    .summary-value {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .summary-input {
+        max-width: 120px;
+        text-align: right;
+    }
+
+    .bg-warning {
+        background: #fff3cd !important;
+    }
+
+    hr {
+        margin: 0.75rem 0;
+    }
+
+    /* === TABLE RESPONSIVE (MOBILE) === */
+    @media (max-width: 768px) {
+        .items-table thead {
+            display: none;
+        }
+        .items-table tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 10px;
+            background: #fff;
+        }
+        .items-table td {
+            display: flex;
+            justify-content: space-between;
+            border: none;
+        }
+        .items-table td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #4a5568;
+        }
+    }
+</style>
+
+<div class="content-wrapper">
+    <div class="content-header pb-0">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0 font-weight-bold text-dark">🧾 Create Sale</h4>
+                <ol class="breadcrumb float-sm-right mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'dash' %}">Home</a></li>
+                    <li class="breadcrumb-item active">Create Sale</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            {% if messages %}
+            <div class="row">
+                <div class="col-md-12">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{% url 'Create_Sale' %}" enctype="multipart/form-data" id="saleForm">
+                {% csrf_token %}
+
+                {% if add.role == 'superadmin' %}
+                <div class="form-group">
+                    <label for="tenantSelect" class="form-label">Select Tenant</label>
+                    <select name="tenant_id" id="tenantSelect" class="form-control" required>
+                        <option value="">Select Tenant</option>
+                        {% for t in tenants %}
+                        <option value="{{ t.id }}" {% if t.id == tenant_id_from_url|add:0 %}selected{% endif %}>{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    {% if add.role == 'superadmin' and tenant_id_from_url %}
+                    <a href="{% url 'sales_list' %}?tenant_id={{ tenant_id_from_url }}" class="btn btn-info"><i class="fas fa-list mr-1"></i>View Sales List</a>
+                    {% else %}
+                    <a href="{% url 'sales_list' %}" class="btn btn-info"><i class="fas fa-list mr-1"></i>View Sales List</a>
+                    {% endif %}
+                </div>
+
+                <div class="row">
+                    <!-- LEFT SIDE -->
+                    <div class="col-lg-8">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Select Party *</label>
+                                        <div class="d-flex">
+                                            <select class="form-control form-control-sm" name="party_id" id="partySelect" required>
+                                                <option value="">Select or Add a Party</option>
+                                                {% for party in parties %}
+                                                <option value="{{ party.id }}" data-email="{{ party.email }}" data-phone="{{ party.mobile_num }}" data-address="{{ party.billing_address }}" data-gst="{{ party.gst_no }}" data-pan="{{ party.pan_no }}">{{ party.party_name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <a href="{% url 'Create_party' %}" class="btn btn-primary btn-sm ml-2" title="Add New Party">+</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div id="partyDetails" class="mt-3">
+                                            <strong><i class="fas fa-user mr-1 text-primary"></i> <span id="partyNameDisplay"></span></strong>
+                                            <div class="mt-1"><i class="fas fa-envelope mr-1"></i><span id="partyEmailDisplay"></span></div>
+                                            <div><i class="fas fa-phone mr-1"></i><span id="partyPhoneDisplay"></span></div>
+                                            <div><i class="fas fa-map-marker-alt mr-1"></i><span id="partyAddressDisplay"></span></div>
+                                            <div><strong>GSTIN:</strong> <span id="partyGstDisplay"></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <h6 class="font-weight-bold mb-3">Sale Items</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered items-table" id="itemsTable">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 20%;">Item</th>
+                                                <th>Qty</th>
+                                                <th>Price</th>
+                                                <th>GST</th>
+                                                <th>Discount</th>
+                                                <th>Amount</th>
+                                                <th>Delete</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="itemsBody">
+                                            <tr class="item-row">
+                                                <td data-label="Item">
+                                                    <select class="form-control form-control-sm item-select" name="items[0][item_id]" required>
+                                                        <option value="">Select Item</option>
+                                                        {% for item in items %}
+                                                        <option value="{{ item.id }}" data-price="{{ item.sale_price }}" data-gst="{{ item.gst_rate }}">{{ item.item_name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </td>
+                                                <td data-label="Qty"><input type="number" class="form-control form-control-sm quantity" name="items[0][quantity]" min="1" value="1" required></td>
+                                                <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" name="items[0][unit_price]"></td>
+                                                <td data-label="GST"><input type="text" class="form-control form-control-sm gst-rate" name="items[0][gst_rate]" readonly></td>
+                                                <td data-label="Discount"><input type="number" class="form-control form-control-sm discount" name="items[0][discount]" min="0" value="0" step="0.01"></td>
+                                                <td data-label="Amount"><input type="number" class="form-control form-control-sm amount" name="items[0][amount]" readonly></td>
+                                                <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <button type="button" class="btn btn-primary mr-2" id="addItem"><i class="fas fa-plus mr-1"></i>Add Item</button>
+                                <button type="submit" class="btn btn-success" id="saveButton"><i class="fas fa-save mr-1"></i>Save</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT SIDE -->
+                    <div class="col-lg-4">
+                        <div class="card mb-3">
+                            <div class="card-header">Invoice Details</div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>Invoice No *</label>
+                                    <input type="text" class="form-control form-control-sm" id="invoiceNo" name="invoice_no" value="{{ invoice_no }}" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label>Invoice Date *</label>
+                                    <input type="date" class="form-control form-control-sm" id="invoiceDate" name="invoice_date" value="{% now 'Y-m-d' %}" required>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label>Due Date</label>
+                                    <input type="date" class="form-control form-control-sm" id="dueDate" name="due_date">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">Payment Summary</div>
+                            <div class="card-body">
+                                <div class="summary-row"><span class="summary-label">Subtotal</span><span class="summary-value" id="subtotal">₹ 0.00</span></div>
+                                <div class="summary-row"><span class="summary-label">Discount</span><input type="number" class="form-control form-control-sm summary-input" id="totalDiscount" name="discount" value="0"></div>
+                                <div class="summary-row">
+                                    <input type="text" class="form-control form-control-sm" id="additionalChargesNote" name="additional_charges_note" placeholder="e.g., Additional Charges">
+                                    <input type="number" class="form-control form-control-sm summary-input" id="additionalCharges" name="additional_charges" value="0">
+                                </div>
+                                <hr>
+                                <div class="summary-row"><span class="summary-label">Taxable Amount</span><span class="summary-value" id="taxableAmount">₹ 0.00</span></div>
+                                <div class="summary-row"><span class="summary-label">Total Tax</span><span class="summary-value" id="totalTax">₹ 0.00</span></div>
+                                <hr>
+                                <div class="summary-row" style="font-size: 1.1em;"><span class="summary-label">Total Amount</span><span class="summary-value" id="totalAmount">₹ 0.00</span></div>
+                                <hr>
+                                <div class="summary-row"><span class="summary-label">Amount Received</span><input type="number" class="form-control form-control-sm summary-input" id="amountReceived" name="amount_received" value="0"></div>
+                                <div class="summary-row bg-warning p-2 rounded"><span class="summary-label">Balance Due</span><span class="summary-value" id="balanceAmount">₹ 0.00</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTES -->
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control form-control-sm" id="notes" name="notes" rows="2" placeholder="Add notes for internal use or customer..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Terms & Conditions</label>
+                                <textarea class="form-control form-control-sm" id="terms" name="terms_conditions" rows="2">Goods once sold will not be taken back, unless it fulfills the conditions.</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+    
+    <div id="loadingSpinner" class="spinner-overlay" style="display: none;">
+        <div class="spinner-border text-light" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // This is the single, complete script for the page.
+
+    /**
+     * Converts a number into its word representation for invoices.
+     */
+    function numberToWords(num) {
+        const a=['','one ','two ','three ','four ', 'five ','six ','seven ','eight ','nine ','ten ','eleven ','twelve ','thirteen ','fourteen ','fifteen ','sixteen ','seventeen ','eighteen ','nineteen '];const b=['', '', 'twenty','thirty','forty','fifty', 'sixty','seventy','eighty','ninety'];function inWords(n){if((n=n.toString()).length>9)return 'overflow';n=('000000000'+n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);if(!n)return'';var str='';str+=(n[1]!=0)?(a[Number(n[1])]||b[n[1][0]]+' '+a[n[1][1]])+'crore ':'';str+=(n[2]!=0)?(a[Number(n[2])]||b[n[2][0]]+' '+a[n[2][1]])+'lakh ':'';str+=(n[3]!=0)?(a[Number(n[3])]||b[n[3][0]]+' '+a[n[3][1]])+'thousand ':'';str+=(n[4]!=0)?(a[Number(n[4])]||b[n[4][0]]+' '+a[n[4][1]])+'hundred ':'';str+=(n[5]!=0)?((str!=='')?'and ':'')+(a[Number(n[5])]||b[n[5][0]]+' '+a[n[5][1]]):'';return str}const[integerPart,decimalPart]=num.toString().split('.');let words=inWords(integerPart);if(decimalPart&&parseInt(decimalPart)>0){words+=' and '+inWords(decimalPart)+' paise '}return words.trim().replace(/\s+/g,' ').charAt(0).toUpperCase()+words.trim().replace(/\s+/g,' ').slice(1)+'Only'
+    }
+
+    $(document).ready(function () {
+        let rowIndex = 1;
+        // The new line that gets data directly from the Django context
+        let currentTenantItems = [{% for item in items %}{ id: {{ item.id }}, item_name: '{{ item.item_name|escapejs }}', sale_price: '{{ item.sale_price }}', gst_rate: '{{ item.gst_rate|default_if_none:"" }}' },{% endfor %}];
+        // Stores items for the currently selected tenant
+
+        /**
+         * Updates Party/Item dropdowns with new data after an AJAX call.
+         */
+        function updateDropdowns(parties, items) {
+            const partySelect = $('#partySelect');
+            const itemSelects = $('.item-select');
+            currentTenantItems = items || [];
+
+            partySelect.empty().append('<option value="">Select or Add a Party...</option>');
+            if (parties && parties.length > 0) {
+                parties.forEach(party => {
+                    const option = $(`<option value="${party.id}">${party.party_name}</option>`);
+                    // Add all data attributes needed for the party details section
+                    option.data('email', party.email || 'N/A');
+                    option.data('phone', party.mobile_num || 'N/A');
+                    option.data('gst', party.gst_no || 'N/A');
+                    option.data('address', party.billing_address || 'N/A');
+                    partySelect.append(option);
+                });
+            }
+
+            itemSelects.each(function() {
+                const currentItemSelect = $(this);
+                currentItemSelect.empty().append('<option value="">Select Item</option>');
+                if (currentTenantItems.length > 0) {
+                    currentTenantItems.forEach(item => {
+                        currentItemSelect.append(`<option value="${item.id}" data-price="${item.sale_price}" data-gst="${item.gst_rate || ''}">${item.item_name}</option>`);
+                    });
+                }
+            });
+            
+            $('#partyDetails').slideUp();
+            updateTotals();
+        }
+
+        /**
+         * Fetches tenant-specific data when the superadmin selects a tenant.
+         */
+        $('#tenantSelect').on('change', function() {
+            const tenantId = $(this).val();
+            if (!tenantId) {
+                updateDropdowns([], []);
+                return;
+            }
+            $('#partySelect, .item-select').prop('disabled', true).html('<option>Loading...</option>');
+            fetch(`/api/get_tenant_data/${tenantId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    $('#partySelect, .item-select').prop('disabled', false);
+                    if (data.error) { alert(data.error); return; }
+                    updateDropdowns(data.parties, data.items);
+                })
+                .catch(error => {
+                    console.error("Failed to fetch tenant data:", error);
+                    alert("An error occurred. Check the console.");
+                    $('#partySelect, .item-select').prop('disabled', false);
+                });
+        });
+
+        if ($('#tenantSelect').val()) {
+            $('#tenantSelect').trigger('change');
+        }
+
+        /**
+         * Calculates the total amount for a single item row.
+         */
+        function updateRowAmount(row) {
+            const quantity = parseFloat(row.find('.quantity').val()) || 0;
+            const unitPrice = parseFloat(row.find('.unit-price').val()) || 0;
+            const discount = parseFloat(row.find('.discount').val()) || 0;
+            const gstText = row.find('.gst-rate').val() || '0%';
+            const gstRate = parseFloat(gstText.replace('%', '')) || 0;
+            const taxableItemAmount = (quantity * unitPrice) - discount;
+            const taxAmount = taxableItemAmount * (gstRate / 100);
+            const amount = taxableItemAmount + taxAmount;
+            row.find('.amount').val(amount.toFixed(2));
+            updateTotals();
+        }
+
+        /**
+         * Recalculates all totals in the Payment Summary section.
+         */
+        function updateTotals() {
+            let subtotal = 0,totalItemDiscount = 0, totalTax = 0;
+
+            // 1. Loop through each item to calculate line totals and gather data
+            $('.item-row').each(function () {
+                const row = $(this);
+                const quantity = parseFloat(row.find('.quantity').val()) || 0;
+                const unitPrice = parseFloat(row.find('.unit-price').val()) || 0;
+                const itemDiscount  = parseFloat(row.find('.discount').val()) || 0;
+                const gstText = row.find('.gst-rate').val() || '0%';
+                const gstRate = parseFloat(gstText.replace('%','')) || 0;
+
+                // Calculate subtotal before any discounts
+                subtotal += quantity * unitPrice;
+
+                // Keep track of the sum of all item-level discounts
+                totalItemDiscount += itemDiscount;
+                
+                // Tax is calculated on the price after the item-level discount
+                const taxableItemAmount = (quantity * unitPrice) - itemDiscount;
+                totalTax += taxableItemAmount * (gstRate / 100);
+            });
+            // 2. Get overall invoice-level adjustments
+            const overallDiscount = parseFloat($('#totalDiscount').val()) || 0;
+            const additionalCharges = parseFloat($('#additionalCharges').val()) || 0;
+
+            // 3. Calculate final summary
+            // Taxable amount is the subtotal minus BOTH types of discounts
+            const totalDiscount = totalItemDiscount + overallDiscount;
+            const taxableAmount = subtotal - totalDiscount;
+            const totalAmount = taxableAmount + totalTax + additionalCharges;
+            const amountReceived = parseFloat($('#amountReceived').val()) || 0;
+            const balanceAmount = totalAmount - amountReceived;
+
+            // 4. Update the display
+            $('#subtotal').text('₹ ' + subtotal.toFixed(2));
+            $('#taxableAmount').text('₹ ' + taxableAmount.toFixed(2));
+            $('#totalTax').text('₹ ' + totalTax.toFixed(2));
+            $('#totalAmount').text('₹ ' + totalAmount.toFixed(2));
+            $('#balanceAmount').text('₹ ' + balanceAmount.toFixed(2));
+        }
+
+        /**
+         * Binds calculation events to inputs in the item rows.
+         */
+        function bindRowEvents(row) {
+            const target = row ? row.find('.item-select, .quantity, .discount, .unit-price') : $(document);
+            target.on('input change', '.item-select, .quantity, .discount, .unit-price', function () {
+                const currentRow = $(this).closest('tr');
+                // When a new item is selected from the dropdown, it populates the price.
+                // But now the user can override it.
+                if ($(this).hasClass('item-select')) {
+                    const selectedOption = $(this).find('option:selected');
+                    currentRow.find('.unit-price').val(selectedOption.data('price') || 0);
+                    currentRow.find('.gst-rate').val(selectedOption.data('gst') || '');
+                }
+                // Any change will trigger a recalculation
+                updateRowAmount(currentRow);
+            });
+        }
+
+        /**
+         * Shows party details when a party is selected.
+         */
+        $(document).on('change', '#partySelect', function () {
+            const selectedOption = $(this).find('option:selected');
+            if (selectedOption.val()) {
+                $('#partyNameDisplay').text(selectedOption.text());
+                $('#partyEmailDisplay').text(selectedOption.data('email') || 'N/A');
+                $('#partyPhoneDisplay').text(selectedOption.data('phone') || 'N/A');
+                $('#partyGstDisplay').text(selectedOption.data('gst') || 'N/A');
+                $('#partyDetails').slideDown();
+            } else {
+                $('#partyDetails').slideUp();
+            }
+        });
+        
+        /**
+         * Adds a new item row to the table.
+         */
+        $('#addItem').click(function () {
+            let itemOptions = '<option value="">Select Item</option>';
+            currentTenantItems.forEach(item => {
+                itemOptions += `<option value="${item.id}" data-price="${item.sale_price}" data-gst="${item.gst_rate || ''}">${item.item_name}</option>`;
+            });
+            const rowHTML = `
+              <tr class="item-row">
+                <td data-label="Item"><select class="form-control form-control-sm item-select" name="items[${rowIndex}][item_id]" required>${itemOptions}</select></td>
+                <td data-label="Qty"><input type="number" class="form-control form-control-sm quantity" name="items[${rowIndex}][quantity]" min="1" value="1" required></td>
+                <td data-label="Price"><input type="number" class="form-control form-control-sm unit-price" name="items[${rowIndex}][unit_price]" step="0.01" min="0"></td>
+                <td data-label="GST"><input type="text" class="form-control form-control-sm gst-rate" name="items[${rowIndex}][gst_rate]" readonly></td>
+                <td data-label="Discount"><input type="number" class="form-control form-control-sm discount" name="items[${rowIndex}][discount]" min="0" value="0" step="0.01"></td>
+                <td data-label="Amount"><input type="number" class="form-control form-control-sm amount" name="items[${rowIndex}][amount]" readonly></td>
+                <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+              </tr>`;
+            $('#itemsBody').append(rowHTML);
+            rowIndex++;
+            bindRowEvents(); // Re-bind events for all rows
+        });
+
+        $(document).on('click', '.remove-row', function () {
+            if ($('.item-row').length > 1) {
+                $(this).closest('tr').remove();
+                updateTotals();
+            } else {
+                alert("You must have at least one item.");
+            }
+        });
+        $('#totalDiscount, #additionalCharges, #amountReceived').on('input', updateTotals);
+        
+        $('#saveButton').on('click', function(e) {
+            e.preventDefault();
+            $('#saleForm').submit();
+        });
+
+        bindRowEvents();
+        updateTotals();
+    });
+</script>
+    {% include 'footer.html' %}
+    {% include 'footer_link.html' %}
+</body>
+</html>
