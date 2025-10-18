@@ -144,7 +144,7 @@ $(document).ready(function () {
         const pincode = $("#pincode").val();
         
         if (!street || !city || !district || !state || !pincode) {
-            alert("Please fill all required address fields (*).");
+            showAlert("Please fill all required address fields (*).");
             return;
         }
 
@@ -160,3 +160,5 @@ $(document).ready(function () {
 </script>
 
 {% include 'footer.html' %}
+{% include 'footer_link.html' %}
+

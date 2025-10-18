@@ -549,7 +549,7 @@ $(document).ready(function () {
             $(this).closest('tr').remove();
             updateTotals();
         } else {
-            alert("You must have at least one item.");
+            showAlert("You must have at least one item.");
         }
     });
 
@@ -572,7 +572,7 @@ $(document).ready(function () {
 
             // Remove the duplicate row that was just created
             currentRow.remove();
-            alert("Item already exists. Quantity increased instead.");
+            showAlert("Item already exists. Quantity increased instead.");
         } else {
             // Populate price/GST normally if unique
             const selectedOption = $(this).find('option:selected');

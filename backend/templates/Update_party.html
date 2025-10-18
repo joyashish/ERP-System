@@ -188,7 +188,7 @@ $(document).ready(function () {
         const pincode = $("#pincode").val();
         
         if (!street || !city || !district || !state || !pincode) {
-            alert("Please fill all required address fields (*).");
+            showAlert("Please fill all required address fields (*).");
             return;
         }
         const finalAddress = `${street}\n${city}, ${district}\n${state} - ${pincode}`;

@@ -133,6 +133,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<!-- Script for custom-alert -->
+<script>
+function showAlert(message, callback = null, duration = 7000) {
+  const alertBox = document.getElementById('customAlert');
+  const alertMsg = document.getElementById('customAlertMessage');
+  const alertBtn = document.getElementById('customAlertBtn');
+
+  // Set message
+  alertMsg.textContent = message;
+  alertBox.classList.add('show');
+
+  // Clear any existing timeout
+  if (alertBox.hideTimeout) clearTimeout(alertBox.hideTimeout);
+
+  // Auto-hide after duration (default 7s)
+  alertBox.hideTimeout = setTimeout(() => {
+    alertBox.classList.remove('show');
+    if (callback) callback();
+  }, duration);
+
+  // Also hide when user clicks OK
+  alertBtn.onclick = () => {
+    alertBox.classList.remove('show');
+    clearTimeout(alertBox.hideTimeout);
+    if (callback) callback();
+  };
+}
+</script>
 
 
 </body>

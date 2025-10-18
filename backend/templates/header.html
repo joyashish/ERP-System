@@ -50,7 +50,54 @@
 
   <link rel="shortcut icon" href="https://camo.githubusercontent.com/6907519551f9e6948c61eafb1cead2f198f252162570317067efeb6f6f46b448/68747470733a2f2f69636f6e2d6c6962726172792e636f6d2f696d616765732f6572702d73797374656d2d69636f6e2f6572702d73797374656d2d69636f6e2d392e6a7067" />
 
+  <!-- custom-alert css -->
+<style>
+  /* === Custom Themed Alert === */
+.custom-alert {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  min-width: 320px;
+  max-width: 400px;
+  background: #1E293B; /* matches dark dashboard theme */
+  color: #f8fafc;
+  border-radius: 12px;
+  padding: 20px 25px;
+  text-align: center;
+  z-index: 9999;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  display: none;
+  animation: fadeInScale 0.25s ease;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.custom-alert.show {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+.custom-alert button {
+  background-color: #06b6d4; /* accent teal */
+  border: none;
+  padding: 8px 18px;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-top: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.custom-alert button:hover {
+  background-color: #0891b2;
+}
 
+@keyframes fadeInScale {
+  from {opacity: 0; transform: translate(-50%, -50%) scale(0.9);}
+  to {opacity: 1; transform: translate(-50%, -50%) scale(1);}
+}
+</style>
 
 
   <!-- light/dark mode css -->
@@ -1142,9 +1189,18 @@ body {
 </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
-<div class="wrapper">
+  <div class="wrapper">
 
-  <!-- Preloader -->
-  {% comment %} <div class="preloader flex-column justify-content-center align-items-center">
-    <img class="animation__shake" src="{% static '../static/dist/img/pre_loader.PNG' %}" alt="ERP System." height="60" width="160">
-  </div> {% endcomment %}
+    <!-- Preloader -->
+    {% comment %} <div class="preloader flex-column justify-content-center align-items-center">
+      <img class="animation__shake" src="{% static '../static/dist/img/pre_loader.PNG' %}" alt="ERP System." height="60"
+        width="160">
+    </div> {% endcomment %}
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlert" class="custom-alert">
+      <div id="customAlertMessage"></div>
+      <button id="customAlertBtn">OK</button>
+    </div>
+  </div>
+</body>
