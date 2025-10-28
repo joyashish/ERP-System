@@ -62,6 +62,80 @@ class ExpenseForm(forms.ModelForm):
         # Add Bootstrap class to the category field
         self.fields['category'].widget.attrs.update({'class': 'form-control'})
 
+# Signup View 
+def signup_view(request):
+    if request.user.is_authenticated:
+        return redirect('dash') # If already logged in, send to dashboard
+
+    if request.method == 'POST':
+        company_name = request.POST.get('company_name')
+        full_name = request.POST.get('full_name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        if not all([company_name, full_name, email, password]):
+            messages.error(request, "Please fill in all fields.")
+            return render(request, 'registration/signup.html')
+
+        try:
+            # Find the default free trial plan
+            trial_plan = Plan.objects.get(is_trial=True)
+        except Plan.DoesNotExist:
+            messages.error(request, "Signup is currently unavailable. Please contact support.")
+            return render(request, 'registration/signup.html')
+
+        try:
+            with transaction.atomic():
+                # 1. Create the Tenant
+                new_tenant = Tenant.objects.create(
+                    name=company_name,
+                    plan=trial_plan,
+                    subscription_status='trial'
+                )
+                
+                # 2. Create the Admin Account using your new manager
+                new_user = Account.objects.create_user(
+                    tenant=new_tenant,
+                    full_name=full_name,
+                    email=email,
+                    password=password,
+                    role='admin',
+                    is_active=True
+                )
+            
+            # 3. Log the new user in
+            login(request, new_user)
+            return redirect('dash')
+
+        except IntegrityError:
+            messages.error(request, "An account with this email or company name already exists.")
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+
+    return render(request, 'registration/signup.html')
+
+@login_required
+def dummy_subscribe_view(request, plan_id):
+    try:
+        plan = Plan.objects.get(id=plan_id, is_trial=False) # Get the plan they want to buy
+        tenant = request.user.tenant
+
+        # "Charge" the user (simulated)
+        print(f"Tenant {tenant.name} just 'paid' for {plan.name}")
+
+        # Update their subscription
+        tenant.plan = plan
+        tenant.subscription_status = 'active'
+        tenant.subscription_ends_at = timezone.now() + timezone.timedelta(days=plan.duration_days)
+        tenant.save()
+
+        messages.success(request, f"You are now subscribed to the {plan.name} plan!")
+        return redirect('dash')
+
+    except Plan.DoesNotExist:
+        messages.error(request, "This plan does not exist.")
+        return redirect('pricing') # Redirect to the public pricing page
+
 # Permission Decorators
 def superadmin_required(view_func):
     def wrapper(request, *args, **kwargs):
@@ -98,34 +172,60 @@ def clear_tenant_context(request):
     return redirect('superadmin_dashboard')
 
 def tenant_required(view_func):
-    """
-    Ensures that a user is logged in and has a tenant context.
-    - Regular users must have a tenant assigned.
-    - Superadmins can proceed, as their tenant context is handled within the view.
-    """
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect('/')
-        
-        # Superadmins can access any tenant-aware page.
-        # The view itself is responsible for getting the tenant_id from the URL.
+            return redirect('login') # Or your login URL name
+
+        # Superadmin bypasses tenant checks
         if request.user.role == 'superadmin':
-            managed_tenant_id = request.session.get('managed_tenant_id')
-            if managed_tenant_id:
-                # If managing a tenant, attach that tenant to the request
-                request.tenant = get_object_or_404(Tenant, id=managed_tenant_id)
+            # Your existing superadmin logic for selecting a tenant
+            tenant_id = request.session.get('selected_tenant_id')
+            if not tenant_id:
+                tenant_id = request.GET.get('tenant_id')
+
+            if tenant_id:
+                try:
+                    request.tenant = Tenant.objects.get(id=tenant_id)
+                except Tenant.DoesNotExist:
+                    messages.error(request, "Tenant not found.")
+                    return redirect('superadmin_dashboard')
             else:
-                # If not managing a specific tenant, set tenant to None
-                request.tenant = None
+                request.tenant = None # Superadmin is on their own dash
+
             return view_func(request, *args, **kwargs)
-        
-        # Regular users must have a tenant associated with them.
-        # Regular User Logic
-        if not request.tenant:
-            messages.error(request, "Could not identify your account. Please log in again.")
-            return redirect('/') # Or a logout URL
-            
+
+        # --- Logic for regular 'admin' or 'user' ---
+        tenant = request.user.tenant
+        if not tenant:
+            messages.error(request, "You are not associated with any company.")
+            return redirect('login') # Or a "contact support" page
+
+        request.tenant = tenant
+
+        # --- NEW SUBSCRIPTION CHECK ---
+        status = tenant.subscription_status
+
+        # 1. Check if trial has expired
+        if status == 'trial' and tenant.trial_ends_at < timezone.now():
+            tenant.subscription_status = 'expired'
+            tenant.save()
+            status = 'expired' # Update status for the next check
+
+        # 2. Check if active subscription has expired
+        if status == 'active' and tenant.subscription_ends_at < timezone.now():
+            tenant.subscription_status = 'expired'
+            tenant.save()
+            status = 'expired'
+
+        # 3. If expired, block access and send to pricing page
+        if status == 'expired':
+            messages.error(request, "Your trial or subscription has expired. Please choose a plan to continue.")
+            # Redirect to the public pricing page
+            return redirect('pricing') 
+
+        # If trial is active or subscription is active, let them in
         return view_func(request, *args, **kwargs)
+
     return wrapper
 
 # Helper to get tenant
@@ -298,7 +398,7 @@ def Admin_loginVW(request):
             # Check the account's role and redirect accordingly.
             if account.role == 'superadmin':
                 # If the user is a superadmin, go to the superadmin dashboard.
-                return redirect('/superadmin_dashboard')
+                return redirect('superadmin_dashboard')
             else:
                 # For all other roles (admin, user), go to the regular dashboard.
                 request.session['tenant_id'] = account.tenant.id
@@ -1656,20 +1756,20 @@ def superadmin_dashboard(request):
 def create_tenant(request):
     if request.method == "POST":
         company_name = request.POST.get('company_name')
-        subdomain = request.POST.get('subdomain')
+        # subdomain = request.POST.get('subdomain')
         full_name = request.POST.get('full_name')
         email = request.POST.get('email')
         password = request.POST.get('password')
         phone = request.POST.get('phone')
         role = request.POST.get('role')
 
-        if not all([company_name, subdomain, full_name, email, password, role]):
+        if not all([company_name, full_name, email, password, role]):
             messages.error(request, "Please fill all required fields.")
             return redirect('superadmin_dashboard')
 
         try:
             # Using transaction.atomic would be even better here for production
-            tenant = Tenant.objects.create(name=company_name, subdomain=subdomain)
+            tenant = Tenant.objects.create(name=company_name)
             
             # The Account model's save() method handles password hashing,
             # so we pass the raw password directly.
@@ -1746,26 +1846,60 @@ def delete_account(request, account_id):
 @superadmin_required
 def edit_tenant(request, tenant_id):
     tenant = get_object_or_404(Tenant, id=tenant_id)
+    
+    # Find the primary admin account for this tenant
+    try:
+        admin_account = Account.objects.get(tenant=tenant, role='admin')
+    except Account.DoesNotExist:
+        admin_account = None # Handle case where admin might have been deleted
+
     if request.method == 'POST':
-        # Get data from the form
+        # Get Tenant data
         name = request.POST.get('company_name')
-        subdomain = request.POST.get('subdomain')
-        # The value from the form for 'is_active' will be "True" or "False" as a string
         is_active = request.POST.get('is_active') == 'True'
 
-        tenant.name = name
-        tenant.subdomain = subdomain
-        tenant.is_active = is_active
-        
+        # Get Account data
+        full_name = request.POST.get('full_name')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        password = request.POST.get('password') # This will be empty if not changed
+
         try:
-            tenant.save()
+            # Use a transaction to ensure both models save or neither does
+            with transaction.atomic():
+                # --- 1. Update Tenant ---
+                tenant.name = name
+                tenant.is_active = is_active
+                tenant.save()
+
+                # --- 2. Update Admin Account ---
+                if admin_account:
+                    admin_account.full_name = full_name
+                    admin_account.email = email
+                    admin_account.phone = phone
+                    
+                    # Only update password if a new one was entered
+                    if password:
+                        admin_account.set_password(password) # Correctly hashes the password
+                    
+                    admin_account.save()
+            
             messages.success(request, f"Tenant '{tenant.name}' has been updated successfully.")
             return redirect('superadmin_dashboard')
-        except IntegrityError:
-            messages.error(request, f"The subdomain '{subdomain}' is already in use. Please choose another.")
-            # Stay on the edit page so the user can correct the error
+
+        except IntegrityError as e:
+            # Handle unique constraint errors for name or email
+            if 'name' in str(e):
+                messages.error(request, f"The company name '{name}' is already in use.")
+            elif 'email' in str(e):
+                messages.error(request, f"The email '{email}' is already in use by another account.")
+            else:
+                messages.error(request, "An error occurred. Please check your inputs.")
     
-    context = {'tenant': tenant}
+    context = {
+        'tenant': tenant,
+        'admin_account': admin_account
+    }
     return render(request, 'edit_tenant.html', context)
 # Edit Account
 @superadmin_required

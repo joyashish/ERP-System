@@ -2,8 +2,15 @@ from django.urls import path
 from backend import views 
 urlpatterns=[
 
+    # --- NEW SIGNUP URL ---
+    path('signup/', views.signup_view, name='signup'),
+
     #..... Admin Login ......# 
     path('',views.Admin_loginVW,name='admin_login'),
+    path('login/', views.Admin_loginVW, name='login'),
+
+    # --- URL for 'subscribing' ---
+    path('subscribe/<int:plan_id>/', views.dummy_subscribe_view, name='dummy_subscribe'),
 
     #..... Logout ......#
     path('logout/', views.logout_view, name='logout'),

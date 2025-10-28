@@ -5,22 +5,66 @@ from django.utils import timezone
 from django.db.models import Sum
 from datetime import timedelta
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import ( AbstractBaseUser, PermissionsMixin, BaseUserManager )
 
-# Tenant Model
+
+# --- 1. ACCOUNT MANAGER (Required for Custom User) ---
+# This manager is required for a custom user model.
+# It tells Django how to create users and superusers.
+
+class AccountManager(BaseUserManager):
+    def create_user(self, email, full_name, password=None, **extra_fields):
+        """Creates and saves a new user."""
+        if not email:
+            raise ValueError('Users must have an email address')
+        
+        email = self.normalize_email(email)
+        user = self.model(email=email, full_name=full_name, **extra_fields)
+        
+        user.password = make_password(password) # Hashes password
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, full_name, password=None, **extra_fields):
+        """Creates and saves a new superuser."""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'superadmin') # Set your default superadmin role
+        
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(email, full_name, password, **extra_fields)
+
+
+# ---  2. Plan model  ---
+class Plan(models.Model):
+    name = models.CharField(max_length=100) # e.g., "Free Trial", "Monthly"
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    duration_days = models.IntegerField(default=30)
+    is_trial = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+# ---  3. Tenant Model  ---
 # A Tenant model to represent each organization/customer
 class Tenant(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    subdomain = models.CharField(max_length=100, unique=True, help_text="Subdomain for tenant-specific access")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
-    # --- NEW FIELDS for Settings ---
+
+    # --- Company Details FIELDS for Settings ---
     address = models.TextField(blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     gst_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="GST Number")
     logo = models.ImageField(upload_to='tenant_logos/', blank=True, null=True)
-    # --- NEW FIELDS for Bank & Payment Details ---
+
+    # --- FIELDS for Bank & Payment Details ---
     bank_name = models.CharField(max_length=100, blank=True, null=True)
     account_holder_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="Account Holder's Name")
     account_no = models.CharField(max_length=50, blank=True, null=True, verbose_name="Account Number")
@@ -28,15 +72,34 @@ class Tenant(models.Model):
     upi_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="UPI ID")
     qr_code = models.ImageField(upload_to='tenant_qr_codes/', blank=True, null=True, verbose_name="UPI QR Code Image")
 
+    # --- NEW SUBSCRIPTION FIELDS ---
+    plan = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True, blank=True)
+    subscription_status = models.CharField(
+        max_length=20,
+        choices=[('trial', 'Trial'), ('active', 'Active'), ('expired', 'Expired')],
+        default='trial'
+    )
+    trial_ends_at = models.DateTimeField(null=True, blank=True)
+    subscription_ends_at = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        # Set trial end date on first save
+        if not self.pk and self.subscription_status == 'trial':
+            self.trial_ends_at = timezone.now() + timezone.timedelta(days=15)
+        super().save(*args, **kwargs)
 
 # Account Model (Replaces Admin_login/User)
 # A Account model to represent individual users within a tenant, with roles like 'admin' or 'user' and one 'superadmin'.
-class Account(models.Model):
+# --- 4. UPDATE YOUR ACCOUNT MODEL ---
+# Inherit from AbstractBaseUser and PermissionsMixin
+class Account(AbstractBaseUser, PermissionsMixin):
     ROLES = (
         ('admin', 'Admin'),
         ('user', 'User'),
+        ('superadmin', 'Superadmin'),
     )
     full_name = models.CharField(max_length=255, blank=True)
     email = models.EmailField(unique=True)
@@ -46,21 +109,29 @@ class Account(models.Model):
     tenant = models.ForeignKey('Tenant', on_delete=models.CASCADE, related_name='accounts', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
-    last_login = models.DateTimeField(blank=True, null=True)
-    @property
-    def is_authenticated(self):
-        """
-        Always return True for an active user instance.
-        This is a required property for Django's auth system.
-        """
-        return True
 
-    def save(self, *args, **kwargs):
-        # Hashes password on creation or when it's updated.
-        if self.password and not self.password.startswith('pbkdf2_'):
-            self.password = make_password(self.password)
-        super().save(*args, **kwargs)
+    # --- REQUIRED FIELDS FOR ADMIN ---
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(
+        default=False,
+        help_text='Designates whether the user can log into this admin site.',
+    )
+    # is_superuser, groups, user_permissions are added by PermissionsMixin
+
+    last_login = models.DateTimeField(blank=True, null=True)
+
+    # --- SET THE MANAGER AND USERNAME FIELD ---
+    objects = AccountManager()
+    
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['full_name'] # Fields prompted for when creating a superuser
+
+    # --- DELETE THE save() METHOD ---
+    # The manager's create_user method handles hashing now, so this is no longer needed.
+    
+    # --- DELETE THE is_authenticated PROPERTY ---
+    # This is now handled by AbstractBaseUser.
+
 
     # --- __str__ METHOD ---
     def __str__(self):
