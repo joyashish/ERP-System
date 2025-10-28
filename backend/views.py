@@ -172,56 +172,52 @@ def clear_tenant_context(request):
     return redirect('superadmin_dashboard')
 
 def tenant_required(view_func):
+    """
+    Ensures a user is logged in, has a tenant, and has an active subscription.
+    """
     def wrapper(request, *args, **kwargs):
+        
+        # --- 1. Check if user is authenticated ---
         if not request.user.is_authenticated:
-            return redirect('login') # Or your login URL name
-
-        # Superadmin bypasses tenant checks
+            # Send them to the 'login' page, not the homepage '/'
+            return redirect('login') 
+        
+        # --- 2. Superadmin Logic ---
         if request.user.role == 'superadmin':
-            # Your existing superadmin logic for selecting a tenant
-            tenant_id = request.session.get('selected_tenant_id')
-            if not tenant_id:
-                tenant_id = request.GET.get('tenant_id')
-
-            if tenant_id:
-                try:
-                    request.tenant = Tenant.objects.get(id=tenant_id)
-                except Tenant.DoesNotExist:
-                    messages.error(request, "Tenant not found.")
-                    return redirect('superadmin_dashboard')
+            managed_tenant_id = request.session.get('managed_tenant_id')
+            if managed_tenant_id:
+                request.tenant = get_object_or_404(Tenant, id=managed_tenant_id)
             else:
-                request.tenant = None # Superadmin is on their own dash
-
+                request.tenant = None
             return view_func(request, *args, **kwargs)
 
-        # --- Logic for regular 'admin' or 'user' ---
+        # --- 3. Regular User Logic ---
         tenant = request.user.tenant
         if not tenant:
-            messages.error(request, "You are not associated with any company.")
-            return redirect('login') # Or a "contact support" page
-
+            messages.error(request, "Could not identify your account. Please log in again.")
+            return redirect('login') # Send to 'login', not '/'
+        
         request.tenant = tenant
 
-        # --- NEW SUBSCRIPTION CHECK ---
+        # --- 4. NEW SUBSCRIPTION CHECK ---
         status = tenant.subscription_status
-
-        # 1. Check if trial has expired
+        
+        # Check if trial has expired
         if status == 'trial' and tenant.trial_ends_at < timezone.now():
             tenant.subscription_status = 'expired'
             tenant.save()
-            status = 'expired' # Update status for the next check
-
-        # 2. Check if active subscription has expired
-        if status == 'active' and tenant.subscription_ends_at < timezone.now():
+            status = 'expired'
+        
+        # Check if active subscription has expired
+        if status == 'active' and tenant.subscription_ends_at and tenant.subscription_ends_at < timezone.now():
             tenant.subscription_status = 'expired'
             tenant.save()
             status = 'expired'
 
-        # 3. If expired, block access and send to pricing page
+        # If expired, block access and send to pricing page
         if status == 'expired':
             messages.error(request, "Your trial or subscription has expired. Please choose a plan to continue.")
-            # Redirect to the public pricing page
-            return redirect('pricing') 
+            return redirect('pricing') # Redirect to the public pricing page
 
         # If trial is active or subscription is active, let them in
         return view_func(request, *args, **kwargs)
@@ -375,46 +371,48 @@ def add_category(request):
 #     return render(request, 'Admin_login.html')
 
 
-def Admin_loginVW(request):
-    if request.method == "POST":
+# --- UPDATED LOGIN VIEW ---
+def LoginVw(request):
+    
+    # 1. Check if user is already logged in
+    # This fixes the redirect loop for logged-in users.
+    if request.user.is_authenticated:
+        if request.user.role == 'superadmin':
+            return redirect('superadmin_dashboard')
+        else:
+            return redirect('dash')
+
+    if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('pass')
         
-        # This uses your auth_backend.py to find the user and check the password
-        account = authenticate(request, username=email, password=password)
+        # This uses your auth backend to find the user
+        user = authenticate(request, email=email, password=password)
         
-        # Check if authentication was successful
-        if account is not None:
+        if user is not None:
+            login(request, user) # Sets up the session
             
-            # 1. Call login() FIRST. This is crucial for firing the user_logged_in signal
-            #    and setting up Django's proper session management.
-            login(request, account) 
-            
-            # 2. THEN, manually set the 'email' session key that your middleware is looking for.
-            #    This ensures the middleware will find the user on the next request.
-            request.session['email'] = account.email
-            
-            # 3. Set the tenant_id for regular users, as you did before.
-            # Check the account's role and redirect accordingly.
-            if account.role == 'superadmin':
-                # If the user is a superadmin, go to the superadmin dashboard.
+            # 2. Redirect using URL names, not hardcoded paths
+            if user.role == 'superadmin':
                 return redirect('superadmin_dashboard')
             else:
-                # For all other roles (admin, user), go to the regular dashboard.
-                request.session['tenant_id'] = account.tenant.id
-                return redirect('/dash')
+                return redirect('dash')
+        else:
+            # 3. On fail, redirect back to the login page
+            messages.error(request, 'Invalid email or password.')
+            return redirect('login') 
             
-        # If authentication fails, the account will be None
-        messages.error(request, "Invalid Email or Password")
-        return redirect('/')
-        
-    return render(request, 'Admin_login.html')
+    # 4. Use the correct template path
+    return render(request, 'registration/login.html')
 
-def logout_view(request): # Renamed to avoid conflict with the imported logout
-    # Use Django's logout function for proper session clearing
-    logout(request)
+
+# --- UPDATED LOGOUT VIEW ---
+def Logout(request):
+    logout(request) # Clears the session
     messages.info(request, "You have been logged out successfully!")
-    return redirect('/')
+    
+    # 5. Redirect to the public homepage
+    return redirect('home')
 
 # Dashboard View
 # @tenant_required

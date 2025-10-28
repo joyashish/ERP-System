@@ -6,14 +6,14 @@ urlpatterns=[
     path('signup/', views.signup_view, name='signup'),
 
     #..... Admin Login ......# 
-    path('',views.Admin_loginVW,name='admin_login'),
-    path('login/', views.Admin_loginVW, name='login'),
+    # path('',views.Admin_loginVW,name='admin_login'),
+    path('login/', views.LoginVw, name='login'),
 
     # --- URL for 'subscribing' ---
     path('subscribe/<int:plan_id>/', views.dummy_subscribe_view, name='dummy_subscribe'),
 
     #..... Logout ......#
-    path('logout/', views.logout_view, name='logout'),
+    path('logout/', views.Logout, name='logout'),
 
     #..... Change_Password......#
     path('change_pass',views.ChangePasswordVw,name="change_pass"),
