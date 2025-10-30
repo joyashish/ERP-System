@@ -3,6 +3,7 @@ from django.http import HttpResponse, JsonResponse
 from backend.models import *
 from .forms import TenantSettingsForm
 from backend.forms import *
+from .decorators import *
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -137,13 +138,13 @@ def dummy_subscribe_view(request, plan_id):
         return redirect('pricing') # Redirect to the public pricing page
 
 # Permission Decorators
-def superadmin_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.session.get('email') or not Account.objects.filter(email=request.session['email'], role='superadmin').exists():
-            messages.error(request, "Access denied. Superadmin privileges required.")
-            return redirect('/')
-        return view_func(request, *args, **kwargs)
-    return wrapper
+# def superadmin_required(view_func):
+#     def wrapper(request, *args, **kwargs):
+#         if not request.session.get('email') or not Account.objects.filter(email=request.session['email'], role='superadmin').exists():
+#             messages.error(request, "Access denied. Superadmin privileges required.")
+#             return redirect('/')
+#         return view_func(request, *args, **kwargs)
+#     return wrapper
 
 # View to Switch Tenant (used for superadmin only to set tenant id)
 def set_tenant_context(request, tenant_id):
@@ -171,50 +172,45 @@ def clear_tenant_context(request):
         del request.session['managed_tenant_id']
     return redirect('superadmin_dashboard')
 
-def tenant_required(view_func):
-    """
-    Ensures a user is logged in, has a tenant, and has an active subscription.
-    """
-    def wrapper(request, *args, **kwargs):
+# def tenant_required(view_func):
+#     """
+#     Ensures a user is logged in, has a tenant, and has an active subscription.
+#     """
+#     def wrapper(request, *args, **kwargs):
         
-        if not request.user.is_authenticated:
-            return redirect('login') 
+#         if not request.user.is_authenticated:
+#             return redirect('login') 
         
-        if request.user.role == 'superadmin':
-            return view_func(request, *args, **kwargs)
+#         # --- FIX 4: Check is_superuser to bypass ALL checks ---
+#         if request.user.is_superuser: # <--- CHECK THIS
+#             return view_func(request, *args, **kwargs)
 
-        tenant = request.tenant 
-        if not tenant:
-            messages.error(request, "Your account is not associated with a company. Please contact support.")
-            return redirect('login')
+#         # --- Regular User Logic ---
+#         tenant = request.tenant 
+#         if not tenant:
+#             messages.error(request, "Your account is not associated with a company. Please contact support.")
+#             return redirect('login')
 
-        # --- UPDATED SUBSCRIPTION CHECK ---
-        status = tenant.subscription_status
+#         # --- SUBSCRIPTION CHECK (Now correctly skipped by superadmin) ---
+#         status = tenant.subscription_status
         
-        # Check if trial has expired
-        if status == 'trial':
-            # FIX: Check if trial_ends_at is None OR if it's in the past
-            if not tenant.trial_ends_at or tenant.trial_ends_at < timezone.now():
-                tenant.subscription_status = 'expired'
-                tenant.save()
-                status = 'expired'
+#         if status == 'trial':
+#             if not tenant.trial_ends_at or tenant.trial_ends_at < timezone.now():
+#                 tenant.subscription_status = 'expired'
+#                 tenant.save()
+#                 status = 'expired'
         
-        # Check if active subscription has expired
-        elif status == 'active':
-            # FIX: Check if subscription_ends_at is None OR if it's in the past
-            if not tenant.subscription_ends_at or tenant.subscription_ends_at < timezone.now():
-                tenant.subscription_status = 'expired'
-                tenant.save()
-                status = 'expired'
+#         elif status == 'active':
+#             if not tenant.subscription_ends_at or tenant.subscription_ends_at < timezone.now():
+#                 tenant.subscription_status = 'expired'
+#                 tenant.save()
+#                 status = 'expired'
 
-        # If expired, block access
-        if status == 'expired':
-            messages.error(request, "Your trial or subscription has expired. Please choose a plan to continue.")
-            return redirect('pricing')
+#         if status == 'expired':
+#             messages.error(request, "Your trial or subscription has expired. Please choose a plan to continue.")
+#             return redirect('pricing')
 
-        return view_func(request, *args, **kwargs)
-
-    return wrapper
+#         return view_func(request, *args, **kwargs)
 
 # Helper to get tenant
 def get_tenant(request):
@@ -364,14 +360,11 @@ def add_category(request):
 
 
 # --- UPDATED LOGIN VIEW ---
-from django.contrib.auth import authenticate, login
-from django.shortcuts import render, redirect
-
 def LoginVw(request):
     
     # --- FIX 1: Check is_superuser for already logged-in users ---
     if request.user.is_authenticated:
-        if request.user.is_superuser:
+        if request.user.is_superuser: # <--- CHECK THIS
             return redirect('superadmin_dashboard')
         else:
             return redirect('dash')
@@ -386,7 +379,7 @@ def LoginVw(request):
             login(request, user) 
             
             # --- FIX 2: Check is_superuser for new logins ---
-            if user.is_superuser:
+            if user.is_superuser: # <--- NOT user.role
                 return redirect('superadmin_dashboard')
             else:
                 return redirect('dash')

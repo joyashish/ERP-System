@@ -28,13 +28,6 @@ def home_page(request):
     }
     return render(request, 'public_site/home.html', context)
 
-def pricing_page(request):
-    """Shows the pricing plans."""
-    plans = Plan.objects.filter(is_trial=False).order_by('price')
-    context = {
-        'plans': plans
-    }
-    return render(request, 'public_site/pricing.html', context)
 
 def public_logout_view(request):
     """Logs the user out and redirects to the homepage."""

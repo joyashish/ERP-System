@@ -7,7 +7,6 @@ from public_site import views
     # for now public_site app prifix will be 'home'
 urlpatterns = [
     path('', views.home_page, name='home'),
-    path('pricing/', views.pricing_page, name='pricing'),
     
     # Add this new URL for logging out from the homepage
     path('logout/', views.public_logout_view, name='public-logout'),

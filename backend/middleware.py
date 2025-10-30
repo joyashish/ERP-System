@@ -7,17 +7,12 @@ from backend.models import Tenant, Account
 
 class TenantMiddleware(MiddlewareMixin):
     def process_request(self, request):
-        """
-        This middleware's only job is to attach the correct tenant to
-        an authenticated user's request.
-        All redirect logic is now handled by the @tenant_required decorator.
-        """
         if not request.user.is_authenticated:
             request.tenant = None
             return
 
-        # Use is_superuser to check for superadmin
-        if request.user.is_superuser:
+        # --- FIX 3: Check is_superuser ---
+        if request.user.is_superuser: # <--- CHECK THIS
             managed_tenant_id = request.session.get('managed_tenant_id')
             if managed_tenant_id:
                 request.tenant = get_object_or_404(Tenant, id=managed_tenant_id)
