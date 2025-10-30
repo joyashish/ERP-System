@@ -2,13 +2,282 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Welcome to ERP System</title>
-    </head>
-<body style="padding: 2rem; text-align: center;">
-    <h1>Welcome to Your ERP System</h1>
-    <p>The best solution for managing your business.</p>
-    <a href="{% url 'pricing' %}" style="font-size: 1.2rem; padding: 10px 15px;">View Pricing</a>
-    <a href="{% url 'signup' %}" style="font-size: 1.2rem; padding: 10px 15px;">Start Free Trial</a>
-    <a href="{% url 'login' %}" style="font-size: 1.2rem; padding: 10px 15px;">Login</a>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP System - Streamline Your Business</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom gradient */
+        .hero-gradient {
+            background: linear-gradient(145deg, #f0f7ff 0%, #ffffff 60%);
+        }
+        .cta-gradient {
+            background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+        }
+        /* Simple hover zoom */
+        .feature-card { transition: all 0.3s ease-in-out; }
+        .feature-card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+    </style>
+</head>
+<body class="bg-white text-gray-800 antialiased">
+
+    <header class="bg-white/95 shadow-sm sticky top-0 backdrop-blur-md z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
+            <a href="{% url 'home' %}" class="text-3xl font-extrabold text-blue-600">
+                ERP<span class="text-gray-900">System</span>
+            </a>
+            
+            <div class="hidden lg:flex items-center space-x-8">
+                <a href="#features" class="text-gray-600 hover:text-blue-600 transition-colors font-medium">Features</a>
+                <a href="#how-it-works" class="text-gray-600 hover:text-blue-600 transition-colors font-medium">How It Works</a>
+                <a href="{% url 'pricing' %}" class="text-gray-600 hover:text-blue-600 transition-colors font-medium">Pricing</a>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                {% if user.is_authenticated %}
+                    <div class="relative" id="user-menu-button">
+                        <button class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg hover:bg-blue-700 transition-all">
+                            {{ initials }}
+                        </button>
+                        <div id="user-menu" class="hidden opacity-0 transform -translate-y-2 scale-95 transition-all duration-200 absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                            <div class="px-4 py-3 text-sm text-gray-700 border-b">
+                                <p class="font-semibold">Signed in as</p>
+                                <p class="truncate">{{ user.email }}</p>
+                            </div>
+                            {% if user.is_superuser %}
+                                <a href="{% url 'superadmin_dashboard' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Superadmin Dash</a>
+                            {% else %}
+                                <a href="{% url 'dash' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Dashboard</a>
+                            {% endif %}
+                            <a href="{% url 'public-logout' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left">Logout</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{% url 'login' %}" class="hidden sm:inline-block text-gray-600 hover:text-blue-600 transition-colors font-medium">Login</a>
+                    <a href="{% url 'signup' %}" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-semibold">
+                        Start Free Trial
+                    </a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero-section hero-gradient pt-20 pb-32">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <span class="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 font-semibold rounded-full text-sm">
+                    Built for Growing Businesses
+                </span>
+                <h1 class="mt-6 text-5xl sm:text-7xl font-extrabold text-gray-900 leading-tight tracking-tight">
+                    Your Entire Business,<br>in One Place.
+                </h1>
+                <p class="mt-8 text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+                    Stop the chaos of spreadsheets and scattered apps. ERP System integrates your sales, inventory, purchases, and finances into one simple, powerful platform.
+                </p>
+                <div class="mt-12 flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <a href="{% url 'signup' %}" class="w-full sm:w-auto px-10 py-4 cta-gradient text-white rounded-lg text-lg font-semibold hover:shadow-lg hover:opacity-90 transition-all shadow-md">
+                        Start Your 15-Day Free Trial
+                    </a>
+                </div>
+            </div>
+                    </section>
+
+        <section id="features" class="py-24 sm:py-32 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-base font-semibold text-blue-600 uppercase tracking-wider">Features</h2>
+                    <p class="mt-2 text-4xl sm:text-5xl font-extrabold text-gray-900">
+                        Everything You Need to Scale
+                    </p>
+                    <p class="mt-5 text-lg text-gray-600">
+                        Our platform is built to handle every part of your business, from the first sale to the final report.
+                    </p>
+                </div>
+                
+                <div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div class="feature-card bg-gray-50 p-8 rounded-xl shadow-sm border border-gray-200">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0c-1.657 0-3-.895-3-2s1.343-2 3-2 3-.895 3-2-1.343-2-3-2m0 8c1.11 0 2.08-.402 2.599-1M12 8V7m0 1v8m0 0c-1.657 0-3-.895-3-2s1.343-2 3-2 3-.895 3-2-1.343-2-3-2m9 8a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <h3 class="mt-5 text-xl font-semibold text-gray-900">Sales & Invoicing</h3>
+                        <p class="mt-2 text-gray-600">Create professional invoices in seconds, track payments, and manage customer relationships with ease.</p>
+                    </div>
+                    <div class="feature-card bg-gray-50 p-8 rounded-xl shadow-sm border border-gray-200">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        </div>
+                        <h3 class="mt-5 text-xl font-semibold text-gray-900">Inventory Control</h3>
+                        <p class="mt-2 text-gray-600">Track stock levels in real-time, manage product batches, set low-stock alerts, and handle stock adjustments.</p>
+                    </div>
+                    <div class="feature-card bg-gray-50 p-8 rounded-xl shadow-sm border border-gray-200">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                        <h3 class="mt-5 text-xl font-semibold text-gray-900">Financial Reports</h3>
+                        <p class="mt-2 text-gray-600">Instantly generate Sales Reports, Vendor Performance, Profit & Loss, and track all your expenses.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="how-it-works" class="py-24 sm:py-32 bg-gray-50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 class="text-base font-semibold text-blue-600 uppercase tracking-wider">How It Works</h2>
+                    <p class="mt-2 text-4xl sm:text-5xl font-extrabold text-gray-900">
+                        Get Started in 3 Simple Steps
+                    </p>
+                </div>
+                <div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-16">
+                    <div class="step-card text-center relative">
+                        <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-white border-4 border-blue-500 rounded-full flex items-center justify-center">
+                            <span class="text-3xl font-bold text-blue-600">1</span>
+                        </div>
+                        <h3 class="mt-16 text-2xl font-semibold text-gray-900">Start Your Free Trial</h3>
+                        <p class="mt-4 text-gray-600">Create your account in 60 seconds. No credit card required. Get 15 days of full access, completely free.</p>
+                    </div>
+                    <div class="step-card text-center relative">
+                        <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-white border-4 border-blue-500 rounded-full flex items-center justify-center">
+                            <span class="text-3xl font-bold text-blue-600">2</span>
+                        </div>
+                        <h3 class="mt-16 text-2xl font-semibold text-gray-900">Set Up Your Company</h3>
+                        <p class="mt-4 text-gray-600">Add your company details, upload your logo, and start adding your first customers and products.</p>
+                    </div>
+                    <div class="step-card text-center relative">
+                        <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-white border-4 border-blue-500 rounded-full flex items-center justify-center">
+                            <span class="text-3xl font-bold text-blue-600">3</span>
+                        </div>
+                        <h3 class="mt-16 text-2xl font-semibold text-gray-900">Run Your Business</h3>
+                        <p class="mt-4 text-gray-600">Create invoices, track inventory, and watch your business grow. Upgrade when you're ready.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-gradient">
+            <div class="container mx-auto max-w-7xl py-24 px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-4xl font-extrabold text-white">
+                    Ready to Take Control of Your Business?
+                </h2>
+                <p class="mt-6 text-lg text-blue-100 max-w-2xl mx-auto">
+                    Join hundreds of businesses growing with our platform. Start your free 15-day trial today. No risk, no-obligation.
+                </p>
+                <a href="{% url 'signup' %}" class="mt-10 inline-block px-10 py-4 bg-white text-blue-600 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg">
+                    Start My Free Trial
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-900 text-gray-400">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-16 grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div>
+                <h3 class="text-lg font-semibold text-white">ERP System</h3>
+                <p class="mt-2 text-sm">One platform to run it all.</p>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-gray-300 uppercase">Product</h4>
+                <ul class="mt-4 space-y-2">
+                    <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+                    <li><a href="{% url 'pricing' %}" class="hover:text-white transition-colors">Pricing</a></li>
+                    <li><a href="{% url 'signup' %}" class="hover:text-white transition-colors">Sign Up</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-gray-300 uppercase">Company</h4>
+                <ul class="mt-4 space-y-2">
+                    <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-gray-300 uppercase">Legal</h4>
+                <ul class="mt-4 space-y-2">
+                    <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="bg-gray-950/50 border-t border-gray-800">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm">
+                <p>&copy; 2025 ERP System. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        // --- Hero Animation ---
+        gsap.from(".hero-section span", { duration: 0.7, y: 30, opacity: 0, delay: 0.2, ease: "power3.out" });
+        gsap.from(".hero-section h1", { duration: 0.7, y: 30, opacity: 0, delay: 0.4, ease: "power3.out" });
+        gsap.from(".hero-section p", { duration: 0.7, y: 30, opacity: 0, delay: 0.6, ease: "power3.out" });
+        gsap.from(".hero-section .flex", { duration: 0.7, y: 30, opacity: 0, delay: 0.8, ease: "power3.out" });
+
+        // --- Feature Cards Animation ---
+        gsap.utils.toArray('.feature-card').forEach((card, i) => {
+            gsap.from(card, {
+                duration: 0.6,
+                y: 50,
+                opacity: 0,
+                ease: "power3.out",
+                delay: i * 0.1,
+                scrollTrigger: {
+                    trigger: "#features",
+                    start: "top 75%",
+                }
+            });
+        });
+
+        // --- How it Works Animation ---
+        gsap.utils.toArray('.step-card').forEach((card, i) => {
+            gsap.from(card, {
+                duration: 0.6,
+                y: 50,
+                opacity: 0,
+                ease: "power3.out",
+                delay: i * 0.2,
+                scrollTrigger: {
+                    trigger: "#how-it-works",
+                    start: "top 75%",
+                }
+            });
+        });
+
+        // --- User Menu Dropdown ---
+        const menuButton = document.getElementById('user-menu-button');
+        const userMenu = document.getElementById('user-menu');
+
+        if (menuButton) {
+            menuButton.addEventListener('click', () => {
+                const isHidden = userMenu.classList.contains('hidden');
+                if (isHidden) {
+                    userMenu.classList.remove('hidden');
+                    gsap.to(userMenu, { duration: 0.2, opacity: 1, y: 0, scale: 1, ease: 'power3.out' });
+                } else {
+                    gsap.to(userMenu, { duration: 0.2, opacity: 0, y: -8, scale: 0.95, ease: 'power3.in', onComplete: () => {
+                        userMenu.classList.add('hidden');
+                    }});
+                }
+            });
+
+            // Hide menu if clicking outside
+            document.addEventListener('click', (e) => {
+                if (!userMenu.classList.contains('hidden') && !menuButton.contains(e.target) && !userMenu.contains(e.target)) {
+                    gsap.to(userMenu, { duration: 0.2, opacity: 0, y: -8, scale: 0.95, ease: 'power3.in', onComplete: () => {
+                        userMenu.classList.add('hidden');
+                    }});
+                }
+            });
+        }
+    </script>
 </body>
 </html>

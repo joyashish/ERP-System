@@ -177,49 +177,41 @@ def tenant_required(view_func):
     """
     def wrapper(request, *args, **kwargs):
         
-        # --- 1. Check if user is authenticated ---
         if not request.user.is_authenticated:
-            # Send them to the 'login' page, not the homepage '/'
             return redirect('login') 
         
-        # --- 2. Superadmin Logic ---
         if request.user.role == 'superadmin':
-            managed_tenant_id = request.session.get('managed_tenant_id')
-            if managed_tenant_id:
-                request.tenant = get_object_or_404(Tenant, id=managed_tenant_id)
-            else:
-                request.tenant = None
             return view_func(request, *args, **kwargs)
 
-        # --- 3. Regular User Logic ---
-        tenant = request.user.tenant
+        tenant = request.tenant 
         if not tenant:
-            messages.error(request, "Could not identify your account. Please log in again.")
-            return redirect('login') # Send to 'login', not '/'
-        
-        request.tenant = tenant
+            messages.error(request, "Your account is not associated with a company. Please contact support.")
+            return redirect('login')
 
-        # --- 4. NEW SUBSCRIPTION CHECK ---
+        # --- UPDATED SUBSCRIPTION CHECK ---
         status = tenant.subscription_status
         
         # Check if trial has expired
-        if status == 'trial' and tenant.trial_ends_at < timezone.now():
-            tenant.subscription_status = 'expired'
-            tenant.save()
-            status = 'expired'
+        if status == 'trial':
+            # FIX: Check if trial_ends_at is None OR if it's in the past
+            if not tenant.trial_ends_at or tenant.trial_ends_at < timezone.now():
+                tenant.subscription_status = 'expired'
+                tenant.save()
+                status = 'expired'
         
         # Check if active subscription has expired
-        if status == 'active' and tenant.subscription_ends_at and tenant.subscription_ends_at < timezone.now():
-            tenant.subscription_status = 'expired'
-            tenant.save()
-            status = 'expired'
+        elif status == 'active':
+            # FIX: Check if subscription_ends_at is None OR if it's in the past
+            if not tenant.subscription_ends_at or tenant.subscription_ends_at < timezone.now():
+                tenant.subscription_status = 'expired'
+                tenant.save()
+                status = 'expired'
 
-        # If expired, block access and send to pricing page
+        # If expired, block access
         if status == 'expired':
             messages.error(request, "Your trial or subscription has expired. Please choose a plan to continue.")
-            return redirect('pricing') # Redirect to the public pricing page
+            return redirect('pricing')
 
-        # If trial is active or subscription is active, let them in
         return view_func(request, *args, **kwargs)
 
     return wrapper
@@ -372,12 +364,14 @@ def add_category(request):
 
 
 # --- UPDATED LOGIN VIEW ---
+from django.contrib.auth import authenticate, login
+from django.shortcuts import render, redirect
+
 def LoginVw(request):
     
-    # 1. Check if user is already logged in
-    # This fixes the redirect loop for logged-in users.
+    # --- FIX 1: Check is_superuser for already logged-in users ---
     if request.user.is_authenticated:
-        if request.user.role == 'superadmin':
+        if request.user.is_superuser:
             return redirect('superadmin_dashboard')
         else:
             return redirect('dash')
@@ -386,23 +380,20 @@ def LoginVw(request):
         email = request.POST.get('email')
         password = request.POST.get('pass')
         
-        # This uses your auth backend to find the user
         user = authenticate(request, email=email, password=password)
         
         if user is not None:
-            login(request, user) # Sets up the session
+            login(request, user) 
             
-            # 2. Redirect using URL names, not hardcoded paths
-            if user.role == 'superadmin':
+            # --- FIX 2: Check is_superuser for new logins ---
+            if user.is_superuser:
                 return redirect('superadmin_dashboard')
             else:
                 return redirect('dash')
         else:
-            # 3. On fail, redirect back to the login page
             messages.error(request, 'Invalid email or password.')
             return redirect('login') 
             
-    # 4. Use the correct template path
     return render(request, 'registration/login.html')
 
 

@@ -22,20 +22,18 @@ from backend import views as backend_views
 from public_site import views as public_views
 
 urlpatterns = [
-    path('app/',include('backend.urls')),
     path('admin/', admin.site.urls),
 
-    # --- Public Site URLs ---
-    # path('', public_views.home_page, name='home'),
-    # for now public_site app prifix will be 'home'
-    path('', public_views.home_page, name='home'),
-    path('pricing/', public_views.pricing_page, name='pricing'),
-    path('about/', public_views.about_page, name='about'),
+    
 
     # --- Your ERP App URLs ---
-    # Move your existing app to a prefix like 'app/'
-    # This means login will be at /app/login/, dashboard at /app/dash/
-    # path('app/', include('backend.urls')),
+    # All app-related URLs (login, signup, dash) are at /app/
+    path('app/', include('backend.urls')), 
+    
+    # --- Public Site URLs ---
+    # This MUST come AFTER the /app/ path
+    # It handles '', 'pricing/', 'logout/'
+    path('', include('public_site.urls')),
 ]
 
 if settings.DEBUG:
