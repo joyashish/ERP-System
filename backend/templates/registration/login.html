@@ -1,57 +1,179 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	{% load static %}
-	<title>ERP System | Login </title>
-	<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
-	<!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous"> -->
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ERP System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        .cta-gradient {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        }
+        
+        /* --- Moving Animation --- */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes float-reverse {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .anim-shape1 {
+            animation: float 10s ease-in-out infinite;
+        }
+        .anim-shape2 {
+            animation: float-reverse 8s ease-in-out infinite 2s;
+        }
+        .anim-shape3 {
+            animation: float 12s ease-in-out infinite 1s;
+        }
+    </style>
 </head>
-	<link rel="stylesheet" href="{% static '../static/dist/css/index.css' %}">
-</head>
-<body>
-	<div class="contact-form">
-		<center><img src="{% static '../static/dist/img/user-logo.png' %}" class="avatar" ></center>
-		{% comment %} <center><img src="{% static '../static/dist/img/logo1.png' %}" class="avatar" style="margin-top:70px; width:200px;margin-left:-54px;" ></center> {% endcomment %}
-		{% comment %} <br> {% endcomment %}
-		<h2>Login</h2>
+<body class="bg-slate-900 text-gray-300">
 
-		{% if messages %}
-		{{message.tags}}
-	    <div class="alert alert-primary" role="alert">
-		{% for message in messages %}
-		<span style="color: red !important;" class="mb-3">{{message}}</span>
-		{% endfor %}
-	    </div>
-		{% endif %}
+    <div class="flex min-h-screen">
+        
+        <div class="hidden lg:flex w-1/2 bg-slate-800 p-12 relative overflow-hidden items-center justify-center anim-left">
+            
+            <div class="anim-shape1 absolute -top-16 -left-16 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl"></div>
+            <div class="anim-shape2 absolute -bottom-24 right-0 w-96 h-96 bg-slate-700/20 rounded-full blur-3xl"></div>
+            <div class="anim-shape3 absolute bottom-1/3 left-1/4 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl"></div>
+
+            <div class="z-10 text-left max-w-md">
+                <a href="{% url 'home' %}" class="text-3xl font-extrabold text-emerald-500">
+                    ERP<span class="text-white">System</span>
+                </a>
+                <h1 class="text-4xl font-bold text-white mt-8">
+                    Welcome Back!
+                </h1>
+                <p class="text-slate-300 mt-4 text-lg">
+                    Log in to access your dashboard and continue managing your business.
+                </p>
+                
+                <div class="anim-icon mt-12">
+                    <svg class="w-48 h-48 text-emerald-500/30" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6A2.25 2.25 0 0115.75 3.75h2.25A2.25 2.25 0 0120.25 6v2.25a2.25 2.25 0 01-2.25 2.25h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75A2.25 2.25 0 0115.75 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 anim-right">
+            <div class="w-full max-w-md">
+                
+                <a href="{% url 'home' %}" class="block text-2xl lg:text-3xl font-extrabold text-emerald-500 mb-8 text-center lg:text-left">
+                    ERP<span class="text-white">System</span>
+                </a>
+
+                <h2 class="text-3xl font-bold text-white text-center lg:text-left">Log In to Your Account</h2>
+                
+                {% if messages %}
+                    <div class="mt-6">
+                    {% for message in messages %}
+                        <div class="alert-message p-4 rounded-lg {% if message.tags == 'error' %}bg-red-900/30 text-red-400 border border-red-700{% else %}bg-emerald-900/30 text-emerald-400 border border-emerald-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form action="{% url 'login' %}" method="post" class="mt-8 space-y-6">
+                    {% csrf_token %}
+                    
+                    <div class="form-field">
+                        <label for="email" class="block text-sm font-medium text-gray-300">Email</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                            </span>
+                            <input type="email" name="email" id="email" class="w-full pl-10 p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="you@company.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+                            </span>
+                            <input type="password" name="pass" id="password" class="w-full pl-10 pr-10 p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="••••••••" required>
+                            
+                            <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200">
+                                <svg id="eye-icon" class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                <svg id="eye-slash-icon" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243l-4.243-4.243" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-field flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 bg-slate-700 border-slate-600 text-emerald-600 focus:ring-emerald-500 rounded">
+                            <label for="remember-me" class="ml-2 block text-sm text-gray-400">Remember me</label>
+                        </div>
+
+                        <div class="text-sm">
+                            <a href="#" class="font-medium text-emerald-500 hover:text-emerald-400">Forgot your password?</a>
+                        </div>
+                    </div>
 
 
-		<form method="POST" action="{% url 'login' %}">
-			{% csrf_token %}
-			<p>Email</p><input placeholder="Enter Email" type="email" name="email">
-			<p>Password</p><input type="password" name="pass" autocomplete="current-password" placeholder="Enter Password"
-				required id="id_password">
-			<i class="far fa-eye" id="togglePassword" style="margin-left: -30px; cursor: pointer; color:white; "></i>
-		
-			<input type="submit" value="Login">
-		
-			<p><input type="checkbox">Remember Me</p>
-		</form>
+                    <div class="form-field">
+                        <button type="submit" class="w-full px-8 py-4 cta-gradient text-white rounded-lg text-lg font-semibold hover:shadow-lg hover:opacity-90 transition-all shadow-md">
+                            Log In
+                        </button>
+                    </div>
+                    
+                    <p class="text-center text-sm text-gray-400 form-field">
+                        Don't have an account? 
+                        <a href="{% url 'signup' %}" class="font-medium text-emerald-500 hover:text-emerald-400">
+                            Start your free trial
+                        </a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Animate left side
+        gsap.from(".anim-left", { duration: 0.8, x: -50, opacity: 0, delay: 0.2, ease: "power3.out" });
+        gsap.from(".anim-icon", { duration: 1.0, scale: 0.8, opacity: 0, delay: 0.8, ease: "elastic.out(1, 0.5)" });
 
+        // Animate right side
+        gsap.from(".anim-right", { duration: 0.8, x: 50, opacity: 0, delay: 0.4, ease: "power3.out" });
 
-	</div>
-	<script>
-		const togglePassword = document.querySelector('#togglePassword');
-		const password = document.querySelector('#id_password');
-	
-	  togglePassword.addEventListener('click', function (e) {
-		// toggle the type attribute
-		const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-		password.setAttribute('type', type);
-		// toggle the eye slash icon
-		this.classList.toggle('fa-eye-slash');
-	});
-	</script>
+        // Stagger form elements
+        gsap.from(".form-field", { duration: 0.6, y: 30, opacity: 0, stagger: 0.1, delay: 0.8, ease: "power3.out" });
+        
+        // Stagger message alerts
+        gsap.from(".alert-message", { duration: 0.6, y: 20, opacity: 0, stagger: 0.1, delay: 0.6, ease: "power3.out" });
+
+        // Password Toggle
+        const togglePassword = document.getElementById('togglePassword');
+        const password = document.getElementById('password');
+        const eyeIcon = document.getElementById('eye-icon');
+        const eyeSlashIcon = document.getElementById('eye-slash-icon');
+
+        togglePassword.addEventListener('click', function (e) {
+            // toggle the type attribute
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            // toggle the eye slash icon
+            eyeIcon.classList.toggle('hidden');
+            eyeSlashIcon.classList.toggle('hidden');
+        });
+    </script>
 </body>
 </html>

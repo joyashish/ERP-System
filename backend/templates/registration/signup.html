@@ -4,73 +4,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Start Your Free Trial</title>
-    <link rel="stylesheet" href="{% static 'plugins/fontawesome-free/css/all.min.css' %}">
-    <link rel="stylesheet" href="{% static 'dist/css/adminlte.min.css' %}">
+    <title>Start Your Free Trial - ERP System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
-        body { background-color: #f4f6f9; }
-        .login-box { width: 400px; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        .cta-gradient {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        }
+        
+        /* --- Moving Animation --- */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes float-reverse {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .anim-shape1 {
+            animation: float 10s ease-in-out infinite;
+        }
+        .anim-shape2 {
+            animation: float-reverse 8s ease-in-out infinite 2s;
+        }
+        .anim-shape3 {
+            animation: float 12s ease-in-out infinite 1s;
+        }
     </style>
 </head>
-<body class="hold-transition login-page">
-    <div class="login-box">
-        <div class="card card-outline card-primary">
-            <div class="card-header text-center">
-                <a href="/" class="h1"><b>ERP</b> System</a>
-            </div>
-            <div class="card-body">
-                <p class="login-box-msg">Start your 15-day free trial</p>
+<body class="bg-slate-900 text-gray-300">
 
+    <div class="flex min-h-screen">
+        
+        <div class="hidden lg:flex w-1/2 bg-slate-800 p-12 relative overflow-hidden items-center justify-center anim-left">
+            
+            <div class="anim-shape1 absolute -top-16 -left-16 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl"></div>
+            <div class="anim-shape2 absolute -bottom-24 right-0 w-96 h-96 bg-slate-700/20 rounded-full blur-3xl"></div>
+            <div class="anim-shape3 absolute bottom-1/3 left-1/4 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl"></div>
+
+            <div class="z-10 text-left max-w-md">
+                <a href="{% url 'home' %}" class="text-3xl font-extrabold text-emerald-500">
+                    ERP<span class="text-white">System</span>
+                </a>
+                <h1 class="text-4xl font-bold text-white mt-8">
+                    Start Your 15-Day Free Trial
+                </h1>
+                <p class="text-slate-300 mt-4 text-lg">
+                    You're one step away from simplifying your entire business. No credit card required.
+                </p>
+                
+                <ul class="mt-8 space-y-4 text-slate-200">
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-emerald-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Access to **all features** for 15 days.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-emerald-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Manage your sales, inventory, and purchases.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-emerald-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Cancel anytime. No commitment.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 anim-right">
+            <div class="w-full max-w-md">
+                
+                <a href="{% url 'home' %}" class="block text-2xl lg:text-3xl font-extrabold text-emerald-500 mb-8 text-center lg:text-left">
+                    ERP<span class="text-white">System</span>
+                </a>
+
+                <h2 class="text-3xl font-bold text-white text-center lg:text-left">Create Your Account</h2>
+                
                 {% if messages %}
+                    <div class="mt-6">
                     {% for message in messages %}
-                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+                        <div class="alert-message p-4 rounded-lg {% if message.tags == 'error' %}bg-red-900/30 text-red-400 border border-red-700{% else %}bg-emerald-900/30 text-emerald-400 border border-emerald-700{% endif %}">
                             {{ message }}
                         </div>
                     {% endfor %}
+                    </div>
                 {% endif %}
 
-                <form action="{% url 'signup' %}" method="post">
+                <form action="{% url 'signup' %}" method="post" class="mt-8 space-y-6">
                     {% csrf_token %}
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" name="company_name" placeholder="Company Name" required>
-                        <div class="input-group-append">
-                            <div class="input-group-text"><span class="fas fa-building"></span></div>
+                    
+                    <div class="form-field">
+                        <label for="company_name" class="block text-sm font-medium text-gray-300">Company Name</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21v-3.031c0-1.428 1.143-2.572 2.571-2.572h1.143c.478 0 .934.195 1.274.536l.274.274c.34.34.796.536 1.274.536h2.858c.478 0 .934-.195 1.274-.536l.274-.274c.34-.34.796-.536 1.274-.536h1.143c1.428 0 2.571 1.143 2.571 2.572V21M3.75 18v-3a2.25 2.25 0 012.25-2.25h12a2.25 2.25 0 012.25 2.25v3m-16.5 0h16.5M3.75 12V9a2.25 2.25 0 012.25-2.25h12A2.25 2.25 0 0120.25 9v3m-16.5 0h16.5m-16.5 0V6a2.25 2.25 0 012.25-2.25h12A2.25 2.25 0 0120.25 6v6" /></svg>
+                            </span>
+                            <input type="text" name="company_name" id="company_name" class="w-full pl-10 p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Your Company Inc." required>
                         </div>
                     </div>
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" name="full_name" placeholder="Full Name" required>
-                        <div class="input-group-append">
-                            <div class="input-group-text"><span class="fas fa-user"></span></div>
-                        </div>
-                    </div>
-                    <div class="input-group mb-3">
-                        <input type="email" class="form-control" name="email" placeholder="Email" required>
-                        <div class="input-group-append">
-                            <div class="input-group-text"><span class="fas fa-envelope"></span></div>
-                        </div>
-                    </div>
-                    <div class="input-group mb-3">
-                        <input type="password" class="form-control" name="password" placeholder="Password" required>
-                        <div class="input-group-append">
-                            <div class="input-group-text"><span class="fas fa-lock"></span></div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary btn-block">Create My Account</button>
-                        </div>
-                    </div>
-                </form>
 
-                <p class="mt-3 mb-1">
-                    <a href="{% url 'login' %}">I already have an account</a>
-                </p>
+                    <div class="form-field">
+                        <label for="full_name" class="block text-sm font-medium text-gray-300">Full Name</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A1.875 1.875 0 0118.126 22H5.874a1.875 1.875 0 01-1.373-1.882z" /></svg>
+                            </span>
+                            <input type="text" name="full_name" id="full_name" class="w-full pl-10 p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="John Doe" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="email" class="block text-sm font-medium text-gray-300">Email</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                            </span>
+                            <input type="email" name="email" id="email" class="w-full pl-10 p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="you@company.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+                            </span>
+                            <input type="password" name="password" id="password" class="w-full pl-10 p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <button type="submit" class="w-full px-8 py-4 cta-gradient text-white rounded-lg text-lg font-semibold hover:shadow-lg hover:opacity-90 transition-all shadow-md">
+                            Create My Account
+                        </button>
+                    </div>
+                    
+                    <p class="text-center text-sm text-gray-400 form-field">
+                        Already have an account? 
+                        <a href="{% url 'login' %}" class="font-medium text-emerald-500 hover:text-emerald-400">
+                            Log In
+                        </a>
+                    </p>
+                </form>
             </div>
         </div>
     </div>
+    
+    <script>
+        // Animate left side
+        gsap.from(".anim-left", { duration: 0.8, x: -50, opacity: 0, delay: 0.2, ease: "power3.out" });
+        
+        // Animate right side
+        gsap.from(".anim-right", { duration: 0.8, x: 50, opacity: 0, delay: 0.4, ease: "power3.out" });
 
-    <script src="{% static 'plugins/jquery/jquery.min.js' %}"></script>
-    <script src="{% static 'plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-    <script src="{% static 'dist/js/adminlte.min.js' %}"></script>
+        // Stagger form elements
+        gsap.from(".form-field", { duration: 0.6, y: 30, opacity: 0, stagger: 0.1, delay: 0.8, ease: "power3.out" });
+        
+        // Stagger message alerts
+        gsap.from(".alert-message", { duration: 0.6, y: 20, opacity: 0, stagger: 0.1, delay: 0.6, ease: "power3.out" });
+    </script>
 </body>
 </html>

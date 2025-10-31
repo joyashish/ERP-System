@@ -30,10 +30,16 @@
             transform: translateY(-8px);
             box-shadow: 0 25px 50px -12px rgb(5 150 105 / 0.25);
         }
+
+        /* --- FAQ FIX --- */
         .faq-item .faq-answer {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease-out;
+        }
+        /* Add padding to a child element, not the main answer div */
+        .faq-item .faq-answer-content {
+            padding: 0 1.5rem 1.5rem 1.5rem;
         }
         .faq-item.open .faq-answer {
             max-height: 200px; /* Adjust as needed */
@@ -42,6 +48,7 @@
         .faq-item.open .faq-icon {
             transform: rotate(180deg);
         }
+        /* --- END FAQ FIX --- */
     </style>
 </head>
 <body class="bg-slate-900 text-gray-300 antialiased">
@@ -300,10 +307,12 @@
                             <span class="text-lg font-semibold text-white">How does the 15-day free trial work?</span>
                             <svg class="faq-icon w-6 h-6 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div class="faq-answer px-6 pb-6">
-                            <p class="text-gray-400">
-                                Your trial gives you 15 days of access to all features. No credit card is needed to start. At the end of 15 days, you'll be asked to choose a paid plan to continue your service.
-                            </p>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p class="text-gray-400">
+                                    Your trial gives you 15 days of access to all features. No credit card is needed to start. At the end of 15 days, you'll be asked to choose a paid plan to continue your service.
+                                </p>
+                            </div>
                         </div>
                     </div>
                     <!-- FAQ Item 2 -->
@@ -312,10 +321,12 @@
                             <span class="text-lg font-semibold text-white">Can I cancel my subscription at any time?</span>
                             <svg class="faq-icon w-6 h-6 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div class="faq-answer px-6 pb-6">
-                            <p class="text-gray-400">
-                                Yes. You can cancel your subscription at any time. You will retain access until the end of your current billing period, after which your account will be suspended.
-                            </p>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p class="text-gray-400">
+                                    Yes. You can cancel your subscription at any time. You will retain access until the end of your current billing period, after which your account will be suspended.
+                                </p>
+                            </div>
                         </div>
                     </div>
                     <!-- FAQ Item 3 -->
@@ -324,10 +335,12 @@
                             <span class="text-lg font-semibold text-white">Is my data secure?</span>
                             <svg class="faq-icon w-6 h-6 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div class="faq-answer px-6 pb-6">
-                            <p class="text-gray-400">
-                                Absolutely. Your data is isolated in its own secure tenant database. We use industry-standard encryption for data in transit and at rest, and all connections are secured with SSL.
-                            </p>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p class="text-gray-400">
+                                    Absolutely. Your data is isolated in its own secure tenant database. We use industry-standard encryption for data in transit and at rest, and all connections are secured with SSL.
+                                </p>
+                            </div>
                         </div>
                     </div>
                     <!-- FAQ Item 4 -->
@@ -336,10 +349,12 @@
                             <span class="text-lg font-semibold text-white">What payment methods do you accept?</span>
                             <svg class="faq-icon w-6 h-6 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div class="faq-answer px-6 pb-6">
-                            <p class="text-gray-400">
-                                We currently accept all major credit cards (Visa, Mastercard, American Express) as well as UPI and Net Banking for our customers in India.
-                            </p>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p class="text-gray-400">
+                                    We currently accept all major credit cards (Visa, Mastercard, American Express) as well as UPI and Net Banking for our customers in India.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -433,4 +448,3 @@
     </script>
 </body>
 </html>
-

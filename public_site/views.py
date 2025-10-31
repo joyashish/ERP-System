@@ -18,13 +18,26 @@ def get_user_initials(user):
     return '?'
 
 def home_page(request):
-    """Serves the main landing page."""
+    """Serves the main landing page, now including pricing."""
     initials = ''
     if request.user.is_authenticated:
         initials = get_user_initials(request.user)
     
+    # --- THIS IS THE FIX ---
+    # Get the trial plan
+    try:
+        trial_plan = Plan.objects.get(is_trial=True)
+    except Plan.DoesNotExist:
+        trial_plan = None # Template will handle this
+
+    # Get all paid plans
+    paid_plans = Plan.objects.filter(is_trial=False).order_by('price')
+    # ----------------------
+    
     context = {
-        'initials': initials
+        'initials': initials,
+        'trial_plan': trial_plan,
+        'paid_plans': paid_plans
     }
     return render(request, 'public_site/home.html', context)
 
