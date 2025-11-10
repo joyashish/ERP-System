@@ -37,7 +37,7 @@
             overflow: hidden;
             transition: max-height 0.3s ease-out;
         }
-        /* Add padding to a child element, not the main answer div */
+        /* All padding is now on this child element */
         .faq-item .faq-answer-content {
             padding: 0 1.5rem 1.5rem 1.5rem;
         }
@@ -49,6 +49,15 @@
             transform: rotate(180deg);
         }
         /* --- END FAQ FIX --- */
+
+        /* --- Message Fade Out --- */
+        .auto-hide-message {
+            transition: opacity 1s ease-out 7s;
+        }
+        .auto-hide-message.fade-out {
+            opacity: 0;
+        }
+
     </style>
 </head>
 <body class="bg-slate-900 text-gray-300 antialiased">
@@ -222,72 +231,86 @@
                     </p>
                     {% if messages %}
                         {% for message in messages %}
-                            <div class="mt-4 text-red-400 font-semibold p-3 bg-red-900/30 border border-red-700 rounded-lg">
+                            <!-- Added 'auto-hide-message' class -->
+                            <div class="auto-hide-message mt-4 text-red-400 font-semibold p-3 bg-red-900/30 border border-red-700 rounded-lg">
                                 {{ message }}
                             </div>
                         {% endfor %}
                     {% endif %}
                 </div>
 
-                <div class="mt-20 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <!--
+                  FIX: Changed to lg:grid-cols-3 and max-w-7xl
+                  This puts all 3 cards in one row on large screens
+                -->
+                <div class="mt-20 grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                    
                     <!-- Plan 1: Free Trial -->
                     {% if trial_plan %}
-                    <div class="pricing-card bg-slate-800 p-8 rounded-xl shadow-xl border-2 border-emerald-500 relative hover-lift">
+                    <div class="pricing-card bg-slate-800 p-8 rounded-xl shadow-xl border-2 border-emerald-500 relative hover-lift flex flex-col">
                         <span class="absolute top-0 -translate-y-1/2 px-4 py-1 bg-emerald-500 text-white text-sm font-semibold rounded-full">Most Popular</span>
-                        <h3 class="text-2xl font-semibold text-white">{{ trial_plan.name }}</h3>
-                        <p class="mt-4">
+                        <h3 class="text-3xl font-semibold text-white">{{ trial_plan.name }}</h3>
+                        <p class="mt-2 text-gray-400">For new users to explore all features.</p>
+                        <p class="mt-6">
                             <span class="text-5xl font-extrabold text-white">₹{{ trial_plan.price|floatformat:0 }}</span>
-                            <span class="text-gray-400">/ 15 days</span>
+                            <span class="text-lg text-gray-400">/ 15 days</span>
                         </p>
-                        <p class="mt-4 text-gray-400">Get 15 days of full access to all features. No credit card required.</p>
                         <a href="{% url 'signup' %}" class="mt-8 block w-full text-center px-6 py-3 cta-gradient text-white rounded-lg text-lg font-semibold hover:opacity-90 transition-colors shadow-md">
                             Start Your Free Trial
                         </a>
-                        <ul class="mt-8 space-y-3 text-gray-400">
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>All Features Included</li>
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Full Customer Support</li>
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>No Commitment</li>
+                        <ul class="mt-8 space-y-3 text-gray-400 flex-grow">
+                            <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>All Features Included</li>
+                            <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Full Customer Support</li>
+                            <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>No Commitment Required</li>
                         </ul>
                     </div>
                     {% endif %}
 
-                    <!-- Paid Plans -->
-                    {% for plan in paid_plans %}
-                    <div class="pricing-card bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700 hover-lift">
-                        <h3 class="text-2xl font-semibold text-white">{{ plan.name }}</h3>
-                        <p class="mt-4">
-                            <span class="text-5xl font-extrabold text-white">₹{{ plan.price|floatformat:0 }}</span>
-                            <span class="text-gray-400">/ {{ plan.duration_days }} days</span>
-                        </p>
-                        <p class="mt-4 text-gray-400">Perfect for established businesses ready to scale.</p>
-                        <a href="{% url 'dummy_subscribe' plan.id %}" class="mt-8 block w-full text-center px-6 py-3 bg-slate-600 text-white rounded-lg text-lg font-semibold hover:bg-slate-500 transition-colors shadow-md">
-                            Subscribe Now
-                        </a>
-                        <ul class="mt-8 space-y-3 text-gray-400">
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>All Features Included</li>
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Priority Support</li>
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Cancel Anytime</li>
-                        </ul>
-                    </div>
-                    {% endfor %}
+                    <!-- Plan 2: Paid Plans -->
+                    {% if paid_plans %}
+                        {% for plan in paid_plans %}
+                        <div class="pricing-card bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700 hover-lift flex flex-col">
+                            <h3 class="text-3xl font-semibold text-white">{{ plan.name }}</h3>
+                            <p class="mt-2 text-gray-400">For established businesses ready to scale.</p>
+                            <p class="mt-6">
+                                <span class="text-5xl font-extrabold text-white">₹{{ plan.price|floatformat:0 }}</span>
+                                <span class="text-lg text-gray-400">/ {{ plan.duration_days }} days</span>
+                            </p>
+                            <a href="{% url 'dummy_subscribe' plan.id %}" class="mt-8 block w-full text-center px-6 py-3 bg-slate-600 text-white rounded-lg text-lg font-semibold hover:bg-slate-500 transition-colors shadow-md">
+                                Subscribe Now
+                            </a>
+                            <ul class="mt-8 space-y-3 text-gray-400 flex-grow">
+                                <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>All Features Included</li>
+                                <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Priority Support</li>
+                                <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Cancel Anytime</li>
+                            </ul>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- This will show if the view fails to find paid plans -->
+                        <div class="pricing-card bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700 flex flex-col justify-center items-center">
+                            <h3 class="text-2xl font-semibold text-white">More Plans Coming Soon</h3>
+                            <p class="mt-4 text-gray-400">Check back later or contact sales for enterprise options.</p>
+                        </div>
+                    {% endif %}
 
                     <!-- "Enterprise" Card (Placeholder) -->
-                    <div class="pricing-card md:col-span-2 lg:col-span-1 bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700 hover-lift">
-                        <h3 class="text-2xl font-semibold text-white">Enterprise</h3>
-                        <p class="mt-4">
+                    <div class="pricing-card bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700 hover-lift flex flex-col">
+                        <h3 class="text-3xl font-semibold text-white">Enterprise</h3>
+                        <p class="mt-2 text-gray-400">For large-scale teams with custom needs.</p>
+                        <p class="mt-6">
                             <span class="text-5xl font-extrabold text-white">Custom</span>
                         </p>
-                        <p class="mt-4 text-gray-400">For large-scale teams with custom needs.
-                        </p>
-                        <a href="#" class="mt-8 block w-full text-center px-6 py-3 bg-slate-600 text-white rounded-lg text-lg font-semibold hover:bg-slate-500 transition-colors shadow-md">
+                        <a href="{% url 'contact' %}" class="mt-8 block w-full text-center px-6 py-3 bg-slate-600 text-white rounded-lg text-lg font-semibold hover:bg-slate-500 transition-colors shadow-md">
                             Contact Sales
                         </a>
-                        <ul class="mt-8 space-y-3 text-gray-400">
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>All {{ paid_plans.0.name|default:"Pro" }} Features</li>
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Dedicated Support</li>
-                            <li class="flex items-center"><svg class="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Custom Integrations</li>
+                        <ul class="mt-8 space-y-3 text-gray-400 flex-grow">
+                            <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>All {{ paid_plans.0.name|default:"Pro" }} Features</li>
+                            <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Dedicated Support</li>
+                            <li class="flex items-start"><svg class="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Custom Integrations</li>
                         </ul>
                     </div>
+
                 </div>
             </div>
         </section>
@@ -308,6 +331,7 @@
                             <svg class="faq-icon w-6 h-6 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
                         <div class="faq-answer">
+                            <!-- FIX: Padding is now on this child div -->
                             <div class="faq-answer-content">
                                 <p class="text-gray-400">
                                     Your trial gives you 15 days of access to all features. No credit card is needed to start. At the end of 15 days, you'll be asked to choose a paid plan to continue your service.
@@ -445,6 +469,21 @@
                 item.classList.toggle('open');
             });
         });
+
+        // --- Auto-hide Messages ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const messages = document.querySelectorAll('.auto-hide-message');
+            messages.forEach(message => {
+                // Start the fade-out animation
+                message.classList.add('fade-out');
+                
+                // After the animation (1s fade + 7s delay = 8s), remove the element
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 8000);
+            });
+        });
+
     </script>
 </body>
 </html>

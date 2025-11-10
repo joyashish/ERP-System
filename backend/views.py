@@ -66,20 +66,24 @@ class ExpenseForm(forms.ModelForm):
 # Signup View 
 def signup_view(request):
     if request.user.is_authenticated:
-        return redirect('dash') # If already logged in, send to dashboard
+        if request.user.is_superuser:
+            return redirect('superadmin_dashboard')
+        else:
+            return redirect('dash')
 
     if request.method == 'POST':
         company_name = request.POST.get('company_name')
         full_name = request.POST.get('full_name')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        phone = request.POST.get('phone') # <-- 1. Get the new phone field
 
-        if not all([company_name, full_name, email, password]):
+        # 2. Add 'phone' to the validation check
+        if not all([company_name, full_name, email, password, phone]):
             messages.error(request, "Please fill in all fields.")
             return render(request, 'registration/signup.html')
 
         try:
-            # Find the default free trial plan
             trial_plan = Plan.objects.get(is_trial=True)
         except Plan.DoesNotExist:
             messages.error(request, "Signup is currently unavailable. Please contact support.")
@@ -87,24 +91,28 @@ def signup_view(request):
 
         try:
             with transaction.atomic():
-                # 1. Create the Tenant
                 new_tenant = Tenant.objects.create(
                     name=company_name,
                     plan=trial_plan,
                     subscription_status='trial'
                 )
                 
-                # 2. Create the Admin Account using your new manager
                 new_user = Account.objects.create_user(
                     tenant=new_tenant,
                     full_name=full_name,
                     email=email,
                     password=password,
-                    role='admin',
+                    phone=phone, # <-- 3. Add phone to the user
+                    role='admin', # This correctly sets the new user as an Admin
                     is_active=True
                 )
             
-            # 3. Log the new user in
+            # --- 4. THIS IS THE FIX ---
+            # Manually set the backend to your custom 'EmailBackend'
+            # This tells Django's login() function which system to use.
+            new_user.backend = 'backend.auth_backend.EmailBackend' 
+            # --------------------------
+            
             login(request, new_user)
             return redirect('dash')
 

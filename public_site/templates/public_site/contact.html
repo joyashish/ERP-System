@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Sales - ERP System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        .cta-gradient {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        }
+        
+        /* --- Moving Animation --- */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        @keyframes float-reverse {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .anim-shape1 {
+            animation: float 10s ease-in-out infinite;
+        }
+        .anim-shape2 {
+            animation: float-reverse 8s ease-in-out infinite 2s;
+        }
+        .anim-shape3 {
+            animation: float 12s ease-in-out infinite 1s;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-300">
+
+    <header class="bg-slate-900/80 shadow-sm sticky top-0 backdrop-blur-md z-50 border-b border-slate-800">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
+            <a href="{% url 'home' %}" class="text-3xl font-extrabold text-emerald-500">
+                ERP<span class="text-white">System</span>
+            </a>
+            
+            <div class="hidden lg:flex items-center space-x-8">
+                <a href="{% url 'home' %}#features" class="text-gray-300 hover:text-emerald-400 transition-colors font-medium">Features</a>
+                <a href="{% url 'home' %}#testimonials" class="text-gray-300 hover:text-emerald-400 transition-colors font-medium">Testimonials</a>
+                <a href="{% url 'home' %}#pricing" class="text-gray-300 hover:text-emerald-400 transition-colors font-medium">Pricing</a>
+                <a href="{% url 'home' %}#faq" class="text-gray-300 hover:text-emerald-400 transition-colors font-medium">FAQ</a>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                {% if user.is_authenticated %}
+                    <div class="relative" id="user-menu-button">
+                        <button class="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-lg hover:bg-emerald-700 transition-all">
+                            {{ initials }}
+                        </button>
+                        <div id="user-menu" class="hidden opacity-0 transform -translate-y-2 scale-95 ...">
+                            </div>
+                    </div>
+                {% else %}
+                    <a href="{% url 'login' %}" class="hidden sm:inline-block text-gray-300 hover:text-emerald-400 transition-colors font-medium">Login</a>
+                    <a href="{% url 'signup' %}" class="px-5 py-2.5 cta-gradient text-white rounded-lg hover:opacity-90 transition-colors shadow-sm font-semibold">
+                        Start Free Trial
+                    </a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <div class="flex min-h-[calc(100vh-80px)]">
+        
+        <div class="hidden lg:flex w-1/2 bg-slate-800 p-12 relative overflow-hidden items-center justify-center anim-left">
+            
+            <div class="anim-shape1 absolute -top-16 -left-16 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl"></div>
+            <div class="anim-shape2 absolute -bottom-24 right-0 w-96 h-96 bg-slate-700/20 rounded-full blur-3xl"></div>
+            <div class="anim-shape3 absolute bottom-1/3 left-1/4 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl"></div>
+
+            <div class="z-10 text-left max-w-md">
+                <h1 class="text-5xl font-bold text-white mt-8">
+                    Talk to our
+                    <span class="text-emerald-500">Enterprise Team</span>
+                </h1>
+                <p class="text-slate-300 mt-6 text-lg">
+                    Tell us about your business, and we'll connect you with an expert to build a plan that's right for you.
+                </p>
+                
+                <ul class="mt-10 space-y-5 text-slate-200">
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-emerald-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Get a **dedicated account manager**</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-emerald-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Volume discounts & **custom pricing**</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-6 h-6 text-emerald-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>**Custom integrations** & onboarding</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 anim-right">
+            <div class="w-full max-w-md">
+                
+                <h2 class="text-3xl font-bold text-white text-center lg:text-left">Get in Touch</h2>
+                
+                {% if messages %}
+                    <div class="mt-6">
+                    {% for message in messages %}
+                        <div class="alert-message p-4 rounded-lg bg-emerald-900/30 text-emerald-400 border border-emerald-700">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form action="{% url 'contact' %}" method="post" class="mt-8 space-y-6">
+                    {% csrf_token %}
+                    
+                    <div class="form-field">
+                        <label for="full_name" class="block text-sm font-medium text-gray-300">Full Name</label>
+                        <input type="text" name="full_name" id="full_name" class="mt-1 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="company_name" class="block text-sm font-medium text-gray-300">Company Name</label>
+                        <input type="text" name="company_name" id="company_name" class="mt-1 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Your Company Inc." required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="email" class="block text-sm font-medium text-gray-300">Work Email</label>
+                        <input type="email" name="email" id="email" class="mt-1 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="you@company.com" required>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="phone" class="block text-sm font-medium text-gray-300">Phone Number (Optional)</label>
+                        <input type="tel" name="phone" id="phone" class="mt-1 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="team_size" class="block text-sm font-medium text-gray-300">Team Size</label>
+                        <select id="team_size" name="team_size" class="mt-1 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                            <option>1-10 employees</option>
+                            <option>11-50 employees</option>
+                            <option>51-200 employees</option>
+                            <option>200+ employees</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="message" class="block text-sm font-medium text-gray-300">How can we help?</label>
+                        <textarea id="message" name="message" rows="4" class="mt-1 w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Tell us about your requirements..."></textarea>
+                    </div>
+
+                    <div class="form-field">
+                        <button type="submit" class="w-full px-8 py-4 cta-gradient text-white rounded-lg text-lg font-semibold hover:shadow-lg hover:opacity-90 transition-all shadow-md">
+                            Submit Request
+                        </button>
+                    </div>
+                    
+                    <p class="text-center text-sm text-gray-400 form-field">
+                        <a href="{% url 'home' %}#pricing" class="font-medium text-emerald-500 hover:text-emerald-400">
+                            &larr; Back to Pricing
+                        </a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Animate left side
+        gsap.from(".anim-left", { duration: 0.8, x: -50, opacity: 0, delay: 0.2, ease: "power3.out" });
+        
+        // Animate right side
+        gsap.from(".anim-right", { duration: 0.8, x: 50, opacity: 0, delay: 0.4, ease: "power3.out" });
+
+        // Stagger form elements
+        gsap.from(".form-field", { duration: 0.6, y: 30, opacity: 0, stagger: 0.1, delay: 0.8, ease: "power3.out" });
+        
+        // Stagger message alerts
+        gsap.from(".alert-message", { duration: 0.6, y: 20, opacity: 0, stagger: 0.1, delay: 0.6, ease: "power3.out" });
+    </script>
+</body>
+</html>

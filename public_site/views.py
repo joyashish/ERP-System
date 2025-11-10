@@ -48,6 +48,21 @@ def public_logout_view(request):
     messages.info(request, "You have been logged out successfully!")
     return redirect('home')
 
+def contact_page(request):
+    """Serves the contact page for enterprise sales."""
+    
+    if request.method == 'POST':
+        # --- Handle the form data ---
+        # (This is where you would add logic to email you the details)
+        # For now, we just show a success message.
+        messages.success(request, "Your request has been sent! Our team will contact you shortly.")
+        return redirect('contact')
+
+    context = {
+        'initials': get_user_initials(request.user) if request.user.is_authenticated else ''
+    }
+    return render(request, 'public_site/contact.html', context)
+
 
 def about_page(request):
     return render(request, 'public_site/about.html')

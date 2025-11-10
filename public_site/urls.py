@@ -10,6 +10,9 @@ urlpatterns = [
     
     # Add this new URL for logging out from the homepage
     path('logout/', views.public_logout_view, name='public-logout'),
+
+    path('contact/', views.contact_page, name='contact'),
+    
     # path('about/', public_views.about_page, name='about'),
 ]
 
