@@ -1,6 +1,7 @@
 from django.shortcuts import render,redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from backend.models import *
+from public_site.models import SalesInquiry
 from .forms import TenantSettingsForm
 from backend.forms import *
 from .decorators import *
@@ -144,6 +145,26 @@ def dummy_subscribe_view(request, plan_id):
     except Plan.DoesNotExist:
         messages.error(request, "This plan does not exist.")
         return redirect('pricing') # Redirect to the public pricing page
+
+
+# --- Public site contact view /sale inquary list ---
+@superadmin_required
+def sales_inquiry_list(request):
+    """
+    Displays all sales inquiries and marks new ones as 'Contacted'.
+    """
+    # Get all inquiries, newest first
+    all_inquiries = SalesInquiry.objects.all().order_by('-created_at')
+
+    # Find all 'NEW' inquiries and update their status to 'CONTACTED'
+    # This "marks them as read"
+    new_inquiries = all_inquiries.filter(status=SalesInquiry.STATUS_NEW)
+    new_inquiries.update(status=SalesInquiry.STATUS_CONTACTED)
+
+    context = {
+        'inquiries': all_inquiries
+    }
+    return render(request, 'sales_inquiry_list.html', context)
 
 # Permission Decorators
 # def superadmin_required(view_func):

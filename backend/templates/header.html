@@ -1187,6 +1187,24 @@ body {
     }
 }
 </style>
+<!-- /* Custom styles for the notification badge */ -->
+<style>
+        /* Custom styles for the notification badge */
+        .navbar-nav .nav-item .navbar-badge {
+            
+            /* 1. Set your custom background color */
+            background-color: #b482eb !important; /* Use !important to override .badge-danger */
+            
+            /* 2. Fix the size */
+            font-size: 0.6rem !important;  /* Make the font smaller */
+            font-weight: 700;             /* Make the number bolder */
+            padding: 0.2em 0.4em !important; /* Reduce the padding */
+            
+            /* 3. Adjust the position (move it up and to the right) */
+            top: 6px;   /* Adjust this value to move up/down (smaller = higher) */
+            right: 2px; /* Adjust this value to move left/right (smaller = further right) */
+        }
+</style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
   <div class="wrapper">

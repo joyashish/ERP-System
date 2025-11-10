@@ -12,6 +12,9 @@ urlpatterns=[
     # --- URL for 'subscribing' ---
     path('subscribe/<int:plan_id>/', views.dummy_subscribe_view, name='dummy_subscribe'),
 
+    # --- Public site inquary list ---
+    path('sales-inquiries/', views.sales_inquiry_list, name='sales_inquiry_list'),
+
     #..... Logout ......#
     path('logout/', views.Logout, name='logout'),
 

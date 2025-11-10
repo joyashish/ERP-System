@@ -78,6 +78,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'backend.context_processors.impersonation_context',
                 'backend.context_processors.tenant_list_for_superadmin',
+                'backend.context_processors.new_inquiry_context',
             ],
         },
     },

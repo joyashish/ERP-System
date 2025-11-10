@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import logout
 from django.contrib import messages
 from backend.models import Plan
+from public_site.models import *
 
 def get_user_initials(user):
     """Helper function to get user initials."""
@@ -53,10 +54,41 @@ def contact_page(request):
     
     if request.method == 'POST':
         # --- Handle the form data ---
-        # (This is where you would add logic to email you the details)
-        # For now, we just show a success message.
-        messages.success(request, "Your request has been sent! Our team will contact you shortly.")
-        return redirect('contact')
+        try:
+            # 2. GET data from the form
+            # IMPORTANT: These strings (e.g., 'full_name') MUST match
+            # the 'name' attribute in your contact.html <input> tags.
+            
+            full_name = request.POST.get('full_name')
+            company_name = request.POST.get('company_name')
+            email = request.POST.get('email')
+            phone_number = request.POST.get('phone_number')
+            team_size = request.POST.get('team_size')
+            message_text = request.POST.get('message') # Use a different name to avoid conflict with 'messages' module
+
+            # 3. (Optional but good) Basic Validation
+            if not all([full_name, company_name, email, message_text]):
+                messages.error(request, "Please fill out all required fields.")
+                return redirect('contact') # Stay on the page with an error
+
+            # 4. CREATE and SAVE the new object to the database
+            SalesInquiry.objects.create(
+                full_name=full_name,
+                company_name=company_name,
+                email=email,
+                phone_number=phone_number,
+                team_size=team_size,
+                message=message_text,
+            )
+            
+            # 5. Show success message and redirect
+            messages.success(request, "Your request has been sent! Our team will contact you shortly.")
+            return redirect('contact')
+
+        except Exception as e:
+            # Handle any unexpected errors
+            messages.error(request, f"An error occurred. Please try again. {e}")
+            return redirect('contact')
 
     context = {
         'initials': get_user_initials(request.user) if request.user.is_authenticated else ''

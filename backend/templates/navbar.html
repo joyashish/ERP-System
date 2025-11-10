@@ -121,6 +121,18 @@
             </a>
         </li>
 
+        <!-- Bell Notification Menu -->
+        {% if request.user.is_superuser %}
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'sales_inquiry_list' %}" title="View Sales Inquiries">
+                <i class="far fa-bell"></i>
+                {% if new_inquiry_count > 0 %}
+                    <span class="badge badge-danger navbar-badge">{{ new_inquiry_count }}</span>
+                {% endif %}
+            </a>
+        </li>
+        {% endif %}
+
         <!-- User Dropdown Menu -->
         <li class="nav-item dropdown user-menu">
             <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-expanded="false" style="display: flex; align-items: center;">
@@ -159,11 +171,11 @@
                         <i class="fas fa-user-circle mr-1"></i> Profile
                     </a>
                 </li>
-                <li class="user-footer px-2 py-1">
+                <!-- <li class="user-footer px-2 py-1">
                     <a href="{% url 'change_pass' %}" class="btn btn-block btn-sm btn-outline-primary">
                         <i class="fas fa-key mr-1"></i> Change Password
                     </a>
-                </li>
+                </li> -->
                 <li class="user-footer px-2 py-1">
                     <a href="{% url 'logout' %}" class="btn btn-block btn-sm btn-danger">
                         <i class="fas fa-sign-out-alt mr-1"></i> Log Out

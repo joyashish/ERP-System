@@ -1,0 +1,97 @@
+{% include 'header.html' %}
+{% include 'navbar.html' %}
+{% include 'sidebar.html' %}
+{% load static %}
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Sales Inquiries</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{% url 'superadmin_dashboard' %}">Home</a></li>
+                        <li class="breadcrumb-item active">Sales Inquiries</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if messages %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show msg_sec" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">All Received Inquiries</h3>
+                        </div>
+                        <div class="card-body table-responsive p-0">
+                            <table class="table table-hover text-nowrap">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th>Received</th>
+                                        <th>Full Name</th>
+                                        <th>Company</th>
+                                        <th>Contact</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inquiry in inquiries %}
+                                    <tr>
+                                        <td>
+                                            {% if inquiry.status == 'NEW' %}
+                                                <span class="badge badge-success">New</span>
+                                            {% elif inquiry.status == 'CONTACTED' %}
+                                                <span class="badge badge-info">Contacted</span>
+                                            {% else %}
+                                                <span class="badge badge-secondary">{{ inquiry.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ inquiry.created_at|date:"d M Y, H:i" }}</td>
+                                        <td>{{ inquiry.full_name }}</td>
+                                        <td>{{ inquiry.company_name }}</td>
+                                        <td>
+                                            {{ inquiry.email }}
+                                            {% if inquiry.phone_number %}
+                                                <br> {{ inquiry.phone_number }}
+                                            {% endif %}
+                                        </td>
+                                        <td style="white-space: normal; min-width: 300px;">{{ inquiry.message }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">No inquiries found.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        </div>
+                    </div>
+            </div>
+        </div>
+    </section>
+    </div>
+
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}

@@ -1,4 +1,5 @@
 from .models import Tenant
+from public_site.models import SalesInquiry
 
 def tenant_list_for_superadmin(request):
     """
@@ -20,3 +21,18 @@ def impersonation_context(request):
     return {
         'impersonator': getattr(request, 'impersonator', None)
     }
+
+def new_inquiry_context(request):
+    """
+    Provides the count of new (unread) sales inquiries to all templates.
+    """
+    if request.user.is_authenticated and request.user.is_superuser:
+        try:
+            # Count only inquiries with the status 'NEW'
+            count = SalesInquiry.objects.filter(status=SalesInquiry.STATUS_NEW).count()
+            return {'new_inquiry_count': count}
+        except Exception:
+            # In case the database/table doesn't exist yet
+            return {'new_inquiry_count': 0}
+
+    return {'new_inquiry_count': 0}

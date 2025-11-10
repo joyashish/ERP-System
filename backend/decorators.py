@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Tenant
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.urls import reverse
 
 # --- DECORATOR 1 (You already moved this) ---
 def tenant_required(view_func):
@@ -44,7 +45,12 @@ def tenant_required(view_func):
 
         if status == 'expired':
             messages.error(request, "Your trial or subscription has expired. Please choose a plan to continue.")
-            return redirect('home#pricing')
+            
+            # 2. First, get the URL for the 'home' page
+            home_url = reverse('home') 
+            
+            # 3. Then, redirect to that URL with the anchor appended
+            return redirect(f'{home_url}#pricing')
 
         return view_func(request, *args, **kwargs)
 
