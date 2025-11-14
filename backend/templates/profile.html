@@ -94,6 +94,10 @@
                             <ul class="nav nav-pills">
                                 <li class="nav-item"><a class="nav-link active" href="#security" data-toggle="tab">Security</a></li>
                                 <li class="nav-item"><a class="nav-link" href="#activity" data-toggle="tab">Activity</a></li>
+                                {% if not request.user.is_superuser %}
+                                <li class="nav-item"><a class="nav-link" href="#subscription" data-toggle="tab">Subscription</a></li>
+                                {% endif %}
+
                                 {% if request.user.role == 'superadmin' %}
                                 <li class="nav-item"><a class="nav-link" href="#settings" data-toggle="tab">System Settings</a></li>
                                 {% endif %}
@@ -101,6 +105,8 @@
                         </div>
                         <div class="card-body">
                             <div class="tab-content">
+
+                                <!-- Change Password Tab -->
                                 <div class="active tab-pane" id="security">
                                     <h4>Change Password</h4>
                                     <hr>
@@ -126,6 +132,7 @@
                                     </form>
                                 </div>
 
+                                <!-- Recent Activity Tab -->
                                 <div class="tab-pane" id="activity">
                                     <h4>My Recent Activity</h4>
                                     <hr>
@@ -141,6 +148,53 @@
                                     </ul>
                                 </div>
 
+                                <!-- Subscription Tab -->
+                                {% if not request.user.is_superuser %}
+                                <div class="tab-pane" id="subscription">
+                                    <h4>Subscription Details</h4>
+                                    <hr>
+                                
+                                    {% with tenant=profile_user.tenant %}
+                                    {% if tenant.subscription_status == 'active' %}
+                                    <div class="alert alert-success">
+                                        <strong>Current Plan:</strong> Monthly
+                                        <span class="float-right">Renews on: <strong>{{ tenant.subscription_ends_at|date:"d M, Y" }}</strong></span>
+                                    </div>
+                                    <p>Your subscription is active. You have access to all features.</p>
+                                
+                                    {% elif tenant.subscription_status == 'trial' %}
+                                    <div class="alert alert-info">
+                                        <strong>Current Plan:</strong> Free Trial
+                                        <span class="float-right">Trial ends on: <strong>{{ tenant.trial_ends_at|date:"d M, Y" }}</strong></span>
+                                    </div>
+                                    <p>You are currently on a free trial. You have <strong>{{ tenant.trial_ends_at|timeuntil }}</strong> remaining.</p>
+                                
+                                    {% elif tenant.subscription_status == 'expired' %}
+                                    <div class="alert alert-danger">
+                                        <strong>Subscription Expired!</strong>
+                                        <p>Your access to the app is limited. Please upgrade your plan to continue.</p>
+                                    </div>
+                                
+                                    {% else %}
+                                    <div class="alert alert-secondary">
+                                        <strong>No Active Subscription</strong>
+                                        <p>You do not have an active plan.</p>
+                                    </div>
+                                    {% endif %}
+                                
+                                    <a href="{% url 'home' %}#pricing" class="btn btn-primary mt-3">
+                                        {% if tenant.subscription_status == 'expired' %}
+                                        Upgrade Your Plan
+                                        {% else %}
+                                        Manage Subscription
+                                        {% endif %}
+                                    </a>
+                                    {% endwith %}
+                                
+                                </div>
+                                {% endif %}
+
+                                <!-- Settings Tab -->
                                 {% if request.user.role == 'superadmin' %}
                                 <div class="tab-pane" id="settings">
                                     <h4>System Settings</h4>

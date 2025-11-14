@@ -446,6 +446,30 @@ def DashVw(request):
         return render(request, 'Dash.html', context)
         
     today = timezone.now().date()
+
+    # --- START: Subscription Expiry Modal Logic ---
+    now = timezone.now() # Use full datetime
+    show_expiry_modal = False
+    expiry_time_object = None # Default
+    
+    # Only check for regular users, not superadmins
+    if not account.is_superuser:
+        seven_days_from_now = now + timedelta(days=7)
+        expiry_datetime = None # This will hold the full datetime object
+        
+        if tenant.subscription_status == 'active':
+            expiry_datetime = tenant.subscription_ends_at
+        elif tenant.subscription_status == 'trial':
+            expiry_datetime = tenant.trial_ends_at
+        
+        # Check if an expiry date exists AND
+        # if it's in the future BUT within the next 7 days
+        if expiry_datetime and now < expiry_datetime <= seven_days_from_now:
+            show_expiry_modal = True
+            expiry_time_object = expiry_datetime # Pass the full object
+    # --- END: Subscription Expiry Modal Logic ---
+
+    # --- Start Dashboard Calculations ---
     this_month_start = today.replace(day=1)
     last_month_end = this_month_start - timedelta(days=1)
     last_month_start = last_month_end.replace(day=1)
@@ -486,6 +510,8 @@ def DashVw(request):
     context = {
         'add': account,
         'tenant': tenant,
+        'show_expiry_modal': show_expiry_modal,      # <-- The boolean trigger
+        'expiry_time_object': expiry_time_object,  # <-- The datetime object
         'revenue_this_month': revenue_this_month,
         'sales_percentage_change': sales_percentage_change,
         'total_receivables_overdue': total_receivables_overdue,

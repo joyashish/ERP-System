@@ -15,3 +15,46 @@
   <!-- /.control-sidebar -->
 </div>
 <!-- ./wrapper -->
+
+<!-- Subscription Expiring Modal -->
+ <div class="modal fade" id="expiryReminderModal" tabindex="-1" role="dialog" 
+     aria-labelledby="expiryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content" style="border-radius: 10px; border: 2px solid #b482eb;">
+      
+      <div class="modal-header" style="border-bottom: none;">
+        <h5 class="modal-title" id="expiryModalLabel" style="font-weight: 600;">
+          Subscription Reminder
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body text-center">
+        
+        <img src="{% static 'dist/img/renew.png' %}" 
+     width="200" alt="Time running out" style="margin-bottom: 20px;">
+        
+        <h4 style="font-weight: 600;">Your Plan is Expiring Soon!</h4>
+        
+        <p class="text-muted" id="expiry-modal-message">
+          Your plan is about to expire. To avoid any interruption in your service, 
+          please renew your subscription.
+        </p>
+      </div>
+      
+      <div class="modal-footer" style="border-top: none; justify-content: center;">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" 
+                style="margin-right: 10px;">
+          Remind Me Later
+        </button>
+        <a href="{% url 'home' %}#pricing" class="btn btn-primary" 
+           style="background-color: #b482eb; border-color: #b482eb;">
+          Renew My Plan
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</div>

@@ -162,6 +162,32 @@ function showAlert(message, callback = null, duration = 7000) {
 }
 </script>
 
+<script>
+  // Wait for the document to be fully loaded
+  $(document).ready(function() {
+    
+    // Check if the template variables from the view exist
+    {% if show_expiry_modal and expiry_time_object %}
+      
+      // 1. Use Django's filter to create the time remaining string
+      // This will output something like "2 days, 21 hours"
+      var timeRemaining = "{{ expiry_time_object|timeuntil }}";
+      
+      // 2. Create the new dynamic message
+      var newMessage = "Your plan is about to expire in <strong>" + timeRemaining + "</strong>. " +
+                       "To avoid any interruption in your service, please renew your subscription.";
+      
+      // 3. Set this new message in the modal's <p> tag
+      $('#expiry-modal-message').html(newMessage);
+      
+      // 4. Now, show the modal
+      $('#expiryReminderModal').modal('show');
+      
+    {% endif %}
+    
+  });
+</script>
+
 
 </body>
 </html>
