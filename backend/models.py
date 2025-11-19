@@ -300,6 +300,9 @@ class Service(ItemBase):
 
 # Sale Model
 class Sale(models.Model):
+    INVOICE_TYPE_CHOICES = [('TAX_INVOICE', 'Tax Invoice'), ('BILL_OF_SUPPLY', 'Bill of Supply')]
+    invoice_type = models.CharField(max_length=20, choices=INVOICE_TYPE_CHOICES, default='TAX_INVOICE')
+    
     invoice_no = models.CharField(max_length=20)
     party = models.ForeignKey(Create_party, on_delete=models.CASCADE)
     invoice_date = models.DateField(default=timezone.now)

@@ -39,6 +39,10 @@ from django.contrib.staticfiles import finders
 from io import BytesIO
 import os
 from datetime import date
+from weasyprint import HTML, CSS # Import WeasyPrint
+from num2words import num2words
+from types import SimpleNamespace
+from django.template.loader import render_to_string
 
 # Expense Form 
 class ExpenseForm(forms.ModelForm):
@@ -1089,6 +1093,10 @@ def create_sale_view(request):
                 items_data = []
                 total_item_subtotal = 0
                 total_tax = 0
+
+                # --- NEW LOGIC (1): Flag to track taxable items ---
+                has_taxable_item = False
+
                 # Find all unique item indices from the form data
                 item_indices = sorted(list(set(re.findall(r'items\[(\d+)\]', ' '.join(post_data.keys())))))
                 
@@ -1109,7 +1117,14 @@ def create_sale_view(request):
                     item_discount = float(post_data.get(f'items[{index}][discount]', 0))
                     item_subtotal = quantity * unit_price
                     taxable_amount_item = item_subtotal - item_discount
-                    gst_rate = float(re.sub(r'[^0-9.]', '', item.gst_rate or '0'))
+                    
+                    # --- NEW LOGIC (2): Check the GST rate ---
+                    gst_rate_str = (item.gst_rate or '0').replace('%', '')
+                    gst_rate = float(re.sub(r'[^0-9.]', '', gst_rate_str) or '0')
+
+                    if gst_rate > 0:
+                        has_taxable_item = True # We found a taxable item!
+
                     tax_amount_item = taxable_amount_item * (gst_rate / 100)
                     total_item_subtotal += item_subtotal
                     total_tax += tax_amount_item
@@ -1143,7 +1158,7 @@ def create_sale_view(request):
                 total_discount = total_item_discount + discount_overall
                 # 4. Calculate the taxable amount by subtracting the TOTAL discount from the subtotal
                 taxable_amount_total = total_item_subtotal - total_discount
-                print("total_item_discount",total_item_discount,discount_overall,total_discount,taxable_amount_total)
+                # print("total_item_discount",total_item_discount,discount_overall,total_discount,taxable_amount_total)
 
                 additional_charges = float(post_data.get('additional_charges', 0))
                 # taxable_amount_total = total_item_subtotal - discount_overall
@@ -1152,6 +1167,11 @@ def create_sale_view(request):
                 
                 # Re-generate the invoice number right before saving to prevent race conditions
                 new_invoice_no = generate_next_invoice_number(target_tenant)
+
+                # --- NEW LOGIC (3): Determine the final invoice type ---
+                final_invoice_type = 'TAX_INVOICE'
+                if not has_taxable_item:
+                    final_invoice_type = 'BILL_OF_SUPPLY'
 
                 sale = Sale.objects.create(
                     tenant=target_tenant,
@@ -1170,14 +1190,23 @@ def create_sale_view(request):
                     balance_amount=total_amount - amount_received,
                     notes=post_data.get('notes', ''),
                     terms_conditions=post_data.get('terms_conditions', ''),
+
+                    # --- NEW LOGIC (4): Save the invoice type ---
+                    invoice_type=final_invoice_type
                 )
                 
                 for data in items_data:
                     SaleItem.objects.create(sale=sale, item=data['item_instance'], **{k: v for k, v in data.items() if k != 'item_instance'})
             
-                messages.success(request, f"Sale {new_invoice_no} created successfully!")
+                messages.success(request, f"Sale {new_invoice_no} created successfully .")
                 if account.role == 'superadmin':
-                    return redirect(f"/sales_list?tenant_id={target_tenant.id}")
+                    # --- FIX STARTS HERE ---
+                    # 1. Get the correct base URL (e.g., "/app/sales_list/")
+                    base_url = reverse('sales_list') 
+                    
+                    # 2. Append the query parameter manually
+                    return redirect(f"{base_url}?tenant_id={target_tenant.id}")
+                    # --- FIX ENDS HERE ---
                 else:
                     return redirect('sales_list')
 
@@ -1658,91 +1687,167 @@ def link_callback(uri, rel):
     return path
 
 
-# Sale Invoice Pdf
+# Sale Tax Invoice Pdf
 @tenant_required
 def sale_invoice_pdf(request, sale_id):
+    """
+    Generates a professional PDF Invoice using WeasyPrint.
+    Fixes: Subtotal alignment, Footer overlap, and Image loading issues.
+    """
+    
+    # 1. Security & Data Fetching
     account = request.user
+    from .models import Sale 
     sale = get_object_or_404(Sale, id=sale_id)
 
+    # Tenant Security Check
     if account.role != 'superadmin' and sale.tenant != request.tenant:
         messages.error(request, "You are not authorized to view this invoice.")
         return redirect('sales_list')
 
-    # Amount in words
-    from num2words import num2words
+    # 2. Amount in Words Logic (Indian Format)
     try:
-        amount_in_words = num2words(sale.total_amount, to='currency', currency='INR')
-        amount_in_words = amount_in_words.replace('euro', 'rupees').replace('cents', 'paisa')
-    except:
+        val_in_words = num2words(sale.total_amount, to='currency', lang='en_IN')
+        val_in_words = val_in_words.replace('euro', 'Rupees').replace('cents', 'Paisa').replace('€', '')
+        amount_in_words = val_in_words.title()
+    except Exception as e:
+        print(f"Error converting words: {e}")
         amount_in_words = ""
 
-    # --- Build HSN/SAC Tax Summary ---
-    tax_summary = defaultdict(lambda: {
-        "taxable_value": Decimal("0.00"),
-        "cgst": Decimal("0.00"),
-        "sgst": Decimal("0.00"),
-        "total_tax": Decimal("0.00"),
-    })
-
-    for item in sale.items.all():
-        hsn = item.item.hsn_sac_code or "N/A"
-        taxable_value = Decimal(item.quantity) * item.unit_price
-        gst_rate = Decimal((item.item.gst_rate or "0").replace("%", ""))  # e.g. "18%" -> 18
-        half_rate = gst_rate / Decimal(2)
-
-        cgst = taxable_value * (half_rate / 100)
-        sgst = taxable_value * (half_rate / 100)
-        total_tax = cgst + sgst
-
-        tax_summary[hsn]["taxable_value"] += taxable_value
-        tax_summary[hsn]["cgst"] += cgst
-        tax_summary[hsn]["sgst"] += sgst
-        tax_summary[hsn]["total_tax"] += total_tax
-
-        # --- NEW: Calculate total item-level discount ---
-        total_item_discount = sale.items.aggregate(total=Sum('discount'))['total'] or 0
-
-    # Convert to list for template
-    tax_summary_list = [
-        {
-            "hsn": hsn,
-            "taxable_value": values["taxable_value"],
-            "cgst": values["cgst"],
-            "sgst": values["sgst"],
-            "total_tax": values["total_tax"],
-        }
-        for hsn, values in tax_summary.items()
-    ]
-    # --- Grand Totals across all HSN rows ---
-    from types import SimpleNamespace
-    tax_summary_total = SimpleNamespace(
-        taxable_value=sum(row["taxable_value"] for row in tax_summary_list),
-        cgst=sum(row["cgst"] for row in tax_summary_list),
-        sgst=sum(row["sgst"] for row in tax_summary_list),
-        total_tax=sum(row["total_tax"] for row in tax_summary_list),
-    )
-
+    # 3. Base Context
     context = {
         'sale': sale,
         'tenant': sale.tenant,
         'amount_in_words': amount_in_words,
-        'tax_summary': tax_summary_list,
-        "tax_summary_total": tax_summary_total,
-        'total_item_discount': total_item_discount, 
+        # Passing roots allows us to load images from disk if needed
+        'MEDIA_ROOT': settings.MEDIA_ROOT, 
+        'STATIC_ROOT': settings.STATIC_ROOT,
     }
 
-    template = get_template('sale_invoice_pdf.html')
-    html = template.render(context)
+    # 4. Initialize Calculations for Subtotal Strip
+    # These track the sums of the columns to show at the bottom of the items area
+    column_totals = {
+        'qty': Decimal(0),
+        'rate': Decimal(0),
+        'tax': Decimal(0),
+        'amount': Decimal(0),
+    }
 
-    result = BytesIO()
-    pdf = pisa.CreatePDF(BytesIO(html.encode("UTF-8")), dest=result, link_callback=link_callback)
+    invoice_items = []
 
-    if not pdf.err:
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
-        response['Content-Disposition'] = f'inline; filename="invoice_{sale.invoice_no}.pdf"'
+    # 5. Conditional Logic: Tax Invoice vs Bill of Supply
+    if sale.invoice_type == 'BILL_OF_SUPPLY':
+        template_name = 'bill_of_supply_pdf.html'
+        
+        for item in sale.items.all():
+            # Accumulate totals
+            column_totals['qty'] += Decimal(item.quantity)
+            column_totals['rate'] += Decimal(item.unit_price)
+            column_totals['amount'] += Decimal(item.amount)
+            
+            # For Bill of Supply, tax is effectively 0/hidden for the customer
+            item.tax_amount_calculated = Decimal(0)
+            invoice_items.append(item)
+            
+        total_item_discount = sale.items.aggregate(total=Sum('discount'))['total'] or 0
+        context['total_item_discount_and_overall'] = total_item_discount + (sale.discount or 0)
+
+    else:
+        # --- TAX INVOICE LOGIC ---
+        template_name = 'sale_invoice_pdf.html'
+        
+        # HSN Summary Dictionary
+        tax_summary = defaultdict(lambda: {
+            "taxable_value": Decimal("0.00"),
+            "cgst": Decimal("0.00"),
+            "sgst": Decimal("0.00"),
+            "total_tax": Decimal("0.00"),
+        })
+
+        for item in sale.items.all():
+            hsn = item.item.hsn_sac_code or "N/A"
+            
+            qty = Decimal(item.quantity)
+            price = Decimal(item.unit_price)
+            disc = Decimal(item.discount or 0)
+            
+            # 1. Calculate Taxable Value
+            taxable_value = (qty * price) - disc
+            
+            # 2. Get clean GST rate
+            gst_rate_str = str(item.item.gst_rate or "0").replace("%", "")
+            gst_rate_clean = re.sub(r'[^0-9.]', '', gst_rate_str)
+            gst_rate = Decimal(gst_rate_clean or 0)
+            
+            # 3. Calculate Tax Amount (Split equally CGST/SGST)
+            half_rate = gst_rate / Decimal(2)
+            cgst_amt = taxable_value * (half_rate / Decimal(100))
+            sgst_amt = taxable_value * (half_rate / Decimal(100))
+            total_tax_amt = cgst_amt + sgst_amt
+
+            # 4. Attach calculated tax to item for the Template Loop
+            item.tax_amount_calculated = total_tax_amt
+            invoice_items.append(item)
+
+            # 5. Add to HSN Summary
+            tax_summary[hsn]["taxable_value"] += taxable_value
+            tax_summary[hsn]["cgst"] += cgst_amt
+            tax_summary[hsn]["sgst"] += sgst_amt
+            tax_summary[hsn]["total_tax"] += total_tax_amt
+
+            # 6. Add to Column Totals (for Subtotal Strip)
+            column_totals['qty'] += qty
+            column_totals['rate'] += price
+            column_totals['tax'] += total_tax_amt 
+            column_totals['amount'] += Decimal(item.amount)
+
+        # Convert Summary to List
+        tax_summary_list = [
+            {
+                "hsn": hsn,
+                "taxable_value": vals["taxable_value"],
+                "cgst": vals["cgst"],
+                "sgst": vals["sgst"],
+                "total_tax": vals["total_tax"],
+            }
+            for hsn, vals in tax_summary.items()
+        ]
+        
+        # Grand Totals for Tax Table
+        tax_summary_total = SimpleNamespace(
+            taxable_value=sum(row["taxable_value"] for row in tax_summary_list),
+            cgst=sum(row["cgst"] for row in tax_summary_list),
+            sgst=sum(row["sgst"] for row in tax_summary_list),
+            total_tax=sum(row["total_tax"] for row in tax_summary_list),
+        )
+
+        context['tax_summary'] = tax_summary_list
+        context['tax_summary_total'] = tax_summary_total
+        context['total_item_discount'] = sale.items.aggregate(total=Sum('discount'))['total'] or 0
+
+    # Final Context
+    context['invoice_items'] = invoice_items
+    context['column_totals'] = column_totals
+
+    # 6. Render PDF
+    try:
+        html_string = render_to_string(template_name, context)
+        
+        # Use FILE SYSTEM path for base_url to prevent "Broken Pipe"
+        # This tells WeasyPrint to look for images on the disk, not via http://localhost
+        base_url = request.build_absolute_uri()
+        
+        html = HTML(string=html_string, base_url=base_url)
+        pdf_file = html.write_pdf()
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        filename = f"invoice_{sale.invoice_no}.pdf"
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
 
-    return HttpResponse("Error Rendering PDF", status=400)
+    except Exception as e:
+        print(f"PDF Generation Error: {e}")
+        return HttpResponse(f"Error Generating PDF: {e}", status=500)
 
 
 # Superadmin Dashboard
