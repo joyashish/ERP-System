@@ -24,154 +24,140 @@
       height: 297mm;
     }
 
-    /* --- NEW ART BORDER: TRIPLE FRAME STYLE --- */
-    /* Layer 1: White padding spacing */
+    /* --- LAYOUT CONTAINERS --- */
     .paper-padding {
       padding: 8mm;
       height: 100%;
       background: #fff;
     }
 
-    /* Layer 2: Main Outer Frame (Dark Grey) */
     .outer-frame {
       border: 2px solid #444;
       border-radius: 8px;
       height: 100%;
       position: relative;
       padding: 4px;
-      /* Space for inner border */
     }
 
-    /* Layer 3: Inner Decorative Frame (Blue) */
     .inner-frame {
-      border: 1px solid #3f51b5;
+      /* border: 1px solid #0858f9; */
       height: 100%;
       display: flex;
       flex-direction: column;
       position: relative;
     }
 
-    /* Layer 4: Subtle Corner Accents (Optional Dotted lines inside) */
+    /* Decorative Dotted Line */
     .inner-frame::after {
       content: "";
       position: absolute;
-      top: 3px;
-      left: 3px;
-      right: 3px;
-      bottom: 3px;
+      top: 3px; left: 3px; right: 3px; bottom: 3px;
       border: 1px dotted #d41d1d;
       pointer-events: none;
       z-index: -1;
     }
 
     /* HEADER */
+    /* --- NEW HEADER DESIGN --- */
     .header {
-      height: 100px;
+      /* Height auto to fit content, with some padding */
+      height: auto; 
+      min-height: 140px; 
       position: relative;
-      border-bottom: 1px solid #3f51b5;
-      padding: 10px 15px;
+      /* border-bottom: 1px solid #3f51b5; */
+      padding: 15px;
       background: #fff;
-      /* Covers the dotted line behind it */
+      text-align: center; /* Center everything */
+      z-index: 5;
     }
 
-    .header-logo {
-      position: absolute;
-      left: 15px;
-      top: 15px;
+    .header-logo { 
+      position: absolute; 
+      left: 15px; 
+      top: 15px; 
+    }
+    .header-logo img { 
+      width: 80px; 
+      max-height: 80px; 
+      object-fit: contain; 
     }
 
-    .header-logo img {
-      width: 90px;
-      max-height: 75px;
-      object-fit: contain;
+    /* Center Container for Company Info */
+    .header-content {
+      margin: 0 auto;
+      width: 75%; /* Limit width so it doesn't hit logo */
     }
 
-    .header-title {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 35px;
-      text-align: center;
-    }
-
-    .tax-text {
-      color: #d32f2f;
-      font-weight: 800;
+    .company-name {
       font-size: 16pt;
-      letter-spacing: 3px;
+      font-weight: 800;
+      color: #3f51b5;
       text-transform: uppercase;
+      margin: 0 0 5px 0;
+      line-height: 1.2;
     }
 
-    .header-company {
-      position: absolute;
-      right: 15px;
-      top: 15px;
-      text-align: right;
+    .company-address {
       font-size: 9pt;
-      line-height: 1.4;
-      width: 280px;
+      color: #333;
+      margin-bottom: 8px;
+      line-height: 1.3;
     }
 
-    /* INFO & ADDRESSES */
-    .info-strip {
+    /* Horizontal GST Row */
+    .company-gst-row {
       display: flex;
       justify-content: space-between;
-      background: #f0f2f5;
-      border-bottom: 1px solid #3f51b5;
-      padding: 6px 15px;
-      font-weight: bold;
       font-size: 9pt;
+      color: #000;
+    }
+    .gst-item { font-weight: 600; }
+    .gst-val { font-weight: normal; margin-left: 3px; }
+
+    /* Title at bottom of header */
+    .tax-text { 
+      color: #d32f2f; 
+      font-weight: 800; 
+      font-size: 14pt; 
+      letter-spacing: 3px; 
+      text-transform: uppercase;
+      padding-top: 8px;
+      margin-top: 5px;
+      display: block;
+    }
+
+    /* FSSAI No & CIN No */
+    .license-strip {
+      display: flex; justify-content: space-between;
+      padding: 0px 15px; font-weight: bold; font-size: 9pt;
+    }
+    /* INFO & ADDRESSES */
+    .info-strip {
+      display: flex; justify-content: space-between;
+      background: #f0f2f5; border-top: 1px solid #3f51b5; border-bottom: 1px solid #3f51b5;
+      padding: 6px 15px; font-weight: bold; font-size: 9pt;
     }
 
     .addresses {
-      display: flex;
-      border-bottom: 1px solid #3f51b5;
-      height: 95px;
+      display: flex; border-bottom: 1px solid #3f51b5; height: 95px;
     }
+    .addr-box { flex: 1; padding: 10px; font-size: 9pt; height: 90px; }
+    .addr-box:first-child { border-right: 1px solid #ddd; }
+    .addr-label { color: #3f51b5; font-weight: bold; font-size: 8pt; text-transform: uppercase; margin-bottom: 4px; }
 
-    .addr-box {
-      flex: 1;
-      padding: 10px;
-      font-size: 9pt;
-      height: 95px;
-    }
-
-    .addr-box:first-child {
-      border-right: 1px solid #ddd;
-    }
-
-    .addr-label {
-      color: #3f51b5;
-      font-weight: bold;
-      font-size: 8pt;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    /* ITEMS SECTION */
+    /* --- ITEMS SECTION --- */
     .items-section {
       flex-grow: 1;
-      /* Fills empty space */
       display: flex;
       flex-direction: column;
       position: relative;
-
-
-      /* Vertical Lines using Gradient */
-      /* background: linear-gradient(to right, 
-                transparent 5%,  #eee 5%, #eee 5.1%, 
-                transparent 5.1%, transparent 45%, #eee 45%, #eee 45.1%, 
-                transparent 45.1%, transparent 55%, #eee 55%, #eee 55.1%, 
-                transparent 55.1%, transparent 63%, #eee 63%, #eee 63.1%, 
-                transparent 63.1%, transparent 73%, #eee 73%, #eee 73.1%, 
-                transparent 73.1%, transparent 81%, #eee 81%, #eee 81.1%, 
-                transparent 81.1%
-            ); */
+      /* No gradient needed - we use real table borders now */
     }
 
+    /* TABLE CSS FIX FOR WEASYPRINT 52.5 */
     .items-table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: collapse; /* Merges borders into single sharp lines */
       font-size: 9pt;
     }
 
@@ -181,52 +167,98 @@
       padding: 8px;
       font-weight: bold;
       text-align: center;
+      /* Add vertical line to right of headers */
+      border-right: 1px solid #3f51b5;    
     }
 
     .items-table td {
       padding: 6px;
       text-align: center;
       vertical-align: top;
+      /* Add vertical line to right of cells */
+      border-right: 1px solid #3f51b5; 
     }
 
-    .text-left {
-      text-align: left !important;
-      padding-left: 8px;
+    /* Remove border from the last column so it doesn't double up with the frame */
+    .items-table th:last-child, 
+    .items-table td:last-child {
+        border-right: none;
     }
 
-    /* Column Widths - MUST MATCH EVERYWHERE */
-    .col-sn {
-      width: 8%;
-    }
+    .text-left { text-align: left !important; padding-left: 8px; }
 
-    .col-item {
-      width: 40%;
-    }
-
-    .col-hsn {
-      width: 10%;
-    }
-
-    .col-qty {
-      width: 8%;
-    }
-
-    .col-rate {
-      width: 10%;
-    }
-
-    .col-tax {
-      width: 8%;
-    }
-
-    .col-amt {
-      width: 19%;
-    }
+    /* Column Widths */
+    .col-sn { width: 8%; }
+    .col-item { width: 40%; }
+    .col-hsn { width: 10%; }
+    .col-qty { width: 8%; }
+    .col-rate { width: 10%; }
+    .col-tax { width: 8%; }
+    .col-amt { width: 19%; }
 
     .items-spacer {
-      flex-grow: 1;
+      flex-grow: 1; /* This pushes the subtotal down */
+      position: relative;
     }
 
+    /* Add vertical lines to the spacer to match the table */
+    .items-spacer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 7.9%; /* S No. column */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 47.9%; /* Item column (8% + 40%) */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer .spacer-line-1 {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 57.9%; /* HSN column (48% + 10%) */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer .spacer-line-2 {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 65.9%; /* Qty column (58% + 8%) */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer .spacer-line-3 {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 75.9%; /* Rate column (66% + 10%) */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer .spacer-line-4 {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 83.9%; /* Tax column (76% + 8%) */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+
+    /* SUBTOTAL TABLE */
     .subtotal-table {
       width: 100%;
       border-top: 1px solid #3f51b5;
@@ -240,23 +272,27 @@
       padding: 6px;
       font-weight: bold;
       text-align: center;
+      /* Add vertical lines to match items above */
+      border-right: 1px solid #3f51b5;
+    }
+    
+    .subtotal-table td:last-child {
+        border-right: none;
     }
 
-    /* --- FOOTER LAYOUT: THE "STRICT TABLE" FIX --- */
-    /* We use a main table for the footer structure. 
-           Tables NEVER overlap rows. This fixes your issue. */
+    /* FOOTER LAYOUT */
+    .footer-wrapper {
+        /* Ensure footer stays at bottom */
+        flex-shrink: 0; 
+    }
 
     .footer-layout-table {
-      width: 100%;
-      border-collapse: collapse;
-      height: 180px;
-      /* Fixed height for consistency */
+      width: 100%; border-collapse: collapse; height: 180px;
     }
 
     .footer-left-cell {
       width: 60%;
       border-right: 1px solid #3f51b5;
-      border-left: 1px solid #3f51b5;
       vertical-align: top;
       padding: 0;
     }
@@ -267,75 +303,37 @@
       padding: 0;
     }
 
-    /* Nested Table for Left Content (Stacking Words, Bank, Terms) */
-    .left-content-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+    .left-content-table { width: 100%; border-collapse: collapse; }
+    .left-content-table td { padding: 8px 10px; vertical-align: top; }
 
-    .left-content-table td {
-      padding: 8px 10px;
-      vertical-align: top;
-    }
+    .row-words { border-bottom: 1px dotted #ccc; height: 40px; }
+    .row-bank { height: 80px; }
+    .row-terms { border-top: 1px dotted #ccc; background: #fafafa; height: 50px; font-size: 8pt; color: #555; }
 
-    .row-words {
-      border-bottom: 1px dotted #ccc;
-      height: 40px;
-    }
-
-    .row-bank {
-      height: 80px;
-    }
-
-    .row-terms {
-      border-top: 1px dotted #ccc;
-      background: #fafafa;
-      height: 50px;
-      font-size: 8pt;
-      color: #555;
-    }
-
-    /* Summary Table on Right */
-    .summary-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 9pt;
-    }
-
-    .summary-table td {
-      padding: 4px 10px;
-      text-align: right;
-    }
-
-    .summary-table .lbl {
-      text-align: left;
-      color: #444;
-    }
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+    .summary-table td { padding: 4px 10px; text-align: right; }
+    .summary-table .lbl { text-align: left; color: #444; }
 
     .grand-total-row td {
-      background: #f0f2f5;
-      color: #3f51b5;
-      font-weight: bold;
-      border-top: 1px solid #3f51b5;
-      border-bottom: 1px solid #3f51b5;
-      padding: 8px 10px;
-      font-size: 11pt;
+      background: #f0f2f5; color: #3f51b5; font-weight: bold;
+      border-top: 1px solid #3f51b5; border-bottom: 1px solid #3f51b5;
+      padding: 8px 10px; font-size: 11pt;
     }
 
     .sign-area {
-      margin-top: 20px;
-      text-align: left;
-      padding-left: 15px;
+      margin-top: 10px;
+      padding: 5px 35px 10px 0; /* Padding: Top Right Bottom Left */
+      display: flex;
+      justify-content: flex-end; /* Pushes everything to the Right side */
+      align-items: center;       /* Aligns Text and Image vertically in the middle */
+      gap: 15px;                 /* Adds space between Text and Image */
       font-weight: bold;
       font-size: 9pt;
     }
 
     .final-strip {
-      text-align: center;
-      font-size: 7.5pt;
-      color: #888;
-      padding: 2px;
-      background: #fff;
+      text-align: center; font-size: 7.5pt; color: #888;
+      padding: 2px; background: #fff;
       border-top: 1px solid #3f51b5;
       border-bottom: 1px solid #3f51b5;
     }
@@ -354,15 +352,41 @@
             <img src="{{ tenant.logo.url }}">
             {% endif %}
           </div>
-          <div class="header-title">
-            <div class="tax-text">TAX INVOICE</div>
+          
+          <div class="header-content">
+              <div class="company-name">{{ tenant.name }}</div>
+              
+              <div class="company-address">
+                {{ tenant.address|linebreaksbr }}
+                {% if tenant.phone %} | Phone: {{ tenant.phone }}{% endif %}
+                {% if tenant.email %} | {{ tenant.email }}{% endif %}
+                {% if tenant.website %} | {{ tenant.website }}{% endif %}<br>
+              </div>
+
+              {% if tenant.gst_number %}
+              <div class="company-gst-row">
+                  <span class="gst-item">GSTIN: <span class="gst-val">{{ tenant.gst_number }}</span></span>
+                  {% if tenant_gst_details %}
+                  <span style="color:#ccc;">|</span>
+                  <span class="gst-item">State: <span class="gst-val">{{ tenant_gst_details.state }} ({{ tenant_gst_details.code }})</span></span>
+                  <span style="color:#ccc;">|</span>
+                  <span class="gst-item">PAN: <span class="gst-val">{{ tenant_gst_details.pan }}</span></span>
+                  {% endif %}
+              </div>
+              {% endif %}
+
+              <div class="tax-text">TAX INVOICE</div>
           </div>
-          <div class="header-company">
-            <strong>{{ tenant.name }}</strong><br>
-            {{ tenant.address|linebreaksbr }}<br>
-            {% if tenant.phone %}Phone: {{ tenant.phone }}<br>{% endif %}
-            {% if tenant.gst_number %}GSTIN: {{ tenant.gst_number }}{% endif %}
-          </div>
+        </div>
+
+        <div class="license-strip">
+          {% if tenant.fssai_number %}
+            <span class="license-item">FSSAI NO: <span class="license-val">{{ tenant.fssai_number }}</span></span>
+          {% endif %}
+        
+          {% if tenant.cin_number %}
+            <span class="license-item">CIN NO: <span class="license-val">{{ tenant.cin_number }}</span></span>
+          {% endif %}
         </div>
 
         <div class="info-strip">
@@ -373,14 +397,33 @@
 
         <div class="addresses">
           <div class="addr-box">
-            <div class="addr-label">Billed To</div>
-            <strong>{{ sale.party.party_name }}</strong><br>
-            {{ sale.party.billing_address|linebreaksbr }}
+            <div class="addr-label">Details of Receiver </div>
+            <div class="detail-row">
+                <span class="detail-label">Name:</span> 
+                <strong>{{ sale.party.party_name }}</strong>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label" style="vertical-align: top;">Address:</span>
+                <span style="display: inline-block; width: 80%; vertical-align: top;">
+                    {{ sale.party.billing_address }}
+                </span>
+            </div>
+
+            
           </div>
           <div class="addr-box">
-            <div class="addr-label">Shipped To</div>
-            <strong>{{ sale.party.party_name }}</strong><br>
-            {{ sale.party.shipping_address|default:sale.party.billing_address|linebreaksbr }}
+            <!-- <div class="addr-label">Shipped To</div> -->
+            <!-- {% if sale.party.gst_no %}
+                GSTIN: <strong>{{ sale.party.gst_no }}</strong>
+                {% if party_gst_details %}
+                <br>Place of Supply: {{ party_gst_details.state }} ({{ party_gst_details.code }})
+                <br>PAN: {{ party_gst_details.pan }}
+                {% endif %}
+            {% endif %} -->
+                GSTIN: <strong>{{ sale.party.gst_no }}</strong>
+                <br>Place of Supply: {{ party_gst_details.state }} ({{ party_gst_details.code }})
+                <br>PAN: {{ party_gst_details.pan }}
+                <br>Phone no : {{ sale.party.mobile_num }}
           </div>
         </div>
 
@@ -417,7 +460,13 @@
             </tbody>
           </table>
 
-          <div class="items-spacer"></div>
+          <div class="items-spacer">
+            <!-- Vertical lines for the spacer area -->
+            <div class="spacer-line-1"></div>
+            <div class="spacer-line-2"></div>
+            <div class="spacer-line-3"></div>
+            <div class="spacer-line-4"></div>
+          </div>
 
           <table class="subtotal-table">
             <tr>
@@ -507,7 +556,14 @@
                   </tr>
                 </table>
                 <div class="sign-area">
-                  Authorized Signatory
+                  {% if tenant.signature_img %}
+                  <span>Authorized Signatory</span>
+                  <img src="{{ tenant.signature_img.url }}" style="height: 40px; width: auto; object-fit: contain; margin-left: 20px;">
+                  {% else %}
+                  <div style="text-align: right; width: 100%; margin-top: 25px;">
+                    Authorized Signatory
+                  </div>
+                  {% endif %}
                 </div>
               </td>
             </tr>

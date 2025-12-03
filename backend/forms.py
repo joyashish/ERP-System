@@ -6,7 +6,9 @@ from backend.models import *
 class TenantSettingsForm(forms.ModelForm):
     class Meta:
         model = Tenant
-        fields = ['name', 'address', 'phone', 'email', 'gst_number', 'logo', 'bank_name', 'account_holder_name', 'account_no', 'ifsc_code', 'upi_id', 'qr_code']
+        fields = ['name', 'address', 'phone', 'email', 'gst_number', 'logo', 'bank_name', 'account_holder_name', 'account_no', 'ifsc_code', 'upi_id', 'qr_code'
+        # Add new fields here:
+            ,'fssai_number', 'cin_number', 'website', 'signature_img']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -20,6 +22,10 @@ class TenantSettingsForm(forms.ModelForm):
             'ifsc_code': forms.TextInput(attrs={'class': 'form-control'}),
             'upi_id': forms.TextInput(attrs={'class': 'form-control'}),
             'qr_code': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'fssai_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'cin_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'website': forms.TextInput(attrs={'class': 'form-control'}),
+            'signature_img': forms.FileInput(attrs={'class': 'form-control-file'}),
         }
 
 

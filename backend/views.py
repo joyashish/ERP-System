@@ -1686,6 +1686,34 @@ def link_callback(uri, rel):
     
     return path
 
+# --- HELPER: GST STATE CODE MAPPING ---
+GST_STATE_MAP = {
+    '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh',
+    '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan',
+    '09': 'Uttar Pradesh', '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh',
+    '13': 'Nagaland', '14': 'Manipur', '15': 'Mizoram', '16': 'Tripura',
+    '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal', '20': 'Jharkhand',
+    '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat',
+    '25': 'Daman & Diu', '26': 'Dadra & Nagar Haveli', '27': 'Maharashtra', '28': 'Andhra Pradesh',
+    '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala',
+    '33': 'Tamil Nadu', '34': 'Puducherry', '35': 'Andaman & Nicobar', '36': 'Telangana',
+    '37': 'Andhra Pradesh (New)', '38': 'Ladakh', '97': 'Other Territory', '99': 'Centre Jurisdiction'
+}
+
+def extract_gst_details(gstin):
+    """Parses a GST string to return State Code, Name, and PAN."""
+    if not gstin or len(gstin) < 12:
+        return None
+    
+    code = gstin[:2] # First 2 digits
+    pan = gstin[2:12] # Next 10 digits
+    state_name = GST_STATE_MAP.get(code, "")
+    
+    return {
+        'code': code,
+        'state': state_name,
+        'pan': pan
+    }
 
 # Sale Tax Invoice Pdf
 @tenant_required
@@ -1714,7 +1742,10 @@ def sale_invoice_pdf(request, sale_id):
         print(f"Error converting words: {e}")
         amount_in_words = ""
 
-    # 3. Base Context
+    # --- 3. EXTRACT GST DETAILS (NEW LOGIC) ---
+    tenant_gst_details = extract_gst_details(sale.tenant.gst_number)
+    party_gst_details = extract_gst_details(sale.party.gst_no)
+    # . Base Context
     context = {
         'sale': sale,
         'tenant': sale.tenant,
@@ -1722,6 +1753,9 @@ def sale_invoice_pdf(request, sale_id):
         # Passing roots allows us to load images from disk if needed
         'MEDIA_ROOT': settings.MEDIA_ROOT, 
         'STATIC_ROOT': settings.STATIC_ROOT,
+        # Pass the extracted details to template
+        'tenant_gst_details': tenant_gst_details,
+        'party_gst_details': party_gst_details,
     }
 
     # 4. Initialize Calculations for Subtotal Strip

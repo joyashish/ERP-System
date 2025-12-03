@@ -1,368 +1,554 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <title>Bill of Supply</title>
-    <style>
-        @page {
-            size: A4;
-            margin: 0; 
-        }
+  <meta charset="UTF-8">
+  <title>Bill of Supply</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
 
-        * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 9pt;
-            margin: 0;
-            padding: 0;
-            width: 210mm;
-            height: 297mm; 
-        }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 9pt;
+      margin: 0;
+      padding: 0;
+      width: 210mm;
+      height: 297mm;
+    }
 
-        /* --- ART BORDER: TRIPLE FRAME STYLE --- */
-        .paper-padding {
-            padding: 8mm;
-            height: 100%;
-            background: #fff;
-        }
+    /* --- LAYOUT CONTAINERS --- */
+    .paper-padding {
+      padding: 8mm;
+      height: 100%;
+      background: #fff;
+    }
 
-        .outer-frame {
-            border: 2px solid #444; 
-            height: 100%;
-            position: relative;
-            padding: 4px; 
-        }
+    .outer-frame {
+      border: 2px solid #444;
+      border-radius: 8px;
+      height: 100%;
+      position: relative;
+      padding: 4px;
+    }
 
-        .inner-frame {
-            border: 1px solid #3f51b5;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
+    .inner-frame {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
 
-        .inner-frame::after {
-            content: "";
-            position: absolute;
-            top: 3px; left: 3px; right: 3px; bottom: 3px;
-            border: 1px dotted #ccc;
-            pointer-events: none;
-            z-index: -1;
-        }
+    /* Decorative Dotted Line */
+    .inner-frame::after {
+      content: "";
+      position: absolute;
+      top: 3px; left: 3px; right: 3px; bottom: 3px;
+      border: 1px dotted #d41d1d;
+      pointer-events: none;
+      z-index: -1;
+    }
 
-        /* HEADER */
-        .header {
-            height: 110px;
-            position: relative;
-            border-bottom: 1px solid #3f51b5;
-            padding: 10px 15px;
-            background: #fff;
-        }
-        
-        .header-logo { position: absolute; left: 15px; top: 15px; }
-        .header-logo img { width: 90px; max-height: 75px; object-fit: contain; }
+    /* HEADER */
+    .header {
+      height: auto; 
+      min-height: 140px; 
+      position: relative;
+      padding: 15px;
+      background: #fff;
+      text-align: center;
+      z-index: 5;
+    }
 
-        .header-title {
-            position: absolute; left: 0; right: 0; top: 35px;
-            text-align: center;
-        }
-        .tax-text { 
-            color: #3f51b5; /* Changed to Blue for Bill of Supply */
-            font-weight: 800; font-size: 16pt; 
-            letter-spacing: 2px; text-transform: uppercase;
-        }
-        .sub-text { font-size: 8pt; color: #666; font-weight: normal; letter-spacing: 0; }
+    .header-logo { 
+      position: absolute; 
+      left: 15px; 
+      top: 15px; 
+    }
+    .header-logo img { 
+      width: 80px; 
+      max-height: 80px; 
+      object-fit: contain; 
+    }
 
-        .header-company {
-            position: absolute; right: 15px; top: 15px;
-            text-align: right; font-size: 9pt; line-height: 1.4;
-            width: 280px;
-        }
+    /* Center Container for Company Info */
+    .header-content {
+      margin: 0 auto;
+      width: 75%;
+    }
 
-        /* INFO & ADDRESSES */
-        .info-strip {
-            display: flex; justify-content: space-between;
-            background: #f0f2f5;
-            border-bottom: 1px solid #3f51b5;
-            padding: 6px 15px;
-            font-weight: bold; font-size: 9pt;
-        }
+    .company-name {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #3f51b5;
+      text-transform: uppercase;
+      margin: 0 0 5px 0;
+      line-height: 1.2;
+    }
 
-        .addresses {
-            display: flex;
-            border-bottom: 1px solid #3f51b5;
-            height: 95px;
-        }
-        .addr-box { flex: 1; padding: 8px 12px; font-size: 9pt; height: 95px; overflow: hidden; }
-        .addr-box:first-child { border-right: 1px solid #ddd; }
-        .addr-label { color: #3f51b5; font-weight: bold; font-size: 8pt; text-transform: uppercase; margin-bottom: 4px; }
+    .company-address {
+      font-size: 9pt;
+      color: #333;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
 
-        /* ITEMS SECTION */
-        .items-section {
-            flex-grow: 1; 
-            display: flex; flex-direction: column;
-            position: relative;            
-            /* Vertical Lines Gradient (Adjusted for fewer columns) */
-            /* background: linear-gradient(to right, 
-                transparent 5%,  #eee 5%, #eee 5.1%, /* Sn 
-                transparent 5.1%, transparent 53%, #eee 53%, #eee 53.1%, /* Item 
-                transparent 53.1%, transparent 63%, #eee 63%, #eee 63.1%, /* HSN 
-                transparent 63.1%, transparent 71%, #eee 71%, #eee 71.1%, /* Qty 
-                transparent 71.1%, transparent 83%, #eee 83%, #eee 83.1%, /* Rate 
-                transparent 83.1% /* Amount 
-            ); */
-        }
+    /* Horizontal GST Row */
+    .company-gst-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: #000;
+    }
+    .gst-item { font-weight: 600; }
+    .gst-val { font-weight: normal; margin-left: 3px; }
 
-        .items-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
-        .items-table th {
-            background-color: #f0f2f5; border-bottom: 1px solid #3f51b5;
-            padding: 8px; font-weight: bold; text-align: center;
-        }
-        .items-table td { padding: 6px; text-align: center; vertical-align: top; }
-        .text-left { text-align: left !important; padding-left: 8px; }
+    /* Title at bottom of header */
+    .tax-text { 
+      color: #3f51b5; 
+      font-weight: 800; 
+      font-size: 14pt; 
+      letter-spacing: 3px; 
+      text-transform: uppercase;
+      padding-top: 8px;
+      margin-top: 5px;
+      display: block;
+    }
 
-        /* UPDATED Column Widths for Bill of Supply (No Tax Column) */
-        .col-sn { width: 8%; }
-        .col-item { width: 48%; } /* Expanded */
-        .col-hsn { width: 10%; }
-        .col-qty { width: 8%; }
-        .col-rate { width: 12%; }
-        .col-amt { width: 17%; }
+    /* FSSAI No & CIN No */
+    .license-strip {
+      display: flex; justify-content: space-between;
+      padding: 0px 15px; font-weight: bold; font-size: 9pt;
+    }
+    
+    /* INFO & ADDRESSES */
+    .info-strip {
+      display: flex; justify-content: space-between;
+      background: #f0f2f5; border-top: 1px solid #3f51b5; border-bottom: 1px solid #3f51b5;
+      padding: 6px 15px; font-weight: bold; font-size: 9pt;
+    }
 
-        .items-spacer { flex-grow: 1; }
+    .addresses {
+      display: flex; border-bottom: 1px solid #3f51b5; height: 95px;
+    }
+    .addr-box { flex: 1; padding: 10px; font-size: 9pt; height: 90px; }
+    .addr-box:first-child { border-right: 1px solid #ddd; }
+    .addr-label { color: #3f51b5; font-weight: bold; font-size: 8pt; text-transform: uppercase; margin-bottom: 4px; }
 
-        .subtotal-table {
-            width: 100%; border-top: 1px solid #3f51b5;
-            border-bottom: 1px solid #3f51b5;
-            background-color: #f9f9f9; border-collapse: collapse; font-size: 9pt;
-        }
-        .subtotal-table td { padding: 6px; font-weight: bold; text-align: center; }
+    /* --- ITEMS SECTION --- */
+    .items-section {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
 
-        /* FOOTER LAYOUT */
-        .footer-layout-table {
-            width: 100%;
-            border-collapse: collapse;
-            height: 180px; 
-        }
-        
-        .footer-left-cell {
-            width: 60%;
-            border-right: 1px solid #3f51b5;
-            vertical-align: top;
-            padding: 0;
-        }
+    /* TABLE CSS FIX FOR WEASYPRINT 52.5 */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
 
-        .footer-right-cell {
-            width: 40%;
-            vertical-align: top;
-            padding: 0;
-        }
+    .items-table th {
+      background-color: #f0f2f5;
+      border-bottom: 1px solid #3f51b5;
+      padding: 8px;
+      font-weight: bold;
+      text-align: center;
+      border-right: 1px solid #3f51b5;
+      padding-right: 1px; 
+    }
 
-        .left-content-table { width: 100%; border-collapse: collapse; }
-        .left-content-table td { padding: 8px 10px; vertical-align: top; }
+    .items-table td {
+      padding: 6px;
+      text-align: center;
+      vertical-align: top;
+      border-right: 1px solid #3f51b5; 
+    }
 
-        .row-words { border-bottom: 1px dotted #ccc; height: 40px; }
-        .row-bank  { height: 80px; } 
-        .row-terms { border-top: 1px dotted #ccc; background: #fafafa; height: 50px; font-size: 8pt; color: #555; }
+    /* Remove border from the last column */
+    .items-table th:last-child, 
+    .items-table td:last-child {
+        border-right: none;
+    }
 
-        /* Summary Table on Right */
-        .summary-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
-        .summary-table td { padding: 4px 10px; text-align: right; }
-        .summary-table .lbl { text-align: left; color: #444; }
-        
-        .grand-total-row td {
-            background: #f0f2f5; color: #3f51b5; font-weight: bold;
-            border-top: 1px solid #3f51b5; border-bottom: 1px solid #3f51b5;
-            padding: 8px 10px; font-size: 11pt;
-        }
+    .text-left { text-align: left !important; padding-left: 8px; }
 
-        .sign-area {
-            margin-top: 20px; text-align: left; padding-left: 15px;
-            font-weight: bold; font-size: 9pt;
-        }
+    /* Updated Column Widths for Bill of Supply (without Tax column) */
+    .col-sn { width: 8%; }
+    .col-item { width: 50%; } /* Increased from 40% */
+    .col-hsn { width: 12%; } /* Increased from 10% */
+    .col-qty { width: 10%; } /* Increased from 8% */
+    .col-rate { width: 12%; } /* Increased from 10% */
+    .col-amt { width: 18%; } /* Adjusted from 19% */
 
-        .final-strip {
-            text-align: center; font-size: 7.5pt; color: #888;
-            padding: 2px; background: #fff;
-            border-top: 1px solid #3f51b5;
-        }
+    .items-spacer {
+      flex-grow: 1;
+      position: relative;
+    }
 
-    </style>
+    /* Updated vertical lines for the spacer (removed tax line) */
+    .items-spacer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 7.9%; /* S No. column */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 57.9%; /* Item column (8% + 50%) */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer .spacer-line-1 {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 69.9%; /* HSN column (58% + 12%) */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer .spacer-line-2 {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 79.9%; /* Qty column (70% + 10%) */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+    
+    .items-spacer .spacer-line-3 {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 91.9%; /* Rate column (80% + 12%) - Last before Amount */
+      width: 0;
+      border-left: 1px solid #3f51b5;
+    }
+
+    /* SUBTOTAL TABLE */
+    .subtotal-table {
+      width: 100%;
+      border-top: 1px solid #3f51b5;
+      border-bottom: 1px solid #3f51b5;
+      background-color: #f9f9f9;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+
+    .subtotal-table td {
+      padding: 6px;
+      font-weight: bold;
+      text-align: center;
+      border-right: 1px solid #3f51b5;
+    }
+    
+    .subtotal-table td:last-child {
+        border-right: none;
+    }
+
+    /* FOOTER LAYOUT */
+    .footer-wrapper {
+        flex-shrink: 0; 
+    }
+
+    .footer-layout-table {
+      width: 100%; border-collapse: collapse; height: 180px;
+    }
+
+    .footer-left-cell {
+      width: 60%;
+      border-right: 1px solid #3f51b5;
+      vertical-align: top;
+      padding: 0;
+    }
+
+    .footer-right-cell {
+      width: 40%;
+      vertical-align: top;
+      padding: 0;
+    }
+
+    .left-content-table { width: 100%; border-collapse: collapse; }
+    .left-content-table td { padding: 8px 10px; vertical-align: top; }
+
+    .row-words { border-bottom: 1px dotted #ccc; height: 40px; }
+    .row-bank { height: 80px; }
+    .row-terms { border-top: 1px dotted #ccc; background: #fafafa; height: 50px; font-size: 8pt; color: #555; }
+
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+    .summary-table td { padding: 4px 10px; text-align: right; }
+    .summary-table .lbl { text-align: left; color: #444; }
+
+    .grand-total-row td {
+      background: #f0f2f5; color: #3f51b5; font-weight: bold;
+      border-top: 1px solid #3f51b5; border-bottom: 1px solid #3f51b5;
+      padding: 8px 10px; font-size: 11pt;
+    }
+
+    .sign-area {
+      margin-top: 10px;
+      padding: 5px 35px 10px 0;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 15px;
+      font-weight: bold;
+      font-size: 9pt;
+    }
+
+    .final-strip {
+      text-align: center; font-size: 7.5pt; color: #888;
+      padding: 2px; background: #fff;
+      border-top: 1px solid #3f51b5;
+      border-bottom: 1px solid #3f51b5;
+    }
+    
+    /* Detail rows for addresses */
+    .detail-row {
+      margin-bottom: 4px;
+    }
+    .detail-label {
+      font-weight: bold;
+      display: inline-block;
+      width: 50px;
+    }
+  </style>
 </head>
+
 <body>
 
-    <div class="paper-padding">
-        <div class="outer-frame">
-            <div class="inner-frame">
+  <div class="paper-padding">
+    <div class="outer-frame">
+      <div class="inner-frame">
 
-                <div class="header">
-                    <div class="header-logo">
-                        {% if tenant.logo %}
-                            <img src="{{ tenant.logo.url }}">
-                        {% endif %}
-                    </div>
-                    <div class="header-title">
-                        <div class="tax-text">BILL OF SUPPLY</div>
-                        <div class="sub-text">(Composition / Exempt)</div>
-                    </div>
-                    <div class="header-company">
-                        <strong>{{ tenant.name }}</strong><br>
-                        {{ tenant.address|linebreaksbr }}<br>
-                        {% if tenant.phone %}Phone: {{ tenant.phone }}<br>{% endif %}
-                        {% if tenant.gst_number %}GSTIN: {{ tenant.gst_number }}{% endif %}
-                    </div>
-                </div>
+        <div class="header">
+          <div class="header-logo">
+            {% if tenant.logo %}
+            <img src="{{ tenant.logo.url }}">
+            {% endif %}
+          </div>
+          
+          <div class="header-content">
+              <div class="company-name">{{ tenant.name }}</div>
+              
+              <div class="company-address">
+                {{ tenant.address|linebreaksbr }}
+                {% if tenant.phone %} | Phone: {{ tenant.phone }}{% endif %}
+                {% if tenant.email %} | {{ tenant.email }}{% endif %}
+                {% if tenant.website %} | {{ tenant.website }}{% endif %}<br>
+              </div>
 
-                <div class="info-strip">
-                    <span>Invoice No: {{ sale.invoice_no }}</span>
-                    <span>Date: {{ sale.invoice_date|date:"d-m-Y" }}</span>
-                    <span>Due: {{ sale.due_date|date:"d-m-Y"|default:"N/A" }}</span>
-                </div>
+              {% if tenant.gst_number %}
+              <div class="company-gst-row">
+                  <span class="gst-item">GSTIN: <span class="gst-val">{{ tenant.gst_number }}</span></span>
+                  {% if tenant_gst_details %}
+                  <span style="color:#ccc;">|</span>
+                  <span class="gst-item">State: <span class="gst-val">{{ tenant_gst_details.state }} ({{ tenant_gst_details.code }})</span></span>
+                  <span style="color:#ccc;">|</span>
+                  <span class="gst-item">PAN: <span class="gst-val">{{ tenant_gst_details.pan }}</span></span>
+                  {% endif %}
+              </div>
+              {% endif %}
 
-                <div class="addresses">
-                    <div class="addr-box">
-                        <div class="addr-label">Billed To</div>
-                        <strong>{{ sale.party.party_name }}</strong><br>
-                        {{ sale.party.billing_address|linebreaksbr }}
-                    </div>
-                    <div class="addr-box">
-                        <div class="addr-label">Shipped To</div>
-                        <strong>{{ sale.party.party_name }}</strong><br>
-                        {{ sale.party.shipping_address|default:sale.party.billing_address|linebreaksbr }}
-                    </div>
-                </div>
-
-                <div class="items-section">
-                    <table class="items-table">
-                        <thead>
-                            <tr>
-                                <th class="col-sn">S No.</th>
-                                <th class="col-item">Item Name</th>
-                                <th class="col-hsn">HSN</th>
-                                <th class="col-qty">Qty</th>
-                                <th class="col-rate">Rate</th>
-                                <th class="col-amt">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in invoice_items %}
-                            <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td class="text-left">
-                                    {{ item.item.item_name }}
-                                    {% if item.description %}
-                                    <br><span style="font-size:8pt; color:#777;">{{ item.description }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ item.item.hsn_code|default:"-" }}</td>
-                                <td>{{ item.quantity }}</td>
-                                <td>{{ item.unit_price|floatformat:2 }}</td>
-                                <td>{{ item.amount|floatformat:2 }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    
-                    <div class="items-spacer"></div>
-
-                    <table class="subtotal-table">
-                        <tr>
-                            <td class="col-sn"></td>
-                            <td class="col-item text-left">SUBTOTAL</td>
-                            <td class="col-hsn"></td>
-                            <td class="col-qty">{{ column_totals.qty|floatformat:0 }}</td>
-                            <td class="col-rate">{{ column_totals.rate|floatformat:2 }}</td>
-                            <td class="col-amt">{{ column_totals.amount|floatformat:2 }}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="footer-wrapper">
-                    <table class="footer-layout-table">
-                        <tr>
-                            <td class="footer-left-cell">
-                                <table class="left-content-table">
-                                    <tr>
-                                        <td class="row-words">
-                                            <strong>Amount (in words):</strong><br>
-                                            <span style="font-style: italic;">{{ amount_in_words }}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="row-bank">
-                                            <div style="display: flex; justify-content: space-between;">
-                                                <div style="width: 65%;">
-                                                    <strong>Bank Details:</strong><br>
-                                                    Bank: {{ tenant.bank_name }}<br>
-                                                    A/C: {{ tenant.account_no }}<br>
-                                                    IFSC: {{ tenant.ifsc_code }}
-                                                </div>
-                                                {% if tenant.qr_code %}
-                                                <div style="width: 30%; text-align: center;">
-                                                    <img src="{{ tenant.qr_code.url }}" style="width: 55px; height: 55px;"><br>
-                                                    <span style="font-size: 7pt;">Scan to Pay</span>
-                                                </div>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="row-terms">
-                                            <strong>Terms & Conditions:</strong><br>
-                                            * Items can be returned within <strong>3–5 days</strong> subject to bill conditions.<br>
-                                            * Thanks for doing business with us!
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-
-                            <td class="footer-right-cell">
-                                <table class="summary-table">
-                                    <tr>
-                                        <td class="lbl" style="padding-top: 10px;">Subtotal</td>
-                                        <td style="padding-top: 10px;">{{ sale.subtotal|floatformat:2 }}</td>
-                                    </tr>
-                                    
-                                    {% if total_item_discount_and_overall > 0 %}
-                                    <tr>
-                                        <td class="lbl">Discount</td>
-                                        <td>- {{ total_item_discount_and_overall|floatformat:2 }}</td>
-                                    </tr>
-                                    {% endif %}
-                                    
-                                    {% if sale.additional_charges > 0 %}
-                                    <tr>
-                                        <td class="lbl">Add. Charges</td>
-                                        <td>+ {{ sale.additional_charges|floatformat:2 }}</td>
-                                    </tr>
-                                    {% endif %}
-                                    
-                                    <tr>
-                                        <td class="lbl">Round Off</td>
-                                        <td>{{ sale.round_off|default:"0.00" }}</td>
-                                    </tr>
-                                    <tr class="grand-total-row">
-                                        <td>TOTAL</td>
-                                        <td>{{ sale.total_amount|floatformat:2 }}</td>
-                                    </tr>
-                                </table>
-                                <div class="sign-area">
-                                    Authorized Signatory
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="final-strip">
-                    This is a system generated invoice. 
-                    {% if tenant.email %}Support: {{ tenant.email }}{% endif %}
-                </div>
-
-            </div>
+              <div class="tax-text">BILL OF SUPPLY</div> <!-- Changed from TAX INVOICE -->
+          </div>
         </div>
+
+        <div class="license-strip">
+          {% if tenant.fssai_number %}
+            <span class="license-item">FSSAI NO: <span class="license-val">{{ tenant.fssai_number }}</span></span>
+          {% endif %}
+        
+          {% if tenant.cin_number %}
+            <span class="license-item">CIN NO: <span class="license-val">{{ tenant.cin_number }}</span></span>
+          {% endif %}
+        </div>
+
+        <div class="info-strip">
+          <span>Bill No: {{ sale.invoice_no }}</span> <!-- Changed from Invoice No -->
+          <span>Date: {{ sale.invoice_date|date:"d-m-Y" }}</span>
+          <span>Due: {{ sale.due_date|date:"d-m-Y"|default:"N/A" }}</span>
+        </div>
+
+        <div class="addresses">
+          <div class="addr-box">
+            <div class="addr-label">Details of Receiver </div>
+            <div class="detail-row">
+                <span class="detail-label">Name:</span> 
+                <strong>{{ sale.party.party_name }}</strong>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label" style="vertical-align: top;">Address:</span>
+                <span style="display: inline-block; width: 80%; vertical-align: top;">
+                    {{ sale.party.billing_address }}
+                </span>
+            </div>
+          </div>
+          <div class="addr-box">
+            GSTIN: <strong>{{ sale.party.gst_no }}</strong>
+            <br>Place of Supply: {{ party_gst_details.state }} ({{ party_gst_details.code }})
+            <br>PAN: {{ party_gst_details.pan }}
+            <br>Phone no : {{ sale.party.mobile_num }}
+          </div>
+        </div>
+
+        <div class="items-section">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th class="col-sn">S No.</th>
+                <th class="col-item">Item Name</th>
+                <th class="col-hsn">HSN</th>
+                <th class="col-qty">Qty</th>
+                <th class="col-rate">Rate</th>
+                <th class="col-amt">Amount</th> <!-- Removed Tax column -->
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in invoice_items %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="text-left">
+                  {{ item.item.item_name }}
+                  {% if item.description %}
+                  <br><span style="font-size:8pt; color:#777;">{{ item.description }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ item.item.hsn_code|default:"-" }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.unit_price|floatformat:2 }}</td>
+                <td>{{ item.amount|floatformat:2 }}</td> <!-- Direct amount without tax -->
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <div class="items-spacer">
+            <!-- Updated vertical lines (removed tax line) -->
+            <div class="spacer-line-1"></div>
+            <div class="spacer-line-2"></div>
+            <div class="spacer-line-3"></div>
+          </div>
+
+          <table class="subtotal-table">
+            <tr>
+              <td class="col-sn"></td>
+              <td class="col-item text-left">SUBTOTAL</td>
+              <td class="col-hsn"></td>
+              <td class="col-qty">{{ column_totals.qty|floatformat:0 }}</td>
+              <td class="col-rate">{{ column_totals.rate|floatformat:2 }}</td>
+              <td class="col-amt">{{ column_totals.amount|floatformat:2 }}</td> <!-- Removed tax total -->
+            </tr>
+          </table>
+        </div>
+
+        <div class="footer-wrapper">
+          <table class="footer-layout-table">
+            <tr>
+              <td class="footer-left-cell">
+                <table class="left-content-table">
+                  <tr>
+                    <td class="row-words">
+                      <strong>Amount (in words):</strong><br>
+                      <span style="font-style: italic;">{{ amount_in_words }}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="row-bank">
+                      <div style="display: flex; justify-content: space-between;">
+                        <div style="width: 65%;">
+                          <strong>Bank Details:</strong><br>
+                          Bank: {{ tenant.bank_name }}<br>
+                          A/C: {{ tenant.account_no }}<br>
+                          IFSC: {{ tenant.ifsc_code }}
+                        </div>
+                        {% if tenant.qr_code %}
+                        <div style="width: 30%; text-align: center;">
+                          <img src="{{ tenant.qr_code.url }}" style="width: 55px; height: 55px;"><br>
+                          <span style="font-size: 7pt;">Scan to Pay</span>
+                        </div>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="row-terms">
+                      <strong>Terms & Conditions:</strong><br>
+                      * Items can be returned within <strong>3–5 days</strong> subject to bill conditions.<br>
+                      * Thanks for doing business with us!
+                    </td>
+                  </tr>
+                </table>
+              </td>
+
+              <td class="footer-right-cell">
+                <table class="summary-table">
+                  <tr>
+                    <td class="lbl" style="padding-top: 10px;">Total Amount</td> <!-- Changed from Taxable Amount -->
+                    <td style="padding-top: 10px;">{{ sale.total_amount|floatformat:2 }}</td> <!-- Show total amount directly -->
+                  </tr>
+                  <!-- Removed CGST, SGST rows -->
+                  {% if total_item_discount > 0 or sale.discount > 0 %}
+                  <tr>
+                    <td class="lbl">Discount</td>
+                    <td>- {{ sale.discount|add:total_item_discount|floatformat:2 }}</td>
+                  </tr>
+                  {% endif %}
+                  {% if sale.additional_charges > 0 %}
+                  <tr>
+                    <td class="lbl">Add. Charges</td>
+                    <td>+ {{ sale.additional_charges|floatformat:2 }}</td>
+                  </tr>
+                  {% endif %}
+                  <tr>
+                    <td class="lbl">Round Off</td>
+                    <td>{{ sale.round_off|default:"0.00" }}</td>
+                  </tr>
+                  <tr class="grand-total-row">
+                    <td>GRAND TOTAL</td> <!-- Changed from TOTAL -->
+                    <td>{{ sale.total_amount|floatformat:2 }}</td>
+                  </tr>
+                </table>
+                <div class="sign-area">
+                  {% if tenant.signature_img %}
+                  <span>Authorized Signatory</span>
+                  <img src="{{ tenant.signature_img.url }}" style="height: 40px; width: auto; object-fit: contain; margin-left: 20px;">
+                  {% else %}
+                  <div style="text-align: right; width: 100%; margin-top: 25px;">
+                    Authorized Signatory
+                  </div>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="final-strip">
+          This is a system generated bill of supply.
+          {% if tenant.email %}Support: {{ tenant.email }}{% endif %}
+        </div>
+
+      </div>
     </div>
+  </div>
 </body>
 </html>

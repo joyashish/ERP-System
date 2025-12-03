@@ -72,6 +72,13 @@ class Tenant(models.Model):
     upi_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="UPI ID")
     qr_code = models.ImageField(upload_to='tenant_qr_codes/', blank=True, null=True, verbose_name="UPI QR Code Image")
 
+    # New Optional Fields
+    fssai_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="FSSAI / License No.")
+    cin_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="Corporate Identity No. (CIN)")
+    website = models.URLField(max_length=200, blank=True, null=True, verbose_name="Website URL")
+    # Signature Upload
+    signature_img = models.ImageField(upload_to='tenant_signatures/', blank=True, null=True, verbose_name="Authorized Signature")
+
     # --- NEW SUBSCRIPTION FIELDS ---
     plan = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True, blank=True)
     subscription_status = models.CharField(
