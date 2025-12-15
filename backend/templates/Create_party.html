@@ -91,9 +91,9 @@
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 
+{% include 'footer.html' %}
+{% include 'footer_link.html' %}
 <script>
 $(document).ready(function () {
     const stateSelect = $('#state');
@@ -158,7 +158,4 @@ $(document).ready(function () {
     $("#billingAddress").on("input", function () { if ($("#sameAsBilling").is(":checked")) { $("#shippingAddress").val($(this).val()); } });
 });
 </script>
-
-{% include 'footer.html' %}
-{% include 'footer_link.html' %}
 

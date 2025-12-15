@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.find('#modalTenantName').text(tenantName);
 
         // 2. Update the "Add Account" form's action URL
-        var addAccountUrl = `/accounts/add/${tenantId}/`; // Assumes this URL pattern
+        var addAccountUrl = `/app/accounts/add/${tenantId}/`; // Assumes this URL pattern
         modal.find('#addAccountForm').attr('action', addAccountUrl);
 
         // 3. Populate the list of existing accounts
@@ -496,9 +496,9 @@ document.addEventListener('DOMContentLoaded', function () {
             accounts.forEach(function (account) {
                 
                 // URLs for edit/delete actions
-                var editUrl = `/accounts/edit/${account.id}/`; // <-- ADD THIS LINE
-                var deleteUrl = `/accounts/delete/${account.id}/`; 
-                var impersonateUrl = `/impersonate/start/${account.id}/`;
+                var editUrl = `/app/accounts/edit/${account.id}/`; // <-- ADD THIS LINE
+                var deleteUrl = `/app/accounts/delete/${account.id}/`; 
+                var impersonateUrl = `/app/impersonate/start/${account.id}/`;
                 var impersonateButton = '';
 
                 // Only show the impersonate button for non-superadmin accounts

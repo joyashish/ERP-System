@@ -1945,11 +1945,14 @@ def create_tenant(request):
 
         try:
             # Using transaction.atomic would be even better here for production
+            # 1. Create Tenant
             tenant = Tenant.objects.create(name=company_name)
             
             # The Account model's save() method handles password hashing,
             # so we pass the raw password directly.
-            Account.objects.create(
+            # 2. Create Account using create_user()
+            # This triggers your AccountManager logic and HASHES the password correctly.
+            Account.objects.create_user(
                 tenant=tenant,
                 full_name=full_name,
                 email=email,
@@ -1986,7 +1989,7 @@ def add_account(request, tenant_id):
             return redirect('superadmin_dashboard')
         
         try:
-            Account.objects.create(
+            Account.objects.create_user(
                 tenant=tenant,
                 full_name=full_name,
                 email=email,
@@ -2081,33 +2084,40 @@ def edit_tenant(request, tenant_id):
 @superadmin_required
 def edit_account(request, account_id):
     account = get_object_or_404(Account, id=account_id)
+    
     if request.method == 'POST':
         account.full_name = request.POST.get('full_name')
         account.role = request.POST.get('role')
         account.phone = request.POST.get('phone', '')
+        
+        # Handle Status (Select Box)
+        # Since your template uses a <select>, checking for string 'True' is correct.
         account.is_active = request.POST.get('is_active') == 'True'
         
         # --- Securely handle password change ---
-        # Only change the password if a new one is provided.
         new_password = request.POST.get('password')
-        if new_password:
-            # The model's save() method will hash it
-            account.password = new_password
+        
+        # Only change if user typed something (and not just spaces)
+        if new_password and new_password.strip(): 
+            # CRITICAL FIX: This hashes the password securely
+            account.set_password(new_password) 
+            # print("New Pass :",new_password)
 
         try:
             # Prevent changing the email to one that already exists
             new_email = request.POST.get('email')
-            if account.email != new_email:
-                if Account.objects.filter(email=new_email).exists():
-                     raise IntegrityError
+            if new_email and account.email != new_email:
+                if Account.objects.filter(email=new_email).exclude(id=account.id).exists():
+                     messages.error(request, f"The email '{new_email}' is already in use.")
+                     return render(request, 'edit_account.html', {'account': account})
                 account.email = new_email
             
             account.save()
             messages.success(request, f"Account '{account.full_name}' updated successfully.")
             return redirect('superadmin_dashboard')
 
-        except IntegrityError:
-            messages.error(request, f"The email '{new_email}' is already in use by another account.")
+        except Exception as e:
+            messages.error(request, f"Error updating account: {e}")
 
     context = {'account': account}
     return render(request, 'edit_account.html', context)
