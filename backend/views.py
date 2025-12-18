@@ -1322,10 +1322,12 @@ def sales_list(request):
     return render(request, 'sales_list.html', context)
 
 # Edit Sale View
+@login_required(login_url='login')  # <--- 1. Let Django handle the login check/redirect
 @never_cache
 @tenant_required
 def edit_sale_view(request, sale_id):
-    account = get_object_or_404(Account, email=request.session['email'])
+    account = request.user
+    # account = get_object_or_404(Account, email=request.session['email'])
     
     # Get the sale object with proper security check
     if account.role == 'superadmin':
